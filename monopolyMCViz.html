@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monopoly End-of-Turn Landing Probabilities</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a3a1a;
+    font-family: 'Georgia', serif;
+    color: #f0e6c8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+  }
+
+  h1 {
+    font-size: 1.9rem;
+    letter-spacing: 0.06em;
+    color: #f0e6c8;
+    text-align: center;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+    color: #a8c88a;
+    text-align: center;
+    margin-bottom: 22px;
+    letter-spacing: 0.04em;
+  }
+
+  .controls {
+    width: 100%;
+    max-width: 940px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(240,230,200,0.18);
+    border-radius: 12px;
+    padding: 16px 24px 14px;
+    margin-bottom: 24px;
+  }
+
+  .turn-display {
+    text-align: center;
+    font-size: 1.35rem;
+    font-weight: bold;
+    color: #f0e6c8;
+    margin-bottom: 10px;
+    min-height: 1.8rem;
+    letter-spacing: 0.04em;
+  }
+
+  .turn-display span {
+    color: #f5c842;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .slider-wrapper {
+    flex: 1;
+    position: relative;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #f5c842 0%, #f5c842 var(--pct, 0%), #4a6a3a var(--pct, 0%), #4a6a3a 100%);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #f5c842;
+    border: 2px solid #1a3a1a;
+    box-shadow: 0 0 6px rgba(245,200,66,0.6);
+    cursor: pointer;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #f5c842;
+    border: 2px solid #1a3a1a;
+    box-shadow: 0 0 6px rgba(245,200,66,0.6);
+    cursor: pointer;
+  }
+
+  .ticks {
+    position: relative;
+    height: 18px;
+    margin-top: 3px;
+  }
+
+  .tick {
+    position: absolute;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .tick-line {
+    width: 1px;
+    height: 5px;
+    background: #6a8a5a;
+  }
+
+  .tick-label {
+    font-size: 0.62rem;
+    color: #6a8a5a;
+    white-space: nowrap;
+  }
+
+  .board-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+
+  svg#board {
+    filter: drop-shadow(0 8px 32px rgba(0,0,0,0.7));
+  }
+
+
+  .info-note {
+    margin-top: 14px;
+    font-size: 1rem;
+    color: #d0f6be;
+    text-align: center;
+    max-width: 1400px;
+    line-height: 1.6;
+  }
+
+  .info-note strong {
+    color: #a8c88a;
+  }
+
+  .card-section {
+    width: 100%;
+    max-width: 780px;
+    margin-top: 28px;
+  }
+
+  .card-section h2 {
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    color: #f0e6c8;
+    text-align: center;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+
+  .card-tables {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .card-table-group {
+    flex: 1;
+    min-width: 300px;
+  }
+
+  .card-table-group h3 {
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: #f5c842;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .card-table-group h3 span {
+    color: #7a9a6a;
+    font-weight: normal;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  table.card-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    color: #d0c8b0;
+  }
+
+  table.card-table th {
+    text-align: left;
+    padding: 4px 8px;
+    border-bottom: 1px solid rgba(240,230,200,0.25);
+    color: #a8c88a;
+    font-weight: normal;
+    letter-spacing: 0.04em;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+  }
+
+  table.card-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  table.card-table tr.move td {
+    color: #f0e6c8;
+  }
+
+  table.card-table tr.move td:first-child::before {
+    content: '→ ';
+    color: #f5c842;
+  }
+
+  table.card-table td:last-child {
+    text-align: center;
+    color: #7a9a6a;
+  }
+</style>
+</head>
+<body>
+
+<h1>Monopoly End-of-Turn Location Probabilities</h1>
+<p class="subtitle">Probability of ending each turn on a given square, press play to watch the probabilities evolve</p>
+
+<div class="board-wrapper">
+  <svg id="board"></svg>
+</div>
+
+<p class="info-note">
+  Monopoly location is modelable by rolling two dice and moving their sum forward (binomial distribution). Some locations (Chance and Community Chest and Go-to-Jail) move the player around, and rolling doubles grants the player another turn (and three doubles in a row sends the player to "In Jail").  
+  <br><br> WHY ISN'T MONOPOLY LOCATION A PURE MARKOV CHAIN? There is only one player decision in monopoly that prevents player location from being modled with a strict MC: The decision to remain in Jail as long as possible, or to pay and get out as quickly as possible.
+   When you're "In Jail" (Not "Just Visiting"), you can either Pay 50 dollars / Use a Get out of Jail free card to get out immediatley, or you can try and roll doubles and escape (which 5/6ths of the time results in one staying in jail another turn). 
+   After 3 attempts and failing each time (occuring (5/6)^3=57.87% of the time), the player must pay to escape anyway.
+   <br>This pseudo-markov chain model assumes two dominant strategies: The first 10 turns of the game, the player ALWAYS leaves Jail on the first turn so they can pursue purchasing unowned properties as quickly as possible.
+   AFTER the first 10 turns the player stays (tactical hiding?) in Jail as long as possible, so they can avoid paying rent on opponents propoerties while collecting rent on their own. 
+   Notice the jump in the Jail Location probability after turn 10, as this change in player strategy immediatley takes effect. 
+  
+</p>
+
+<div class="card-section">
+  <h2>Movement Cards</h2>
+  <div class="card-tables">
+
+    <div class="card-table-group">
+      <h3>Chance <span>(16 cards &mdash; 10 move you)</span></h3>
+      <table class="card-table">
+        <thead><tr><th>Card</th><th>Destination</th><th>#</th></tr></thead>
+        <tbody>
+          <tr class="move"><td>Advance to Go</td><td>Sq 0</td><td>1</td></tr>
+          <tr class="move"><td>Advance to Boardwalk</td><td>Sq 39</td><td>1</td></tr>
+          <tr class="move"><td>Advance to Illinois Ave</td><td>Sq 24</td><td>1</td></tr>
+          <tr class="move"><td>Advance to St. Charles Place</td><td>Sq 11</td><td>1</td></tr>
+          <tr class="move"><td>Take a ride to Reading Railroad</td><td>Sq 5</td><td>1</td></tr>
+          <tr class="move"><td>Advance to nearest Railroad (pay 2&times;)</td><td>Sq 5, 15, 25, or 35</td><td>2</td></tr>
+          <tr class="move"><td>Advance to nearest Utility (pay 10&times; roll)</td><td>Sq 12 or 28</td><td>1</td></tr>
+          <tr class="move"><td>Go Back 3 Spaces</td><td>Current minus 3</td><td>1</td></tr>
+          <tr class="move"><td>Go to Jail</td><td>Jail (sq 10)</td><td>1</td></tr>
+          <tr class="nomove"><td>Get Out of Jail Free</td><td>Stay, keep card</td><td>1</td></tr>
+          <tr class="nomove"><td>Pay or collect money</td><td>Stay</td><td>5</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-table-group">
+      <h3>Community Chest <span>(16 cards &mdash; 2 move you)</span></h3>
+      <table class="card-table">
+        <thead><tr><th>Card</th><th>Destination</th><th>#</th></tr></thead>
+        <tbody>
+          <tr class="move"><td>Advance to Go</td><td>Sq 0</td><td>1</td></tr>
+          <tr class="move"><td>Go to Jail</td><td>Jail (sq 10)</td><td>1</td></tr>
+          <tr class="nomove"><td>Get Out of Jail Free</td><td>Stay, keep card</td><td>1</td></tr>
+          <tr class="nomove"><td>Pay or collect money</td><td>Stay</td><td>13</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// ─── Board Data ───────────────────────────────────────────────────────────────
+
+const SQUARES = [
+  { name: "Go",               type: "corner",   color: "#d4edaa" },   // 0
+  { name: "Mediterranean",    type: "purple",   color: "#9b3093" },   // 1
+  { name: "Community Chest",  type: "cc",       color: "#1a3a8c" },   // 2
+  { name: "Baltic Ave",       type: "purple",   color: "#9b3093" },   // 3
+  { name: "Income Tax",       type: "tax",      color: "#aaa" },      // 4
+  { name: "Reading RR",       type: "railroad", color: "#222" },      // 5
+  { name: "Oriental Ave",     type: "lblue",    color: "#aee1f5" },   // 6
+  { name: "Chance",           type: "chance",   color: "#f5c842" },   // 7
+  { name: "Vermont Ave",      type: "lblue",    color: "#aee1f5" },   // 8
+  { name: "Connecticut Ave",  type: "lblue",    color: "#aee1f5" },   // 9
+  { name: "Jail / Visiting",  type: "corner",   color: "#f5c06a" },   // 10
+  { name: "St. Charles Pl",   type: "pink",     color: "#e87daa" },   // 11
+  { name: "Electric Co",      type: "utility",  color: "#e8e0c8" },   // 12
+  { name: "States Ave",       type: "pink",     color: "#e87daa" },   // 13
+  { name: "Virginia Ave",     type: "pink",     color: "#e87daa" },   // 14
+  { name: "Pennsylvania RR",  type: "railroad", color: "#222" },      // 15
+  { name: "St. James Pl",     type: "orange",   color: "#f5932a" },   // 16
+  { name: "Community Chest",  type: "cc",       color: "#1a3a8c" },   // 17
+  { name: "Tennessee Ave",    type: "orange",   color: "#f5932a" },   // 18
+  { name: "New York Ave",     type: "orange",   color: "#f5932a" },   // 19
+  { name: "Free Parking",     type: "corner",   color: "#d4edaa" },   // 20
+  { name: "Kentucky Ave",     type: "red",      color: "#e83030" },   // 21
+  { name: "Chance",           type: "chance",   color: "#f5c842" },   // 22
+  { name: "Indiana Ave",      type: "red",      color: "#e83030" },   // 23
+  { name: "Illinois Ave",     type: "red",      color: "#e83030" },   // 24
+  { name: "B&O Railroad",     type: "railroad", color: "#222" },      // 25
+  { name: "Atlantic Ave",     type: "yellow",   color: "#f5e030" },   // 26
+  { name: "Ventnor Ave",      type: "yellow",   color: "#f5e030" },   // 27
+  { name: "Water Works",      type: "utility",  color: "#e8e0c8" },   // 28
+  { name: "Marvin Gardens",   type: "yellow",   color: "#f5e030" },   // 29
+  { name: "Go To Jail",       type: "corner",   color: "#f5c06a" },   // 30
+  { name: "Pacific Ave",      type: "green",    color: "#2cb55a" },   // 31
+  { name: "N. Carolina Ave",  type: "green",    color: "#2cb55a" },   // 32
+  { name: "Community Chest",  type: "cc",       color: "#1a3a8c" },   // 33
+  { name: "Pennsylvania Ave", type: "green",    color: "#2cb55a" },   // 34
+  { name: "Short Line RR",    type: "railroad", color: "#222" },      // 35
+  { name: "Chance",           type: "chance",   color: "#f5c842" },   // 36
+  { name: "Park Place",       type: "dblue",    color: "#3060d0" },   // 37
+  { name: "Luxury Tax",       type: "tax",      color: "#aaa" },      // 38
+  { name: "Boardwalk",        type: "dblue",    color: "#3060d0" },   // 39
+];
+
+// ─── Markov Chain: Complete Turn Model ────────────────────────────────────────
+//
+// State encoding for single-roll transitions (T1):
+//   0-39:   (square, doubles_count=0) — "terminal" turn-end states
+//   40-79:  (square, doubles_count=1) — transient mid-turn states
+//   80-119: (square, doubles_count=2) — transient mid-turn states
+//   120:    in jail, turn 1 (just arrived) — terminal
+//   121:    in jail, turn 2               — terminal
+//   122:    in jail, turn 3 (must leave)  — terminal
+//
+// For the visualization we need T_full: complete-turn transitions between
+// terminal states only (indices 0-42 in the 43-element terminal basis).
+// T_full = T_TT + T_TR*(I + T_RR)*T_RT   (valid because T_RR^2 = 0)
+
+const N_SQ   = 40;
+const N_T1   = 123;   // single-roll state space
+const JAIL   = 10;
+const GTJ    = 30;    // Go To Jail square
+
+const CHANCE_SQ = new Set([7, 22, 36]);
+const CC_SQ     = new Set([2, 17, 33]);
+
+// Terminal states in T1 space (43 states)
+const TERM_STATES = [...Array(40).keys(), 120, 121, 122];
+const TRANS_STATES = [...Array(80).keys()].map(i => i + 40); // D1 + D2
+const N_TERM  = TERM_STATES.length;  // 43
+const N_TRANS = TRANS_STATES.length; // 80
+
+const termIdx  = {};
+TERM_STATES.forEach((s, i) => { termIdx[s] = i; });
+const transIdx = {};
+TRANS_STATES.forEach((s, i) => { transIdx[s] = i; });
+
+function nearestRailroad(pos) {
+  for (const rr of [5, 15, 25, 35]) if (rr > pos) return rr;
+  return 5;
+}
+function nearestUtility(pos) {
+  for (const ut of [12, 28]) if (ut > pos) return ut;
+  return 12;
+}
+
+// Returns [{sq, prob}] — sq is in T1 state space (0-122)
+function squareOutcomes(sq, dc) {
+  if (sq === GTJ) return [{ sq: 120, prob: 1 }];
+  if (CHANCE_SQ.has(sq)) return chanceOutcomes(sq, dc);
+  if (CC_SQ.has(sq))     return ccOutcomes(sq, dc);
+  return [{ sq: sq + dc * 40, prob: 1 }];
+}
+
+function ccOutcomes(sq, dc) {
+  return [
+    { sq: 0   + dc * 40, prob: 1 / 16 },  // Advance to Go
+    { sq: 120,           prob: 1 / 16 },  // Go to Jail (ends turn)
+    { sq: sq  + dc * 40, prob: 14 / 16 }, // Stay
+  ];
+}
+
+function chanceOutcomes(sq, dc) {
+  const back3 = (sq - 3 + 40) % 40;
+  let outcomes = [
+    { sq: 0   + dc * 40,               prob: 1 / 16 },   // Advance to Go
+    { sq: 39  + dc * 40,               prob: 1 / 16 },   // Boardwalk
+    { sq: 24  + dc * 40,               prob: 1 / 16 },   // Illinois Ave
+    { sq: 11  + dc * 40,               prob: 1 / 16 },   // St. Charles Place
+    { sq: 120,                          prob: 1 / 16 },   // Go to Jail
+    { sq: 5   + dc * 40,               prob: 1 / 16 },   // Reading RR
+    { sq: nearestRailroad(sq) + dc * 40, prob: 2 / 16 }, // nearest RR (2 cards)
+    { sq: nearestUtility(sq)  + dc * 40, prob: 1 / 16 }, // nearest Utility
+    // Go Back 3 (handled below)
+    { sq: sq  + dc * 40,               prob: 6 / 16 },   // no movement
+  ];
+
+  // "Go Back 3" might land on a special square — recurse
+  const back3Out = squareOutcomes(back3, dc);
+  for (const bo of back3Out) {
+    outcomes.push({ sq: bo.sq, prob: (1 / 16) * bo.prob });
+  }
+
+  // Merge duplicates
+  const merged = {};
+  for (const o of outcomes) merged[o.sq] = (merged[o.sq] || 0) + o.prob;
+  return Object.entries(merged).map(([s, p]) => ({ sq: +s, prob: p }));
+}
+
+// Build sparse single-roll transition matrix T1.
+// jailStrategy: 'pay'  = pay immediately every turn in jail (early-game: buy properties ASAP)
+//               'stay' = try for doubles, forced exit on turn 3 (late-game: avoid rent)
+function buildT1(jailStrategy) {
+  const T1 = Array.from({ length: N_T1 }, () => []);
+  const add = (from, to, p) => { if (p > 1e-15) T1[from].push({ to, p }); };
+
+  // Regular states 0-119
+  for (let state = 0; state < 120; state++) {
+    const pos     = state % 40;
+    const doubles = Math.floor(state / 40);
+    for (let d1 = 1; d1 <= 6; d1++) {
+      for (let d2 = 1; d2 <= 6; d2++) {
+        const isDb = d1 === d2;
+        const roll = d1 + d2;
+        if (isDb && doubles === 2) {
+          add(state, 120, 1 / 36);  // 3rd double → jail
+        } else {
+          const newPos = (pos + roll) % 40;
+          const newDc  = isDb ? doubles + 1 : 0;
+          for (const { sq: to, prob } of squareOutcomes(newPos, newDc)) {
+            add(state, to, prob / 36);
+          }
+        }
+      }
+    }
+  }
+
+  if (jailStrategy === 'pay') {
+    // Pay $50 before rolling — grants full doubles privilege (standard rules).
+    // J0/J1/J2 all use the same "normal roll from square 10" logic.
+    for (const jailState of [120, 121, 122]) {
+      for (let d1 = 1; d1 <= 6; d1++) {
+        for (let d2 = 1; d2 <= 6; d2++) {
+          const isDb = d1 === d2;
+          const roll = d1 + d2;
+          const newPos = (JAIL + roll) % 40;
+          const newDc  = isDb ? 1 : 0;
+          for (const { sq: to, prob } of squareOutcomes(newPos, newDc)) {
+            add(jailState, to, prob / 36);
+          }
+        }
+      }
+    }
+  } else {
+    // Stay strategy: try for doubles each turn, pay on turn 3.
+    // Jail state 120 (1st turn in jail)
+    for (let d1 = 1; d1 <= 6; d1++) {
+      for (let d2 = 1; d2 <= 6; d2++) {
+        const isDb = d1 === d2;
+        const roll = d1 + d2;
+        if (isDb) {
+          const newPos = (JAIL + roll) % 40;
+          for (const { sq: to, prob } of squareOutcomes(newPos, 0)) add(120, to, prob / 36);
+        } else {
+          add(120, 121, 1 / 36);
+        }
+      }
+    }
+    // Jail state 121 (2nd turn)
+    for (let d1 = 1; d1 <= 6; d1++) {
+      for (let d2 = 1; d2 <= 6; d2++) {
+        const isDb = d1 === d2;
+        const roll = d1 + d2;
+        if (isDb) {
+          const newPos = (JAIL + roll) % 40;
+          for (const { sq: to, prob } of squareOutcomes(newPos, 0)) add(121, to, prob / 36);
+        } else {
+          add(121, 122, 1 / 36);
+        }
+      }
+    }
+    // Jail state 122 (3rd turn — must leave, no re-roll even on doubles)
+    for (let d1 = 1; d1 <= 6; d1++) {
+      for (let d2 = 1; d2 <= 6; d2++) {
+        const newPos = (JAIL + d1 + d2) % 40;
+        for (const { sq: to, prob } of squareOutcomes(newPos, 0)) add(122, to, prob / 36);
+      }
+    }
+  }
+
+  return T1;
+}
+
+// Dense matrix multiply: C = A (nA×nK) * B (nK×nB)
+function matMul(A, B, nA, nK, nB) {
+  const C = Array.from({ length: nA }, () => new Float64Array(nB));
+  for (let i = 0; i < nA; i++)
+    for (let k = 0; k < nK; k++) {
+      const aik = A[i][k];
+      if (aik === 0) continue;
+      for (let j = 0; j < nB; j++) C[i][j] += aik * B[k][j];
+    }
+  return C;
+}
+
+// Build complete-turn matrix (43×43) from T1
+// T_full = T_TT + T_TR*(I + T_RR)*T_RT   (T_RR^2 = 0 since D1→D2→nothing transient)
+function buildTfull(T1) {
+  // Dense sub-matrices
+  const T_TT = Array.from({ length: N_TERM  }, () => new Float64Array(N_TERM));
+  const T_TR = Array.from({ length: N_TERM  }, () => new Float64Array(N_TRANS));
+  const T_RT = Array.from({ length: N_TRANS }, () => new Float64Array(N_TERM));
+  const T_RR = Array.from({ length: N_TRANS }, () => new Float64Array(N_TRANS));
+
+  for (let ti = 0; ti < N_TERM; ti++) {
+    for (const { to, p } of T1[TERM_STATES[ti]]) {
+      if (termIdx[to]  !== undefined) T_TT[ti][termIdx[to]]  += p;
+      if (transIdx[to] !== undefined) T_TR[ti][transIdx[to]] += p;
+    }
+  }
+  for (let ri = 0; ri < N_TRANS; ri++) {
+    for (const { to, p } of T1[TRANS_STATES[ri]]) {
+      if (termIdx[to]  !== undefined) T_RT[ri][termIdx[to]]  += p;
+      if (transIdx[to] !== undefined) T_RR[ri][transIdx[to]] += p;
+    }
+  }
+
+  // T_full = T_TT + T_TR*T_RT + T_TR*T_RR*T_RT
+  const T_TR_RT    = matMul(T_TR, T_RT,    N_TERM, N_TRANS, N_TERM);
+  const T_RR_RT    = matMul(T_RR, T_RT,    N_TRANS, N_TRANS, N_TERM);
+  const T_TR_RR_RT = matMul(T_TR, T_RR_RT, N_TERM, N_TRANS, N_TERM);
+
+  return Array.from({ length: N_TERM }, (_, i) => {
+    const row = new Float64Array(N_TERM);
+    for (let j = 0; j < N_TERM; j++)
+      row[j] = T_TT[i][j] + T_TR_RT[i][j] + T_TR_RR_RT[i][j];
+    return row;
+  });
+}
+
+function termVecToSquareProbs(sv) {
+  const sp = new Float64Array(N_SQ);
+  for (let i = 0; i < N_TERM; i++) {
+    const s = TERM_STATES[i];
+    sp[s < 40 ? s : JAIL] += sv[i];
+  }
+  return sp;
+}
+
+function termVecToJailBreakdown(sv) {
+  return {
+    visiting: sv[termIdx[10]],
+    inJail:   sv[termIdx[120]] + sv[termIdx[121]] + sv[termIdx[122]]
+  };
+}
+
+function applyTfull(Tf, sv) {
+  const next = new Float64Array(N_TERM);
+  for (let i = 0; i < N_TERM; i++) {
+    if (sv[i] < 1e-15) continue;
+    for (let j = 0; j < N_TERM; j++) next[j] += sv[i] * Tf[i][j];
+  }
+  return next;
+}
+
+// ── Compute all data up front ─────────────────────────────────────────────────
+
+// Two strategies: pay ASAP (turns 1-10, buying phase) vs stay in jail (turns 11+, rent phase)
+const Tfull_pay  = buildTfull(buildT1('pay'));
+const Tfull_stay = buildTfull(buildT1('stay'));
+
+function computeAllTurns(maxTurn) {
+  let sv = new Float64Array(N_TERM);
+  sv[0] = 1.0;   // start on Go
+  const probs      = [termVecToSquareProbs(sv)];
+  const jailBreaks = [termVecToJailBreakdown(sv)];
+  for (let t = 1; t <= maxTurn; t++) {
+    sv = applyTfull(t <= 10 ? Tfull_pay : Tfull_stay, sv);
+    probs.push(termVecToSquareProbs(sv));
+    jailBreaks.push(termVecToJailBreakdown(sv));
+  }
+  return { probs, jailBreaks };
+}
+
+function computeSteadyState() {
+  let sv = new Float64Array(N_TERM).fill(1 / N_TERM);
+  for (let i = 0; i < 8000; i++) sv = applyTfull(Tfull_stay, sv);
+  return { probs: termVecToSquareProbs(sv), jailBreak: termVecToJailBreakdown(sv) };
+}
+
+const { probs: allTurnProbs, jailBreaks: allJailBreaks } = computeAllTurns(20);
+const { probs: steadyStateProbs, jailBreak: steadyJailBreak } = computeSteadyState();
+
+// ─── D3 Visualization ────────────────────────────────────────────────────────
+
+const BOARD    = 680;
+const CORNER   = 82;
+const SQ       = (BOARD - 2 * CORNER) / 9;
+const BAR_MAX  = 150;   // px — bar height when prob = PROB_REF
+const PROB_REF = 0.10;  // 10% maps to full bar height
+const MARGIN   = 180;   // space around board for outward bars + labels
+const SVG_SIZE = BOARD + 2 * MARGIN;
+
+// Board orientation — clockwise from Go (bottom-left):
+//   Go (0) BL → left col up (1-9) → Jail (10) TL → top row right (11-19) →
+//   Free Parking (20) TR → right col down (21-29) → Go To Jail (30) BR →
+//   bottom row left (31-39) → back to Go
+// All coordinates include the MARGIN offset so bars extend into margin cleanly.
+
+function squareRect(i) {
+  const [B, C, S, M] = [BOARD, CORNER, SQ, MARGIN];
+  if (i === 0)  return { x: M,     y: M+B-C, w: C, h: C, side: 'bl' };
+  if (i === 10) return { x: M,     y: M,     w: C, h: C, side: 'tl' };
+  if (i === 20) return { x: M+B-C, y: M,     w: C, h: C, side: 'tr' };
+  if (i === 30) return { x: M+B-C, y: M+B-C, w: C, h: C, side: 'br' };
+  if (i < 10)   return { x: M,           y: M+B-C-i*S,    w: C, h: S, side: 'left'   };
+  if (i < 20)   return { x: M+C+(i-11)*S, y: M,           w: S, h: C, side: 'top'    };
+  if (i < 30)   return { x: M+B-C,        y: M+C+(i-21)*S, w: C, h: S, side: 'right'  };
+  return              { x: M+B-C-(i-30)*S, y: M+B-C,      w: S, h: C, side: 'bottom' };
+}
+
+// Bars grow OUTWARD from each square edge, away from the board center.
+// Corners: top corners extend UP, bottom corners extend DOWN.
+function barRect(i, prob) {
+  const r = squareRect(i);
+  const h = Math.min(BAR_MAX, (prob / PROB_REF) * BAR_MAX);
+  const { side } = r;
+  if (side === 'left' || side === 'bl' || side === 'tl') return { x: r.x - h,      y: r.y, w: h,   h: r.h };
+  if (side === 'top')                                    return { x: r.x,           y: r.y - h, w: r.w, h };
+  if (side === 'right' || side === 'tr' || side === 'br') return { x: r.x + r.w,   y: r.y, w: h,   h: r.h };
+  /* bottom */                                           return { x: r.x,           y: r.y - h, w: r.w, h };
+}
+
+// Center text in the non-strip portion of each square
+function labelTransform(i) {
+  const r  = squareRect(i);
+  const sq = SQUARES[i];
+  if (sq.type === 'corner') return `translate(${r.x + r.w / 2},${r.y + r.h / 2})`;
+  const { side } = r;
+  let cx, cy;
+  if      (side === 'left')   { cx = r.x + (r.w - STRIP) / 2;         cy = r.y + r.h / 2; }
+  else if (side === 'top')    { cx = r.x + r.w / 2;                    cy = r.y + (r.h - STRIP) / 2; }
+  else if (side === 'right')  { cx = r.x + STRIP + (r.w - STRIP) / 2; cy = r.y + r.h / 2; }
+  else                        { cx = r.x + r.w / 2;                    cy = r.y + STRIP + (r.h - STRIP) / 2; }
+  return `translate(${cx},${cy})`;
+}
+
+// Probability label at the outward tip of each bar
+function probLabelPos(i, prob) {
+  const r  = squareRect(i);
+  const h  = Math.min(BAR_MAX, (prob / PROB_REF) * BAR_MAX);
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+  const { side } = r;
+  if (side === 'left' || side === 'bl' || side === 'tl') return { x: r.x - h - 5,       y: cy };
+  if (side === 'top')                                    return { x: cx,                 y: r.y - h - 5 };
+  if (side === 'right' || side === 'tr' || side === 'br') return { x: r.x + r.w + h + 5, y: cy };
+  /* bottom */                                           return { x: cx,                 y: r.y - h - 5 };
+}
+
+// ── Render board ──────────────────────────────────────────────────────────────
+
+const svg = d3.select('#board').attr('width', SVG_SIZE).attr('height', SVG_SIZE);
+
+// Checkerboard pattern for Tax squares
+const defs = svg.append('defs');
+const pat  = defs.append('pattern')
+  .attr('id','checker').attr('width',6).attr('height',6)
+  .attr('patternUnits','userSpaceOnUse');
+pat.append('rect').attr('width',3).attr('height',3).attr('fill','#aaa');
+pat.append('rect').attr('x',3).attr('y',3).attr('width',3).attr('height',3).attr('fill','#aaa');
+pat.append('rect').attr('x',3).attr('y',0).attr('width',3).attr('height',3).attr('fill','#d8d8d8');
+pat.append('rect').attr('x',0).attr('y',3).attr('width',3).attr('height',3).attr('fill','#d8d8d8');
+
+// Board background (cream)
+svg.append('rect').attr('x',MARGIN).attr('y',MARGIN)
+   .attr('width',BOARD).attr('height',BOARD)
+   .attr('fill','#f0e8cc').attr('rx',4);
+
+// Green felt interior
+svg.append('rect').attr('x',MARGIN+CORNER).attr('y',MARGIN+CORNER)
+   .attr('width',BOARD-2*CORNER).attr('height',BOARD-2*CORNER)
+   .attr('fill','#2d7a3a').attr('rx',2);
+
+// Center label
+const ctr = MARGIN + BOARD / 2;
+svg.append('text').attr('x',ctr).attr('y',ctr-30)
+   .attr('text-anchor','middle').attr('font-size','30px').attr('font-weight','bold')
+   .attr('fill','#d4edaa').attr('font-family','Georgia, serif').attr('letter-spacing','0.08em')
+   .text('MONOPOLY');
+svg.append('text').attr('x',ctr).attr('y',ctr-8)
+   .attr('text-anchor','middle').attr('font-size','14px')
+   .attr('fill','#a8c88a').attr('font-family','Georgia, serif')
+   .text('End-of-Turn Location Probabilities');
+
+// Turn display text embedded via foreignObject (no slider inside — pure SVG slider below)
+svg.append('foreignObject')
+  .attr('x', ctr - 210).attr('y', ctr - 158)
+  .attr('width', 420).attr('height', 36)
+  .append('xhtml:div')
+  .html(`<div id="turnDisplay" style="
+      text-align:center;font-family:Georgia,serif;font-size:1rem;font-weight:bold;
+      color:#ffffff;letter-spacing:0.05em;
+      text-shadow:0 1px 6px rgba(0,0,0,0.9),0 0 12px rgba(0,0,0,0.6)">
+    Turn <span style="color:#f5c842">0</span> &mdash; Start (all players on Go)
+  </div>`);
+
+// Pure SVG slider — no HTML range input, so thumb position is always pixel-perfect
+const SL_X1 = MARGIN + CORNER + 44;
+const SL_X2 = MARGIN + BOARD - CORNER - 44;
+const SL_Y  = ctr - 112;
+const sliderScale = d3.scaleLinear().domain([0, 21]).range([SL_X1, SL_X2]).clamp(true);
+let svgVal = 0;
+
+const sliderG = svg.append('g');
+
+sliderG.append('rect')                               // track background
+  .attr('x', SL_X1).attr('y', SL_Y - 3)
+  .attr('width', SL_X2 - SL_X1).attr('height', 6)
+  .attr('rx', 3).attr('fill', '#1a4a22');
+
+const sliderFill = sliderG.append('rect')            // gold filled portion
+  .attr('x', SL_X1).attr('y', SL_Y - 3)
+  .attr('width', 0).attr('height', 6)
+  .attr('rx', 3).attr('fill', '#f5c842');
+
+const sliderThumb = sliderG.append('circle')         // thumb
+  .attr('cx', SL_X1).attr('cy', SL_Y).attr('r', 10)
+  .attr('fill', '#f5c842').attr('stroke', '#1a3a1a').attr('stroke-width', 2)
+  .style('filter', 'drop-shadow(0 0 5px rgba(245,200,66,0.8))')
+  .style('cursor', 'pointer');
+
+[{v:0,l:'0'},{v:5,l:'5'},{v:10,l:'10'},{v:15,l:'15'},{v:20,l:'20'},{v:21,l:'∞'}]
+  .forEach(({v, l}) => {
+    const x = sliderScale(v);
+    sliderG.append('line')
+      .attr('x1',x).attr('x2',x).attr('y1',SL_Y+4).attr('y2',SL_Y+11)
+      .attr('stroke','#6a9a6a').attr('stroke-width',1);
+    sliderG.append('text')
+      .attr('x',x).attr('y',SL_Y+22).attr('text-anchor','middle')
+      .attr('font-size','9px').attr('fill','#6a9a6a')
+      .attr('font-family','Georgia, serif').text(l);
+  });
+
+// Invisible hit rect — catches clicks and drags anywhere on the track
+const sliderHit = sliderG.append('rect')
+  .attr('x', SL_X1 - 12).attr('y', SL_Y - 12)
+  .attr('width', SL_X2 - SL_X1 + 24).attr('height', 24)
+  .attr('fill', 'transparent').style('cursor', 'pointer');
+
+// Play / Pause button — centered above the turn display
+const BTN_CX = ctr, BTN_CY = ctr - 188, BTN_R = 16;
+const playBtnG = svg.append('g').style('cursor', 'pointer');
+playBtnG.append('circle')
+  .attr('cx', BTN_CX).attr('cy', BTN_CY).attr('r', BTN_R)
+  .attr('fill', '#f5c842').attr('stroke', '#1a3a1a').attr('stroke-width', 2)
+  .style('filter', 'drop-shadow(0 0 5px rgba(245,200,66,0.6))');
+const playIcon = playBtnG.append('polygon')            // ▶ triangle (visible when paused)
+  .attr('points', `${BTN_CX-4},${BTN_CY-7} ${BTN_CX+9},${BTN_CY} ${BTN_CX-4},${BTN_CY+7}`)
+  .attr('fill', '#1a3a1a');
+const pauseIcon = playBtnG.append('g').attr('visibility', 'hidden'); // ⏸ bars (visible when playing)
+pauseIcon.append('rect').attr('x', BTN_CX-7).attr('y', BTN_CY-6).attr('width', 5).attr('height', 12).attr('fill', '#1a3a1a');
+pauseIcon.append('rect').attr('x', BTN_CX+2).attr('y', BTN_CY-6).attr('width', 5).attr('height', 12).attr('fill', '#1a3a1a');
+
+// Draw squares
+const squareG = svg.append('g').attr('class','squares');
+const STRIP = 14;
+
+for (let i = 0; i < 40; i++) {
+  const r  = squareRect(i);
+  const sq = SQUARES[i];
+  const g  = squareG.append('g').attr('class', `sq sq-${i}`);
+
+  // Square background
+  g.append('rect').attr('x',r.x).attr('y',r.y).attr('width',r.w).attr('height',r.h)
+   .attr('fill', sq.type === 'corner' ? sq.color : '#f8f0d8')
+   .attr('stroke','#b8a080').attr('stroke-width', 0.8);
+
+  // Color strip — interior-facing edge for each side
+  if (sq.type !== 'corner') {
+    const { side } = r;
+    let sr;
+    // Strip on the inner edge (facing board center)
+    if (side === 'left')   sr = { x: r.x+r.w-STRIP, y: r.y,           w: STRIP, h: r.h   }; // right edge
+    if (side === 'top')    sr = { x: r.x,            y: r.y+r.h-STRIP, w: r.w,   h: STRIP }; // bottom edge
+    if (side === 'right')  sr = { x: r.x,            y: r.y,           w: STRIP, h: r.h   }; // left edge
+    if (side === 'bottom') sr = { x: r.x,            y: r.y,           w: r.w,   h: STRIP }; // top edge
+    if (sr) g.append('rect')
+      .attr('x',sr.x).attr('y',sr.y).attr('width',sr.w).attr('height',sr.h)
+      .attr('fill', sq.type === 'tax' ? 'url(#checker)' : sq.color).attr('stroke','#b8a080').attr('stroke-width',0.5);
+  }
+
+  // Square name — always horizontal, always bold
+  const nameEl = g.append('text')
+    .attr('transform', labelTransform(i))
+    .attr('text-anchor','middle').attr('dominant-baseline','central')
+    .attr('fill', '#2a1a08')
+    .attr('font-family','Georgia, serif').attr('font-size','9px')
+    .attr('font-weight','bold');
+
+  // Split name into two lines — at 10px all multi-word names need wrapping
+  const words = sq.name.split(' ');
+  if (words.length === 1) {
+    nameEl.text(sq.name);
+  } else {
+    const mid = Math.ceil(words.length / 2);
+    nameEl.append('tspan').attr('x',0).attr('dy','-0.55em').text(words.slice(0, mid).join(' '));
+    nameEl.append('tspan').attr('x',0).attr('dy','1.1em').text(words.slice(mid).join(' '));
+  }
+
+  // Square index (tiny, outer corner)
+  const { side } = r;
+  const ix = side === 'left'   ? { x: r.x+4,       y: r.y+r.h-4 }
+           : side === 'top'    ? { x: r.x+r.w-4,    y: r.y+5     }
+           : side === 'right'  ? { x: r.x+r.w-4,    y: r.y+r.h-4 }
+           : side === 'bottom' ? { x: r.x+r.w-4,    y: r.y+r.h-4 }
+           : { x: r.x+r.w-6, y: r.y+r.h-5 };
+  g.append('text').attr('x',ix.x).attr('y',ix.y)
+   .attr('text-anchor','middle').attr('font-size','4.5px').attr('fill','#8a7a5a').attr('opacity',0.7)
+   .text(i);
+}
+
+// ── Probability bars & labels ─────────────────────────────────────────────────
+
+const barGroup   = svg.append('g').attr('class','bars');
+const labelGroup = svg.append('g').attr('class','prob-labels');
+
+const barEls   = [];
+const shadowEls = [];
+const labelEls = [];
+
+for (let i = 0; i < 40; i++) {
+  const sq  = SQUARES[i];
+  const col = sq.type === 'railroad' ? '#000' : sq.type === 'tax' ? 'url(#checker)' : sq.color;
+  const br  = barRect(i, 0);
+  const lp  = probLabelPos(i, 0);
+
+  const sh = barGroup.append('rect')
+    .attr('x', br.x+2).attr('y', br.y+2).attr('width', br.w).attr('height', br.h)
+    .attr('fill','rgba(0,0,0,0.25)').attr('rx',2).attr('opacity',0);
+  shadowEls.push(sh);
+
+  const bar = barGroup.append('rect')
+    .attr('x', br.x).attr('y', br.y).attr('width', br.w).attr('height', br.h)
+    .attr('fill', col).attr('stroke','rgba(0,0,0,0.2)').attr('stroke-width',0.5)
+    .attr('rx',2).attr('opacity',0);
+  barEls.push(bar);
+
+  const lbl = labelGroup.append('text')
+    .attr('x', lp.x).attr('y', lp.y)
+    .attr('text-anchor','middle').attr('dominant-baseline','middle')
+    .attr('font-size','11.5px').attr('font-weight','bold')
+    .attr('font-family','Georgia, serif').attr('fill','#fff')
+    .attr('stroke','rgba(0,0,0,0.75)').attr('stroke-width','2.5px')
+    .attr('paint-order','stroke').attr('opacity',0)
+    .text('0.0%');
+  labelEls.push(lbl);
+}
+
+// ── Square 10 split bar (Just Visiting = orange, In Jail = red) ───────────────
+const mkLbl = () => labelGroup.append('text')
+  .attr('text-anchor','middle').attr('dominant-baseline','middle')
+  .attr('font-size','11.5px').attr('font-weight','bold')
+  .attr('font-family','Georgia, serif').attr('fill','#fff')
+  .attr('stroke','rgba(0,0,0,0.75)').attr('stroke-width','2.5px')
+  .attr('paint-order','stroke').attr('opacity',0);
+
+const jailShVisEl  = barGroup.append('rect').attr('rx',2).attr('fill','rgba(0,0,0,0.25)').attr('opacity',0);
+const jailShInEl   = barGroup.append('rect').attr('rx',2).attr('fill','rgba(0,0,0,0.25)').attr('opacity',0);
+const jailVisBarEl = barGroup.append('rect').attr('rx',2).attr('fill','#f5c06a')
+  .attr('stroke','rgba(0,0,0,0.2)').attr('stroke-width',0.5).attr('opacity',0);
+const jailInBarEl  = barGroup.append('rect').attr('rx',2).attr('fill','#c44040')
+  .attr('stroke','rgba(0,0,0,0.2)').attr('stroke-width',0.5).attr('opacity',0);
+const jailVisLblEl = mkLbl();
+const jailInLblEl  = mkLbl();
+
+// ── Update ────────────────────────────────────────────────────────────────────
+
+function getProbs(idx) {
+  return idx === 21 ? steadyStateProbs : allTurnProbs[idx];
+}
+
+function getJailBreak(idx) {
+  return idx === 21 ? steadyJailBreak : allJailBreaks[idx];
+}
+
+function update(idx) {
+  const probs = getProbs(idx);
+
+  for (let i = 0; i < 40; i++) {
+    if (i === 10) continue;  // handled separately below
+    const p   = probs[i];
+    const vis = p > 0.001;
+    const br  = barRect(i, p);
+    const lp  = probLabelPos(i, p);
+
+    barEls[i].transition().duration(220).ease(d3.easeCubicOut)
+      .attr('x', br.x).attr('y', br.y).attr('width', br.w).attr('height', br.h)
+      .attr('opacity', vis ? 0.88 : 0);
+
+    shadowEls[i].transition().duration(220).ease(d3.easeCubicOut)
+      .attr('x', br.x+2).attr('y', br.y+2).attr('width', br.w).attr('height', br.h)
+      .attr('opacity', vis ? 0.4 : 0);
+
+    labelEls[i].transition().duration(220)
+      .attr('x', lp.x).attr('y', lp.y)
+      .attr('opacity', vis ? 1 : 0)
+      .text((p * 100).toFixed(2) + '%');
+  }
+
+  // Square 10: stacked bar — Just Visiting (orange) adjacent to square, In Jail (red) further out
+  {
+    const { visiting, inJail } = getJailBreak(idx);
+    const r = squareRect(10);  // { x:MARGIN, y:MARGIN, w:CORNER, h:CORNER, side:'tl' }
+    const totalProb = visiting + inJail;
+    const totalH = Math.min(BAR_MAX, (totalProb / PROB_REF) * BAR_MAX);
+    const visitH = totalProb > 0 ? totalH * visiting / totalProb : 0;
+    const jailH  = totalH - visitH;
+    const visVis = visiting > 0.001;
+    const ijVis  = inJail   > 0.001;
+
+    // Bars extend left from r.x (side='tl')
+    jailVisBarEl.transition().duration(220).ease(d3.easeCubicOut)
+      .attr('x', r.x - visitH).attr('y', r.y).attr('width', Math.max(0, visitH)).attr('height', r.h)
+      .attr('opacity', visVis ? 0.88 : 0);
+    jailInBarEl.transition().duration(220).ease(d3.easeCubicOut)
+      .attr('x', r.x - totalH).attr('y', r.y).attr('width', Math.max(0, jailH)).attr('height', r.h)
+      .attr('opacity', ijVis ? 0.88 : 0);
+
+    jailShVisEl.transition().duration(220).ease(d3.easeCubicOut)
+      .attr('x', r.x - visitH + 2).attr('y', r.y + 2).attr('width', Math.max(0, visitH)).attr('height', r.h)
+      .attr('opacity', visVis ? 0.4 : 0);
+    jailShInEl.transition().duration(220).ease(d3.easeCubicOut)
+      .attr('x', r.x - totalH + 2).attr('y', r.y + 2).attr('width', Math.max(0, jailH)).attr('height', r.h)
+      .attr('opacity', ijVis ? 0.4 : 0);
+
+    // Labels stacked at outer tip
+    const lblX = r.x - totalH - 6;
+    const cy   = r.y + r.h / 2;
+    jailInLblEl.transition().duration(220)
+      .attr('x', lblX).attr('y', cy - 8)
+      .attr('opacity', ijVis ? 1 : 0)
+      .text('IJ: ' + (inJail * 100).toFixed(2) + '%');
+    jailVisLblEl.transition().duration(220)
+      .attr('x', lblX).attr('y', cy + 8)
+      .attr('opacity', visVis ? 1 : 0)
+      .text('JV: ' + (visiting * 100).toFixed(2) + '%');
+  }
+
+  const disp = document.getElementById('turnDisplay');
+  if (idx === 21) {
+    disp.innerHTML = 'Steady State &mdash; <span>&#8734; turns</span> &mdash; Long-run equilibrium';
+  } else if (idx === 0) {
+    disp.innerHTML = 'Turn <span>0</span> &mdash; Start (all players on Go)';
+  } else {
+    disp.innerHTML = `Turn <span>${idx}</span>`;
+  }
+}
+
+// ── SVG slider interaction ────────────────────────────────────────────────────
+
+function setVal(rawX) {
+  const val = Math.round(sliderScale.invert(rawX));
+  if (val === svgVal) return;
+  svgVal = val;
+  const px = sliderScale(val);
+  sliderThumb.attr('cx', px);
+  sliderFill.attr('width', px - SL_X1);
+  update(val);
+}
+
+const svgDrag = d3.drag().on('start drag', function(event) { setVal(event.x); });
+sliderHit.on('click', function(event) { setVal(d3.pointer(event)[0]); }).call(svgDrag);
+sliderThumb.call(svgDrag);
+
+// ── Play / Pause ──────────────────────────────────────────────────────────────
+
+let isPlaying = false;
+let playTimer = null;
+
+function advanceTurn() {
+  const next = svgVal >= 21 ? 0 : svgVal + 1;
+  setVal(sliderScale(next));
+}
+
+function updatePlayBtn() {
+  playIcon .attr('visibility', isPlaying ? 'hidden'  : 'visible');
+  pauseIcon.attr('visibility', isPlaying ? 'visible' : 'hidden');
+}
+
+playBtnG.on('click', function() {
+  isPlaying = !isPlaying;
+  updatePlayBtn();
+  if (isPlaying) {
+    playTimer = setInterval(advanceTurn, 1000);
+  } else {
+    clearInterval(playTimer);
+    playTimer = null;
+  }
+});
+
+update(0);
+
+
+</script>
+</body>
+</html>
