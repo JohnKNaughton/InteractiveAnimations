@@ -243,14 +243,14 @@
 </div>
 
 <p class="info-note">
-  Monopoly location is modelable by rolling two dice and moving their sum forward (binomial distribution). Some locations (Chance and Community Chest and Go-to-Jail) move the player around, and rolling doubles grants the player another turn (and three doubles in a row sends the player to "In Jail").  
-  <br><br> WHY ISN'T MONOPOLY LOCATION A PURE MARKOV CHAIN? There is only one player decision in monopoly that prevents player location from being modled with a strict MC: The decision to remain in Jail as long as possible, or to pay and get out as quickly as possible.
-   When you're "In Jail" (Not "Just Visiting"), you can either Pay 50 dollars / Use a Get out of Jail free card to get out immediatley, or you can try and roll doubles and escape (which 5/6ths of the time results in one staying in jail another turn). 
-   After 3 attempts and failing each time (occuring (5/6)^3=57.87% of the time), the player must pay to escape anyway.
-   <br>This pseudo-markov chain model assumes two dominant strategies: The first 10 turns of the game, the player ALWAYS leaves Jail on the first turn so they can pursue purchasing unowned properties as quickly as possible.
-   AFTER the first 10 turns the player stays (tactical hiding?) in Jail as long as possible, so they can avoid paying rent on opponents propoerties while collecting rent on their own. 
-   Notice the jump in the Jail Location probability after turn 10, as this change in player strategy immediatley takes effect. 
-  
+  Monopoly location is modelable by rolling two dice and moving their sum forward (a triangular distribution). Some locations (Chance and Community Chest and Go-to-Jail) move the player around, rolling doubles grants the player another turn, and three doubles in a row sends the player to "In Jail" instead (if a player rolls a double onto a Chance square and the Chance card moves them, they still roll again).
+  <br><br> WHY ISN'T MONOPOLY LOCATION A PURE MARKOV CHAIN? There is only one player decision in Monopoly concerning movement, and that prevents player location from being modeled with a strict Markov Chain: The decision to remain in Jail as long as possible, or to pay and get out as quickly as possible.
+   When you're "In Jail" (Not "Just Visiting"), you can either Pay 50 Dollars / Use a Get Out of Jail Free card to get out immediately, or you can try and roll doubles and escape (which 5/6ths of the time results in the player staying in jail another turn).
+   After 3 attempts and failing each time (occurring (5/6)^3=57.87% of the time), the player must pay 50 Dollars to escape anyway.
+   <br>My pseudo-Markov Chain model assumes two dominant strategies: The first 10 turns of the game, the player ALWAYS pays to leave Jail on the first turn so they can pursue purchasing unowned properties as quickly as possible.
+   AFTER the first 10 turns the player stays (tactical hiding?) in Jail as long as possible, so they can avoid paying rent on opponents' properties while collecting rent on their own.
+   Notice the sudden jump in the Jail Location probability after turn 10, as this change in player strategy immediately takes effect. In a real game, this jump is probably more gradual as the player decision is sharply dependent on the hostility level of the squares 2-12 spots after Jail. 
+
 </p>
 
 <div class="card-section">
@@ -291,8 +291,13 @@
     </div>
 
   </div>
+  
 </div>
-
+<p class="info-note">
+  Fun Fact: Mediterranean is the only square not accessible on turn 1. Squares up to 35 are reachable by conventional 12 > 12 > 11 = 35 rolls, and a (5+5) and (6+6) onto the Chance Square at 22 can move you up to the utility at 28, allowing you to roll to squares 36-39. The Community Chest on 2 is also hard to reach, requiring rolling double doubles onto a Chance Card, which takes you to Boardwalk (39), and then rolling a 3 (a 2 would put you in Jail).
+  <br> Chance Cards very frequently move you somewhere else, Community Chest not so much, which is why the odds of ending your turn on a Chance Square are depressed.
+  <br> Note: These are not how often squares are LANDED on, so it's not perfect for a cost-benefit analysis (for example, squares 16 and 18 hit very frequently with doubles from jail, but the player moves again, so they are underrepresented here in their rent collecting ability) but it is still a very close approximation. Possible accompanying visualization next?
+</p>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script>
 // ─── Board Data ───────────────────────────────────────────────────────────────
@@ -616,7 +621,7 @@ const CORNER   = 82;
 const SQ       = (BOARD - 2 * CORNER) / 9;
 const BAR_MAX  = 150;   // px — bar height when prob = PROB_REF
 const PROB_REF = 0.10;  // 10% maps to full bar height
-const MARGIN   = 180;   // space around board for outward bars + labels
+const MARGIN   = 240;   // space around board for outward bars + labels
 const SVG_SIZE = BOARD + 2 * MARGIN;
 
 // Board orientation — clockwise from Go (bottom-left):
@@ -677,7 +682,10 @@ function probLabelPos(i, prob) {
 
 // ── Render board ──────────────────────────────────────────────────────────────
 
-const svg = d3.select('#board').attr('width', SVG_SIZE).attr('height', SVG_SIZE);
+const svg = d3.select('#board')
+  .attr('width', SVG_SIZE).attr('height', SVG_SIZE)
+  .attr('viewBox', `0 0 ${SVG_SIZE} ${SVG_SIZE}`)
+  .style('max-width', '100%').style('height', 'auto').style('display', 'block').style('margin', '-120px auto -240px');
 
 // Checkerboard pattern for Tax squares
 const defs = svg.append('defs');
@@ -812,7 +820,7 @@ for (let i = 0; i < 40; i++) {
     .attr('transform', labelTransform(i))
     .attr('text-anchor','middle').attr('dominant-baseline','central')
     .attr('fill', '#2a1a08')
-    .attr('font-family','Georgia, serif').attr('font-size','9px')
+    .attr('font-family','Georgia, serif').attr('font-size', (i === 15 || i === 34) ? '8px' : '9px')
     .attr('font-weight','bold');
 
   // Split name into two lines — at 10px all multi-word names need wrapping
@@ -893,6 +901,13 @@ const jailInLblEl  = mkLbl();
 
 // ── Update ────────────────────────────────────────────────────────────────────
 
+function fmtProb(p) {
+  if (p <= 0) return '0.00%';
+  const pct = p * 100;
+  const d = Math.max(2, Math.ceil(-Math.log10(pct)) + 1);
+  return pct.toFixed(d) + '%';
+}
+
 function getProbs(idx) {
   return idx === 21 ? steadyStateProbs : allTurnProbs[idx];
 }
@@ -907,7 +922,7 @@ function update(idx) {
   for (let i = 0; i < 40; i++) {
     if (i === 10) continue;  // handled separately below
     const p   = probs[i];
-    const vis = p > 0.001;
+    const vis = p > 1e-10;
     const br  = barRect(i, p);
     const lp  = probLabelPos(i, p);
 
@@ -922,7 +937,7 @@ function update(idx) {
     labelEls[i].transition().duration(220)
       .attr('x', lp.x).attr('y', lp.y)
       .attr('opacity', vis ? 1 : 0)
-      .text((p * 100).toFixed(2) + '%');
+      .text(fmtProb(p));
   }
 
   // Square 10: stacked bar — Just Visiting (orange) adjacent to square, In Jail (red) further out
@@ -933,8 +948,8 @@ function update(idx) {
     const totalH = Math.min(BAR_MAX, (totalProb / PROB_REF) * BAR_MAX);
     const visitH = totalProb > 0 ? totalH * visiting / totalProb : 0;
     const jailH  = totalH - visitH;
-    const visVis = visiting > 0.001;
-    const ijVis  = inJail   > 0.001;
+    const visVis = visiting > 1e-10;
+    const ijVis  = inJail   > 1e-10;
 
     // Bars extend left from r.x (side='tl')
     jailVisBarEl.transition().duration(220).ease(d3.easeCubicOut)
@@ -957,11 +972,11 @@ function update(idx) {
     jailInLblEl.transition().duration(220)
       .attr('x', lblX).attr('y', cy - 8)
       .attr('opacity', ijVis ? 1 : 0)
-      .text('IJ: ' + (inJail * 100).toFixed(2) + '%');
+      .text('In Jail: ' + fmtProb(inJail));
     jailVisLblEl.transition().duration(220)
       .attr('x', lblX).attr('y', cy + 8)
       .attr('opacity', visVis ? 1 : 0)
-      .text('JV: ' + (visiting * 100).toFixed(2) + '%');
+      .text('Just Visiting: ' + fmtProb(visiting));
   }
 
   const disp = document.getElementById('turnDisplay');
@@ -995,9 +1010,19 @@ sliderThumb.call(svgDrag);
 let isPlaying = false;
 let playTimer = null;
 
-function advanceTurn() {
-  const next = svgVal >= 21 ? 0 : svgVal + 1;
-  setVal(sliderScale(next));
+const SLOW_TURNS = new Set([0, 1, 2, 21]);
+
+function turnDelay(val) {
+  return SLOW_TURNS.has(val) ? 2000 : 1000;
+}
+
+function scheduleNext() {
+  playTimer = setTimeout(function() {
+    if (!isPlaying) return;
+    const next = svgVal >= 21 ? 0 : svgVal + 1;
+    setVal(sliderScale(next));
+    scheduleNext();
+  }, turnDelay(svgVal));
 }
 
 function updatePlayBtn() {
@@ -1009,9 +1034,9 @@ playBtnG.on('click', function() {
   isPlaying = !isPlaying;
   updatePlayBtn();
   if (isPlaying) {
-    playTimer = setInterval(advanceTurn, 1000);
+    scheduleNext();
   } else {
-    clearInterval(playTimer);
+    clearTimeout(playTimer);
     playTimer = null;
   }
 });
