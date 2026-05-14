@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:en.wikipedia.org)",
+      "WebFetch(domain:deltavmap.github.io)",
+      "WebFetch(domain:www.clowder.net)",
+      "WebFetch(domain:commons.wikimedia.org)",
+      "WebFetch(domain:www.jwz.org)",
+      "WebFetch(domain:projectrho.com)",
+      "WebFetch(domain:www.johndcook.com)",
+      "WebFetch(domain:terraforming.fandom.com)",
+      "Bash(Get-Content \"c:\\\\Users\\\\jknau\\\\OneDrive\\\\Documents\\\\GitHub\\\\InteractiveAnimations\\\\deltavsolarsystem.html\")",
+      "Bash(Select-Object -First 35)"
+    ]
+  }
+}

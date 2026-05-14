@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar System Delta-V Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #eef1f6;
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow-x: auto;
+    min-height: 100vh;
+  }
+
+  #wrap { min-width: 1445px; }
+
+  #hdr {
+    background: #fff;
+    border-bottom: 3px solid #e2e8f0;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  #hdr h1 { font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: .5px; }
+  #hdr .sub { font-size: 11px; color: #94a3b8; margin-top: 2px; letter-spacing: .3px; }
+  .controls { display: flex; gap: 10px; position: absolute; left: 75%; transform: translateX(-50%); }
+  .btn {
+    background: #fff; border: 1.5px solid #cbd5e1; color: #475569;
+    padding: 6px 14px; cursor: pointer; font-family: inherit;
+    font-size: 11px; font-weight: 600; letter-spacing: .4px;
+    border-radius: 6px; transition: all .15s;
+  }
+  .btn:hover { border-color: #94a3b8; color: #1e293b; }
+  .btn.on { background: #f0f9ff; border-color: #0ea5e9; color: #0284c7; }
+
+  #map-wrap { background: #fff; border-bottom: 1px solid #e2e8f0; overflow: hidden; }
+  svg#map { display: block; }
+
+  #info {
+    background: #fff; border-top: 1px solid #e2e8f0;
+    padding: 10px 32px; min-height: 52px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .iempty { color: #cbd5e1; font-size: 11px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+  .ipath { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; flex: 1; }
+  .ipnode { padding: 3px 8px; border: 1.5px solid; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; }
+  .iparrow { color: #cbd5e1; font-size: 12px; }
+  .ipdv { font-size: 9px; color: #94a3b8; margin: 0 1px; font-weight: 500; }
+  .itotal { text-align: right; min-width: 140px; }
+  .itval { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+  .itlbl { font-size: 9px; color: #94a3b8; letter-spacing: 1px; text-transform: uppercase; font-weight: 500; }
+
+  #leg {
+    background: #f8fafc; border-top: 1px solid #e2e8f0;
+    padding: 8px 32px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+  }
+  .leg-lbl { font-size: 10px; color: #94a3b8; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-right: 4px; }
+  .li {
+    display: flex; align-items: center; gap: 6px; font-size: 10px;
+    font-weight: 600; letter-spacing: .3px; text-transform: uppercase;
+    cursor: pointer; color: #475569; transition: opacity .15s; user-select: none;
+  }
+  .li:hover { opacity: .75; }
+  .li.off { opacity: .3; }
+  .ldot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  #tip {
+    position: fixed; background: #0f172a; border-left: 4px solid #4fc3f7;
+    padding: 12px 15px; font-family: inherit; font-size: 11px; color: #e2e8f0;
+    pointer-events: none; z-index: 200; display: none; max-width: 295px;
+    border-radius: 0 8px 8px 0; box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  }
+  #tip .tname { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  #tip .trow { display: flex; justify-content: space-between; margin: 3px 0; color: #64748b; font-size: 10.5px; }
+  #tip .trow span { color: #94a3b8; font-weight: 500; }
+  #tip .tdesc { margin-top: 9px; padding-top: 8px; border-top: 1px solid #1e293b; color: #64748b; font-size: 10px; line-height: 1.55; }
+  #tip .tnote { margin-top: 6px; color: #22c55e; font-size: 10px; font-style: italic; opacity: .9; }
+  #tip .taero { color: #94a3b8; font-size: 10px; margin: 2px 0; text-decoration: line-through; opacity: .6; }
+
+  #quote-bar {
+    background: #0f172a;
+    border-bottom: 3px solid #0369a1;
+    padding: 18px 40px;
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  #quote-bar::before {
+    content: '\201C';
+    position: absolute;
+    left: 24px;
+    top: -18px;
+    font-size: 110px;
+    color: #0369a1;
+    opacity: .18;
+    font-family: Georgia, serif;
+    line-height: 1;
+    pointer-events: none;
+  }
+  #quote-bar .q-orbit-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #0369a1;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px #0369a1aa;
+  }
+  #quote-bar .q-text {
+    font-size: 17px;
+    font-style: italic;
+    color: #e2e8f0;
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.4;
+    letter-spacing: .2px;
+  }
+  #quote-bar .q-attr {
+    font-size: 12px;
+    color: #e2e8f0;
+    font-weight: 600;
+    letter-spacing: .5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="hdr">
+    <div>
+      <h1>Solar System Delta-V Map: How far are we from the solid surfaces in our Solar System</h1>
+      <div class="sub">ENERGY DISTANCE IN km/s FROM EARTH'S SURFACE &nbsp;·&nbsp; ONE-WAY &nbsp;·&nbsp; IMPULSIVE BURNS&nbsp;·&nbsp; By John Kieran Naughton</div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="aeroBtn">Aerobraking: OFF</button>
+      <button class="btn" id="clearBtn">Clear</button>
+    </div>
+  </div>
+  <div id="quote-bar">
+    
+    <div class="q-text">"Once you get to earth orbit, you're halfway to anywhere in the solar system."</div>
+    <div class="q-attr">— Robert A. Heinlein</div>
+  </div>
+  <div id="map-wrap"><svg id="map"></svg></div>
+  <div id="info"><div class="iempty">CLICK ANY DESTINATION TO SEE FULL DELTA-V PATH FROM EARTH'S SURFACE</div></div>
+  <div id="leg"><span class="leg-lbl">Toggle:</span></div>
+</div>
+<div id="tip"></div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const W  = 1445, H = 730;
+const ML = 155;       // x-pixel for Earth Surface (dv=0)
+const SC = 52;        // pixels per km/s
+const xp = dv => ML + dv * SC;
+
+// All dv values are from EARTH'S SURFACE (including the 9.4 km/s to LEO)
+const ROW = {
+  mercury:      62,
+  venus:       124,
+  moon:        194,
+  earth_orbit: 256,   // GEO lives here
+  trunk:       326,   // Earth Surface · LEO · Earth Escape
+  mars:        396,
+  asteroid:    458,
+  jupiter:     520,
+  saturn:      582,
+  outer:       648,
+};
+
+const COL = {
+  earth:    '#0369a1',
+  moon:     '#475569',
+  mercury:  '#92400e',
+  venus:    '#b45309',
+  trunk:    '#334155',
+  mars:     '#b91c1c',
+  asteroid: '#78350f',
+  jupiter:  '#c2410c',
+  saturn:   '#a16207',
+  uranus:   '#0e7490',
+  neptune:  '#3730a3',
+  pluto:    '#7c3aed',
+};
+
+// ─── NODE DATA (all dv values are from Earth's surface) ───────────────────
+// dv  = cumulative ΔV, propulsive only
+// dv2 = cumulative ΔV with aerobraking (null = same as dv)
+// seg / seg2 = last-segment cost (prop / aero)
+const ND = [
+  { id:'esur', name:'Earth Surface',       short:'Earth',       dv:0,    dv2:0,    row:'trunk',      sys:'earth',
+    segFrom:null, seg:null,  seg2:null,  time:'—',
+    desc:'The starting point. Getting to Low Earth Orbit costs ~9.4 km/s, most of that just overcoming Earth\'s gravity well and atmospheric drag.' },
+
+  { id:'leo',  name:'Low Earth Orbit',     short:'LEO',         dv:9.4,  dv2:9.4,  row:'trunk',      sys:'earth',
+    segFrom:'esur', seg:9.4,  seg2:9.4,  time:'~8–10 min (rocket)',
+    desc:'~300–400 km altitude, 7.7 km/s orbital speed. The departure point for every deep-space mission. Everything else on this map is measured from here.' },
+
+  { id:'geo',  name:'Geostationary Orbit', short:'GEO',         dv:13.3, dv2:13.3, row:'earth_orbit', sys:'earth',
+    segFrom:'leo',  seg:3.9,  seg2:3.9,  time:'~5 hours',
+    desc:'35,786 km altitude. Satellites here orbit once per day, appearing stationary. Home to communications and weather satellites.' },
+
+  { id:'eml1', name:'Earth–Moon L1',       short:'EML-1',       dv:12.83,dv2:12.83,row:'moon',        sys:'moon',
+    segFrom:'leo',  seg:3.43, seg2:3.43, time:'~4 days',
+    desc:'Gravitational balance point 326,000 km from Earth. Only 0.68 km/s from Earth escape velocity, making it a natural staging hub for deep-space missions. Proposed site for the Lunar Gateway station.' },
+
+  { id:'llo',  name:'Low Lunar Orbit',     short:'LLO',         dv:13.44,dv2:13.44,row:'moon',        sys:'moon',
+    segFrom:'eml1', seg:0.61, seg2:0.61, time:'~5 days',
+    desc:'~100 km above the lunar surface. Apollo missions staged all landings from here.' },
+
+  { id:'moon', name:'Moon Surface',        short:'Moon',        dv:15.33,dv2:15.33,row:'moon',        sys:'moon',
+    segFrom:'llo',  seg:1.87, seg2:1.87, time:'~5–6 days',
+    desc:'No atmosphere at all, so all 15.33 km/s must come from rockets. Apollo 11 achieved this in 1969. The Artemis program is targeting the south polar region.' },
+
+  { id:'esc',  name:'Earth Escape (C3=0)', short:'Escape',      dv:12.62,dv2:12.62,row:'trunk',       sys:'trunk',
+    segFrom:'leo',  seg:3.22, seg2:3.22, time:'—',
+    desc:'Minimum delta-v to leave Earth\'s gravity permanently. From LEO it costs only 0.21 km/s more than reaching EML-1, which partly explains why the Moon has been proposed as an interplanetary waypoint.' },
+
+  // Venus
+  { id:'vorb', name:'Venus Orbit',         short:'Venus Orbit', dv:13.62,dv2:13.62,row:'venus',       sys:'venus',
+    segFrom:'esc',  seg:1.0,  seg2:1.0,  time:'~3.5 months',
+    desc:'Low orbit ~300 km above Venus. The dense CO₂ atmosphere drives a runaway greenhouse effect, pushing surface temperatures to 465 °C, hotter than Mercury despite being twice as far from the Sun.' },
+
+  { id:'vsur', name:'Venus Surface',       short:'Venus',       dv:22.1, dv2:13.8, row:'venus',       sys:'venus',
+    segFrom:'vorb', seg:8.5,  seg2:0.18, time:'~3.5 months',
+    note2:'The 90-atm atmosphere handles both orbital capture and nearly all descent braking, saving ~8.3 km/s over a fully propulsive approach.',
+    desc:'Crushing 90-atm pressure, 465 °C. Soviet Venera probes survived only ~2 hours on the surface. That same thick atmosphere makes Venus exceptional for aerobraking; you can shed more delta-v here than at any other body on the map.' },
+
+  // Mercury
+  { id:'merc', name:'Mercury Orbit',       short:'Mercury',     dv:17.1, dv2:17.1, row:'mercury',     sys:'mercury',
+    segFrom:'esc',  seg:4.48, seg2:4.48, time:'~3–6 months',
+    desc:'Surprisingly expensive to reach despite being relatively close. Mercury sits deep in the Sun\'s gravity well, so you need to shed a huge amount of speed to orbit rather than fall in. MESSENGER used six planetary flybys and took 6.5 years to get there.' },
+
+  // Mars
+  { id:'lmo',  name:'Low Mars Orbit',      short:'Mars Orbit',  dv:13.9, dv2:13.14,row:'mars',        sys:'mars',
+    segFrom:'esc',  seg:1.28, seg2:0.52, time:'~8–9 months',
+    note2:'Mars\' thin CO₂ atmosphere is enough for aerocapture into low orbit, saving 0.76 km/s.',
+    desc:'Mars orbit ~300 km up. The 8–9 month journey is constrained by 26-month launch windows, meaning a round trip requires at least 2–3 years.' },
+
+  { id:'phob', name:'Phobos',              short:'Phobos',      dv:14.4, dv2:13.64,row:'mars',        sys:'mars',
+    segFrom:'lmo',  seg:0.5,  seg2:0.5,  time:'~8–9 months',
+    desc:'Inner Mars moon, just 22 km across. Its low gravity and close proximity make it a plausible staging base; operators there could control surface robots with only ~40 ms signal delay.' },
+
+  { id:'msur', name:'Mars Surface',        short:'Mars',        dv:18.0, dv2:13.9, row:'mars',        sys:'mars',
+    segFrom:'lmo',  seg:4.1,  seg2:0.76, time:'~8–9 months',
+    note2:'Mars\' thin atmosphere supports parachute-assisted descent, though rockets are still needed for the final phase. The full aerobraking sequence cuts landing delta-v to ~0.76 km/s from orbit.',
+    desc:'The first serious human destination beyond the Moon. SpaceX Starship is designed for direct entry from the transfer trajectory, skipping orbital insertion entirely.' },
+
+  // Asteroid belt
+  { id:'vest', name:'Vesta',               short:'Vesta',       dv:14.36,dv2:14.36,row:'asteroid',    sys:'asteroid',
+    segFrom:'esc',  seg:1.74, seg2:1.74, time:'~18 months',
+    desc:'Second-largest asteroid, 525 km wide. Rocky, differentiated body. NASA\'s Dawn orbited 2011–2012.' },
+
+  { id:'cere', name:'Ceres',               short:'Ceres',       dv:14.62,dv2:14.62,row:'asteroid',    sys:'asteroid',
+    segFrom:'esc',  seg:2.0,  seg2:2.0,  time:'~20 months',
+    desc:'Dwarf planet, the largest body in the asteroid belt (~940 km). Dawn found evidence of subsurface briny water. Its central location has made it an interesting candidate for a future refueling or staging point.' },
+
+  // Jupiter system
+  { id:'call', name:'Callisto',            short:'Callisto',    dv:18.7, dv2:18.7, row:'jupiter',     sys:'jupiter',
+    segFrom:'esc',  seg:6.08, seg2:6.08, time:'~2.7 years',
+    desc:'Outermost large Galilean moon, sitting outside Jupiter\'s most intense radiation belts. That makes it comparatively benign for long-duration crewed operations, which is why NASA has studied it as a base for exploring the rest of the Jovian system.' },
+
+  { id:'gany', name:'Ganymede',            short:'Ganymede',    dv:20.1, dv2:20.1, row:'jupiter',     sys:'jupiter',
+    segFrom:'call', seg:1.4,  seg2:1.4,  time:'~2.7 years',
+    desc:'Largest moon in the solar system, bigger than Mercury, and the only moon known to have its own magnetic field. ESA\'s JUICE mission is en route and scheduled to orbit Ganymede starting in 2034.' },
+
+  { id:'euro', name:'Europa',              short:'Europa',      dv:21.8, dv2:21.8, row:'jupiter',     sys:'jupiter',
+    segFrom:'gany', seg:1.7,  seg2:1.7,  time:'~2.7 years',
+    desc:'Widely considered the most promising place in the solar system to look for life. A global liquid ocean sits beneath roughly 20 km of ice, kept warm by tidal heating from Jupiter. NASA\'s Europa Clipper arrives ~2030.' },
+
+  { id:'io',   name:'Io',                  short:'Io',          dv:22.8, dv2:22.8, row:'jupiter',     sys:'jupiter',
+    segFrom:'euro', seg:1.0,  seg2:1.0,  time:'~2.7 years',
+    desc:'Most volcanically active body in the solar system, driven by intense tidal flexing from Jupiter. It sits inside the planet\'s harshest radiation belts, where spacecraft electronics degrade within days.' },
+
+  // Saturn
+  { id:'tit',  name:'Titan',               short:'Titan',       dv:17.7, dv2:14.9, row:'saturn',      sys:'saturn',
+    segFrom:'esc',  seg:5.08, seg2:2.28, time:'~6–7 years',
+    note2:'Titan\'s thick nitrogen atmosphere (1.5x Earth\'s surface pressure) enables extensive aerobraking, trimming 2.8 km/s from the capture delta-v.',
+    desc:'Saturn\'s largest moon, with lakes and rivers of liquid methane and ethane. The Dragonfly rotorcraft mission launches in 2028 and is expected to arrive around 2034.' },
+
+  // Outer
+  { id:'uran', name:'Uranus Orbit',        short:'Uranus',      dv:19.4, dv2:19.4, row:'outer',       sys:'uranus',
+    segFrom:'esc',  seg:6.78, seg2:6.78, time:'~16 years',
+    desc:'Ice giant tilted 98° on its side, with a poorly understood magnetic field and a possible internal ocean of superionic water. No dedicated orbiter has visited; the 2023 Planetary Science Decadal Survey ranked a Uranus mission as the next flagship priority.' },
+
+  { id:'nept', name:'Neptune Orbit',       short:'Neptune',     dv:19.6, dv2:19.6, row:'outer',       sys:'neptune',
+    segFrom:'esc',  seg:6.98, seg2:6.98, time:'~30 years',
+    desc:'Windiest planet in the solar system, with gusts measured up to 2,100 km/h. Only Voyager 2 has ever visited, on a flyby in 1989.' },
+
+  { id:'trit', name:'Triton',              short:'Triton',      dv:23.8, dv2:23.8, row:'outer',       sys:'neptune',
+    segFrom:'nept', seg:4.2,  seg2:4.2,  time:'~30 years',
+    desc:'Neptune\'s largest moon and almost certainly a captured Kuiper Belt object, given its retrograde orbit. Voyager 2 spotted active nitrogen geysers venting from the surface in 1989.' },
+
+  { id:'plut', name:'Pluto (Flyby)',       short:'Pluto',       dv:17.6, dv2:17.6, row:'outer',       sys:'pluto',
+    segFrom:'esc',  seg:4.98, seg2:4.98, time:'~9–10 years',
+    desc:'New Horizons flew past in 2015, revealing mountains, glaciers, and a hazy nitrogen atmosphere. An orbital mission would need roughly 7 more km/s for capture, making Pluto one of the hardest destinations in the solar system to actually orbit.' },
+];
+
+const MAP = {};
+ND.forEach(n => MAP[n.id] = n);
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let aero = false, selId = null;
+const hidden = new Set();
+
+// ─── HELPERS ───────────────────────────────────────────────────────────────
+const dv  = n => (aero && n.dv2 != null) ? n.dv2 : n.dv;
+const seg = n => n.segFrom ? +(dv(n) - dv(MAP[n.segFrom])).toFixed(2) : null;
+
+function pathTo(id) {
+  const p = []; let c = id;
+  while (c) { p.unshift(MAP[c]); c = MAP[c].segFrom; }
+  return p;
+}
+
+function svgEl(tag, a={}, par=null) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(a)) el.setAttribute(k, String(v));
+  if (par) par.appendChild(el);
+  return el;
+}
+
+// ─── DRAW ──────────────────────────────────────────────────────────────────
+function draw() {
+  const svg = document.getElementById('map');
+  svg.innerHTML = '';
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  // defs
+  const defs = svgEl('defs', {}, svg);
+  const f = svgEl('filter', {id:'sg', x:'-40%', y:'-100%', width:'180%', height:'300%'}, defs);
+  svgEl('feGaussianBlur', {in:'SourceGraphic', stdDeviation:'4', result:'b'}, f);
+  const fm = svgEl('feMerge', {}, f);
+  svgEl('feMergeNode', {in:'b'}, fm); svgEl('feMergeNode', {in:'SourceGraphic'}, fm);
+
+  // background
+  svgEl('rect', {x:0, y:0, width:W, height:H, fill:'#fff'}, svg);
+
+  // row bands
+  const rowKeys = ['mercury','venus','moon','earth_orbit','trunk','mars','asteroid','jupiter','saturn','outer'];
+  for (let i = 0; i < rowKeys.length; i++) {
+    const y0 = i === 0 ? 0 : (ROW[rowKeys[i-1]] + ROW[rowKeys[i]]) / 2;
+    const y1 = i === rowKeys.length-1 ? H : (ROW[rowKeys[i]] + ROW[rowKeys[i+1]]) / 2;
+    svgEl('rect', {x:0, y:y0, width:W, height:y1-y0, fill: i%2===0 ? '#fafbfd' : '#fff'}, svg);
+  }
+
+  // x-axis grid + labels
+  for (let v = 0; v <= 25; v++) {
+    const x = xp(v);
+    if (x > W - 15) break;
+    svgEl('line', {x1:x, y1:50, x2:x, y2:H-8, stroke:'#e2e8f0', 'stroke-width':1}, svg);
+    if (v % 2 === 0 || v <= 10) {
+      svgEl('text', {x, y:40, 'text-anchor':'middle', fill:'#94a3b8',
+        'font-size':10.5, 'font-family':'Inter,sans-serif', 'font-weight':500}, svg).textContent = v;
+    }
+  }
+  svgEl('text', {x:ML, y:18, fill:'#cbd5e1', 'font-size':9,
+    'font-family':'Inter,sans-serif', 'font-weight':600, 'letter-spacing':1.5}, svg
+  ).textContent = 'Δv (km/s) FROM EARTH SURFACE →';
+
+  // key junction vertical markers
+  const leoX  = xp(9.4);
+  const escX  = xp(12.62);
+  const surfX = xp(0);
+
+  for (const [x, lbl] of [[surfX,'SURFACE'],[leoX,'LEO'],[escX,'ESCAPE']]) {
+    svgEl('line', {x1:x, y1:46, x2:x, y2:H-8, stroke:'#94a3b8', 'stroke-width':1,
+      'stroke-dasharray':'4,4'}, svg);
+    svgEl('text', {x:x+4, y:56, fill:'#94a3b8', 'font-size':8,
+      'font-family':'Inter,sans-serif', 'font-weight':600, 'letter-spacing':.5}, svg).textContent = lbl;
+  }
+
+  const lineG = svgEl('g', {}, svg);
+
+  // path ids for dimming
+  let pathIds = new Set();
+  if (selId) pathTo(selId).forEach(n => pathIds.add(n.id));
+
+  function line(x1, y1, x2, y2, col, w=5, op=1) {
+    svgEl('line', {x1, y1, x2, y2, stroke:col, 'stroke-width':w,
+      'stroke-linecap':'round', 'stroke-opacity':op}, lineG);
+  }
+
+  function rowMaxX(rowKey) {
+    const ns = ND.filter(n => n.row === rowKey && !hidden.has(n.sys));
+    return ns.length ? Math.max(...ns.map(n => xp(dv(n)))) : surfX;
+  }
+
+  // ── TRUNK (Earth Surface → LEO → Earth Escape → faint highway) ──
+  // Surface→LEO: earth color (the "launch" segment — visually dominant)
+  line(surfX, ROW.trunk, leoX, ROW.trunk, COL.earth, 5);
+  // LEO→Escape: trunk color
+  line(leoX, ROW.trunk, escX, ROW.trunk, COL.trunk, 5);
+  // Escape→right: faint highway
+  line(escX, ROW.trunk, W-30, ROW.trunk, COL.trunk, 2, .12);
+
+  // ── MOON ROW (branches from LEO) ──
+  if (!hidden.has('moon') || !hidden.has('earth')) {
+    // dim: surface → LEO (shared launch segment)
+    line(surfX, ROW.moon, leoX, ROW.moon, COL.moon, 3, .13);
+    const rr = rowMaxX('moon');
+    if (rr > leoX) line(leoX, ROW.moon, rr, ROW.moon, COL.moon, 5);
+  }
+
+  // ── EARTH ORBIT ROW (GEO — branches from LEO) ──
+  if (!hidden.has('earth')) {
+    line(surfX, ROW.earth_orbit, leoX, ROW.earth_orbit, COL.earth, 3, .13);
+    const geoX = xp(dv(MAP['geo']));
+    line(leoX, ROW.earth_orbit, geoX, ROW.earth_orbit, COL.earth, 5);
+  }
+
+  // ── ROWS THAT DEPART FROM EARTH ESCAPE ──
+  const escapeDeps = [
+    ['mercury', COL.mercury, 'mercury'],
+    ['venus',   COL.venus,   'venus'  ],
+    ['mars',    COL.mars,    'mars'   ],
+    ['jupiter', COL.jupiter, 'jupiter'],
+    ['saturn',  COL.saturn,  'saturn' ],
+  ];
+  for (const [rowKey, col, sys] of escapeDeps) {
+    if (hidden.has(sys)) continue;
+    // dim: surface → escape (shared launch+orbital section)
+    line(surfX, ROW[rowKey], escX, ROW[rowKey], col, 3, .13);
+    const rr = rowMaxX(rowKey);
+    if (rr > escX) line(escX, ROW[rowKey], rr, ROW[rowKey], col, 5);
+  }
+
+  // ── PHOBOS SPUR (branches up from LMO) ──
+  if (!hidden.has('mars')) {
+    const phY = ROW.mars - 30;
+    const lx = xp(dv(MAP['lmo'])), px2 = xp(dv(MAP['phob']));
+    svgEl('polyline', {
+      points:`${lx},${ROW.mars} ${lx},${phY} ${px2},${phY}`,
+      fill:'none', stroke:COL.mars, 'stroke-width':4,
+      'stroke-linecap':'round', 'stroke-linejoin':'round', 'stroke-opacity':.75
+    }, lineG);
+  }
+
+  // ── ASTEROID BELT (two spurs from escape) ──
+  if (!hidden.has('asteroid')) {
+    line(surfX, ROW.asteroid, escX, ROW.asteroid, COL.asteroid, 3, .13);
+    const vY = ROW.asteroid - 14, cY = ROW.asteroid + 14;
+    const vx = xp(dv(MAP['vest'])), cx = xp(dv(MAP['cere']));
+    svgEl('polyline', {points:`${escX},${ROW.asteroid} ${escX},${vY} ${vx},${vY}`,
+      fill:'none', stroke:COL.asteroid, 'stroke-width':4.5,
+      'stroke-linecap':'round', 'stroke-linejoin':'round'}, lineG);
+    svgEl('polyline', {points:`${escX},${ROW.asteroid} ${escX},${cY} ${cx},${cY}`,
+      fill:'none', stroke:COL.asteroid, 'stroke-width':4.5,
+      'stroke-linecap':'round', 'stroke-linejoin':'round'}, lineG);
+  }
+
+  // ── OUTER ROW ──
+  if (!hidden.has('uranus') || !hidden.has('neptune') || !hidden.has('pluto')) {
+    line(surfX, ROW.outer, escX, ROW.outer, '#94a3b8', 3, .13);
+    if (!hidden.has('uranus'))  line(escX, ROW.outer, xp(dv(MAP['uran'])), ROW.outer, COL.uranus, 5);
+    if (!hidden.has('neptune')) {
+      line(escX, ROW.outer, xp(dv(MAP['nept'])), ROW.outer, COL.neptune, 3, .3);
+      line(xp(dv(MAP['nept'])), ROW.outer, xp(dv(MAP['trit'])), ROW.outer, COL.neptune, 5);
+    }
+    if (!hidden.has('pluto')) {
+      const px2 = xp(dv(MAP['plut']));
+      line(px2-4, ROW.outer, px2+4, ROW.outer, COL.pluto, 5);
+    }
+  }
+
+  // ── ROW LABELS (left side) ──
+  const rowMeta = [
+    {row:'mercury',     col:COL.mercury,  lbl:'Mercury'},
+    {row:'venus',       col:COL.venus,    lbl:'Venus'},
+    {row:'moon',        col:COL.moon,     lbl:'Earth–Moon'},
+    {row:'earth_orbit', col:COL.earth,    lbl:'Earth Orbit'},
+    {row:'trunk',       col:COL.trunk,    lbl:'Highway'},
+    {row:'mars',        col:COL.mars,     lbl:'Mars'},
+    {row:'asteroid',    col:COL.asteroid, lbl:'Asteroid Belt'},
+    {row:'jupiter',     col:COL.jupiter,  lbl:'Jupiter'},
+    {row:'saturn',      col:COL.saturn,   lbl:'Saturn'},
+    {row:'outer',       col:'#64748b',    lbl:'Outer Planets and Pluto'},
+  ];
+  for (const r of rowMeta) {
+    svgEl('text', {x:ML-10, y:ROW[r.row]+5, 'text-anchor':'end', fill:r.col,
+      'font-size':9, 'font-family':'Inter,sans-serif', 'font-weight':600,
+      'letter-spacing':.3, opacity:.6}, svg).textContent = r.lbl;
+  }
+
+  // ── NODES ──────────────────────────────────────────────────────────────
+  for (const nd of ND) {
+    if (hidden.has(nd.sys)) continue;
+    const col = COL[nd.sys] || '#475569';
+    const ndv = dv(nd);
+    const nx  = xp(ndv);
+    let   ny  = ROW[nd.row];
+    if (nd.id === 'phob') ny = ROW.mars - 30;
+    if (nd.id === 'vest') ny = ROW.asteroid - 14;
+    if (nd.id === 'cere') ny = ROW.asteroid + 14;
+
+    const isSel  = nd.id === selId;
+    const onPath = pathIds.has(nd.id);
+    const isDim  = selId != null && !onPath;
+
+    const g = svgEl('g', {class:'nd', id:'n-'+nd.id, transform:`translate(${nx},${ny})`}, svg);
+    g.dataset.id  = nd.id;
+    g.style.cursor = 'pointer';
+    g.style.opacity = isDim ? '.2' : '1';
+
+    if (isSel)          svgEl('circle', {r:14, fill:'none', stroke:col, 'stroke-width':2, opacity:.35, filter:'url(#sg)'}, g);
+    else if (onPath && selId) svgEl('circle', {r:10, fill:'none', stroke:col, 'stroke-width':1.5, opacity:.4}, g);
+
+    svgEl('circle', {class:'dot', r:7, fill:col}, g);
+    svgEl('circle', {r:3, fill:'#fff', opacity:.85}, g);
+
+    // label: name above or below
+    const above = ['mercury','venus','trunk','earth_orbit'].includes(nd.row) || nd.id==='phob';
+    const lY = above ? -13 : 18;
+    svgEl('text', {x:0, y:lY, 'text-anchor':'middle', fill:col,
+      'font-size':10, 'font-family':'Inter,sans-serif', 'font-weight':700}, g).textContent = nd.short;
+
+    // dv value (smaller, gray)
+    const dvY = above ? -23 : 29;
+    svgEl('text', {x:0, y:dvY, 'text-anchor':'middle', fill:'#94a3b8',
+      'font-size':8.5, 'font-family':'Inter,sans-serif', 'font-weight':400}, g).textContent = ndv.toFixed(2);
+
+    // segment cost label on the edge (same-row only, if enough space)
+    if (nd.segFrom) {
+      const par  = MAP[nd.segFrom];
+      const segV = seg(nd);
+      const parX = xp(dv(par));
+      const parY = ROW[par.row];
+      if (segV != null && segV > 0.01 && ny === parY && Math.abs(nx - parX) > 45) {
+        svgEl('text', {
+          x:(nx+parX)/2, y:ny - 10, 'text-anchor':'middle',
+          fill:'#94a3b8', 'font-size':8.5,
+          'font-family':'Inter,sans-serif', 'font-weight':500
+        }, svg).textContent = '+' + segV.toFixed(2);
+      }
+    }
+  }
+}
+
+// ─── TOOLTIP ──────────────────────────────────────────────────────────────
+function showTip(nd, e) {
+  const tip = document.getElementById('tip');
+  const col = COL[nd.sys] || '#4fc3f7';
+  const ndv = dv(nd), sdv = seg(nd);
+  const aeroLine = aero && nd.dv2 != null && nd.dv2 !== nd.dv
+    ? `<div class="taero">Propulsive only: ${nd.dv.toFixed(2)} km/s</div>` : '';
+  const noteLine = aero && nd.note2 ? `<div class="tnote">${nd.note2}</div>` : '';
+  tip.style.borderLeftColor = col;
+  tip.innerHTML = `
+    <div class="tname" style="color:${col}">${nd.name}</div>
+    <div class="trow"><div>Δv from Earth surface</div><span>${ndv.toFixed(2)} km/s</span></div>
+    ${sdv != null ? `<div class="trow"><div>Last segment</div><span>+${sdv.toFixed(2)} km/s</span></div>` : ''}
+    ${aeroLine}
+    <div class="trow"><div>Transfer time</div><span>${nd.time}</span></div>
+    <div class="tdesc">${nd.desc}</div>${noteLine}`;
+  tip.style.display = 'block';
+  moveTip(e);
+}
+function moveTip(e) {
+  const tip = document.getElementById('tip');
+  tip.style.left = Math.min(e.clientX + 16, window.innerWidth - 310) + 'px';
+  tip.style.top  = Math.max(4, Math.min(e.clientY - 10, window.innerHeight - tip.offsetHeight - 10)) + 'px';
+}
+function hideTip() { document.getElementById('tip').style.display = 'none'; }
+
+// ─── INFO BAR ─────────────────────────────────────────────────────────────
+function updateInfo() {
+  const panel = document.getElementById('info');
+  if (!selId) {
+    panel.innerHTML = '<div class="iempty">CLICK ANY DESTINATION TO SEE FULL DELTA-V PATH FROM EARTH\'S SURFACE</div>';
+    return;
+  }
+  const path = pathTo(selId);
+  const nd   = MAP[selId];
+  const col  = COL[nd.sys] || '#0369a1';
+  let html = '';
+  for (let i = 0; i < path.length; i++) {
+    const n = path[i], c = COL[n.sys] || '#475569';
+    html += `<div class="ipnode" style="color:${c};border-color:${c}44">${n.short}</div>`;
+    if (i < path.length - 1) {
+      const s = (dv(path[i+1]) - dv(path[i])).toFixed(2);
+      html += `<span class="iparrow">→</span><span class="ipdv">+${s}</span>`;
+    }
+  }
+  panel.innerHTML = `
+    <div class="ipath">${html}</div>
+    <div class="itotal">
+      <div class="itval" style="color:${col}">${dv(nd).toFixed(2)} km/s</div>
+      <div class="itlbl">${aero ? 'WITH AEROBRAKING' : 'ALL-PROPULSIVE'} · FROM EARTH SURFACE</div>
+    </div>`;
+}
+
+// ─── SPACECRAFT ANIMATION ─────────────────────────────────────────────────
+let animRAF = null;
+function launch(destId) {
+  if (animRAF) cancelAnimationFrame(animRAF);
+  const svg   = document.getElementById('map');
+  const path  = pathTo(destId);
+  if (path.length < 2) return;
+  const endX    = xp(dv(MAP[destId]));
+  const totalPx = endX - xp(0);
+  let   px      = 0;
+  const speed   = Math.max(totalPx / 140, 2.5);
+  const col     = COL[MAP[destId].sys] || '#0369a1';
+  const shipG   = svgEl('g', {}, svg);
+  svgEl('circle', {r:4, fill:col, filter:'url(#sg)'}, shipG);
+  const trail = svgEl('line', {stroke:col, 'stroke-width':2, opacity:.5}, shipG);
+  (function frame() {
+    px = Math.min(px + speed, totalPx);
+    const curX = xp(0) + px, curDV = px / SC;
+    let curY = ROW.trunk;
+    for (let i = path.length - 1; i >= 0; i--) {
+      if (dv(path[i]) <= curDV) {
+        let y = ROW[path[i].row];
+        if (path[i].id === 'phob') y = ROW.mars - 30;
+        curY = y; break;
+      }
+    }
+    shipG.setAttribute('transform', `translate(${curX},${curY})`);
+    trail.setAttribute('x1', -Math.min(px, 38)); trail.setAttribute('y1', 0);
+    trail.setAttribute('x2', 0);                 trail.setAttribute('y2', 0);
+    if (px < totalPx) animRAF = requestAnimationFrame(frame);
+    else setTimeout(() => shipG.remove(), 1000);
+  })();
+}
+
+// ─── BIND EVENTS ──────────────────────────────────────────────────────────
+function bindNodes() {
+  document.querySelectorAll('.nd').forEach(el => {
+    el.addEventListener('mouseenter', e => showTip(MAP[el.dataset.id], e));
+    el.addEventListener('mousemove',  moveTip);
+    el.addEventListener('mouseleave', hideTip);
+    el.addEventListener('click', () => {
+      const prev = selId;
+      selId = selId === el.dataset.id ? null : el.dataset.id;
+      draw(); bindNodes(); updateInfo();
+      if (selId && selId !== prev) launch(selId);
+    });
+  });
+}
+
+// ─── LEGEND ───────────────────────────────────────────────────────────────
+function buildLegend() {
+  const leg = document.getElementById('leg');
+  for (const item of [
+    {sys:'earth','lbl':'Earth'},       {sys:'moon','lbl':'Moon'},
+    {sys:'mercury','lbl':'Mercury'},   {sys:'venus','lbl':'Venus'},
+    {sys:'mars','lbl':'Mars'},         {sys:'asteroid','lbl':'Asteroids'},
+    {sys:'jupiter','lbl':'Jupiter'},   {sys:'saturn','lbl':'Saturn'},
+    {sys:'uranus','lbl':'Uranus'},     {sys:'neptune','lbl':'Neptune'},
+    {sys:'pluto','lbl':'Pluto'},
+  ]) {
+    const d = document.createElement('div');
+    d.className = 'li'; d.dataset.sys = item.sys;
+    d.innerHTML = `<div class="ldot" style="background:${COL[item.sys]}"></div>${item.lbl}`;
+    d.addEventListener('click', () => {
+      if (hidden.has(item.sys)) hidden.delete(item.sys); else hidden.add(item.sys);
+      d.classList.toggle('off', hidden.has(item.sys));
+      draw(); bindNodes();
+    });
+    leg.appendChild(d);
+  }
+}
+
+// ─── CONTROLS ─────────────────────────────────────────────────────────────
+document.getElementById('aeroBtn').addEventListener('click', function() {
+  aero = !aero;
+  this.textContent = 'Aerobraking: ' + (aero ? 'ON' : 'OFF');
+  this.classList.toggle('on', aero);
+  draw(); bindNodes(); updateInfo();
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  selId = null; draw(); bindNodes(); updateInfo();
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+document.getElementById('map-wrap').style.width  = W + 'px';
+document.getElementById('map-wrap').style.height = H + 'px';
+draw(); bindNodes(); buildLegend();
+</script>
+</body>
+</html>
