@@ -10,7 +10,12 @@
       "WebFetch(domain:www.johndcook.com)",
       "WebFetch(domain:terraforming.fandom.com)",
       "Bash(Get-Content \"c:\\\\Users\\\\jknau\\\\OneDrive\\\\Documents\\\\GitHub\\\\InteractiveAnimations\\\\deltavsolarsystem.html\")",
-      "Bash(Select-Object -First 35)"
+      "Bash(Select-Object -First 35)",
+      "Bash(ls \"C:\\\\Users\\\\jknau\\\\AppData\\\\Roaming\\\\SlayTheSpire2\\\\steam\\\\76561198018706944\\\\profile1\\\\saves\")",
+      "Read(//c/Users/jknau/AppData/Roaming/SlayTheSpire2/steam/76561198018706944/profile1/saves/**)",
+      "Bash(Get-Content \"C:\\\\Users\\\\jknau\\\\AppData\\\\Roaming\\\\SlayTheSpire2\\\\steam\\\\76561198018706944\\\\profile1\\\\saves\\\\history\\\\1780314777.run\")",
+      "Bash(ConvertFrom-Json)",
+      "Bash(ConvertTo-Json -Depth 2)"
     ]
   }
 }

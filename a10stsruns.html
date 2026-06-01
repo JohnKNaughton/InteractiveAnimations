@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slay the Spire 2 — A10 Run Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #eef1f6;
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+    color: #1e293b;
+  }
+
+  /* ── Header ── */
+  #hdr {
+    background: #fff;
+    border-bottom: 3px solid #e2e8f0;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  #hdr h1 { font-size: 18px; font-weight: 700; color: #0f172a; letter-spacing: .5px; }
+  #hdr .sub { font-size: 11px; color: #374151; letter-spacing: .3px; }
+  #hdr-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+
+  #load-btn {
+    background: #fff; border: 1.5px solid #cbd5e1; color: #1e293b;
+    padding: 6px 14px; cursor: pointer; font-family: inherit;
+    font-size: 11px; font-weight: 600; letter-spacing: .4px;
+    border-radius: 6px; transition: all .15s; white-space: nowrap;
+  }
+  #load-btn:hover { border-color: #374151; color: #1e293b; }
+  #load-btn.loading { border-color: #3b82f6; color: #3b82f6; }
+  #load-btn.success { border-color: #22c55e; color: #16a34a; }
+
+  #last-loaded {
+    font-size: 11px; color: #374151; white-space: nowrap;
+  }
+  #last-loaded strong { color: #1e293b; font-weight: 600; }
+
+
+  /* ── Main layout ── */
+  #wrap { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+  /* ── Section labels ── */
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #374151;
+    margin-bottom: 12px;
+  }
+
+  /* ── Character cards ── */
+  #char-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .char-card {
+    background: #fff;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px 20px 16px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .char-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+  .char-card.active { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 20%, transparent); }
+  .char-card.inactive { opacity: .45; }
+
+  .char-card .accent-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--c);
+  }
+
+  .char-name {
+    font-size: 11px; font-weight: 700; letter-spacing: .8px;
+    text-transform: uppercase; color: var(--c);
+    margin-bottom: 10px;
+  }
+
+  .win-rate {
+    font-size: 42px; font-weight: 800; line-height: 1;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .win-rate-label { font-size: 10px; color: #374151; font-weight: 600; letter-spacing: .5px; margin-bottom: 14px; }
+
+  .char-stats { display: flex; flex-direction: column; gap: 5px; }
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px;
+  }
+  .stat-row .label { color: #374151; font-weight: 500; }
+  .stat-row .val { font-weight: 600; color: #1e293b; }
+
+  .wla-bar {
+    display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+    gap: 2px; margin: 10px 0 12px;
+  }
+  .wla-bar .seg { border-radius: 3px; }
+
+  /* ── HP Trajectory chart ── */
+  #chart-section {
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+
+  #chart-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 4px;
+  }
+  #chart-title { font-size: 14px; font-weight: 700; color: #0f172a; }
+  #chart-sub { font-size: 11px; color: #374151; margin-top: 2px; }
+
+  #legend {
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; color: #1e293b;
+  }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .legend-line { width: 20px; height: 2px; border-radius: 1px; }
+
+  #hp-chart { display: block; width: 100%; }
+
+  /* ── Bottom row ── */
+  #bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .panel {
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+  }
+  .panel-title { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+  .panel-sub { font-size: 11px; color: #374151; margin-bottom: 16px; }
+
+  /* Kill bars */
+  .kill-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .kill-bar-wrap { position: relative; height: 22px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+  .kill-bar-fill { position: absolute; top: 0; left: 0; height: 100%; border-radius: 4px; transition: width .4s; }
+  .kill-bar-label {
+    position: absolute; top: 0; left: 8px; height: 100%;
+    display: flex; align-items: center;
+    font-size: 10px; font-weight: 600; color: #fff;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,.3);
+  }
+  .kill-count { font-size: 11px; font-weight: 700; color: #1e293b; min-width: 20px; text-align: right; }
+
+  /* Floors bar chart */
+  #floors-chart { display: block; width: 100%; }
+
+  /* Damage dealers */
+  .dmg-panel { background:#fff; border:1.5px solid #e2e8f0; border-radius:10px; padding:18px 20px; }
+  .dmg-panel-title { font-size:12px; font-weight:700; color:#0f172a; margin-bottom:2px; }
+  .dmg-panel-sub { font-size:10px; color:#374151; margin-bottom:14px; }
+  .dmg-row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; margin-bottom:7px; }
+  .dmg-bar-wrap { position:relative; height:20px; background:#f1f5f9; border-radius:4px; overflow:hidden; }
+  .dmg-bar-fill { position:absolute; top:0; left:0; height:100%; border-radius:4px; }
+  .dmg-bar-label { position:absolute; top:0; left:7px; height:100%; display:flex; align-items:center; font-size:10px; font-weight:600; color:#fff; white-space:nowrap; text-shadow:0 1px 2px rgba(0,0,0,.3); }
+  .dmg-val { font-size:11px; font-weight:700; color:#475569; min-width:36px; text-align:right; white-space:nowrap; }
+
+  /* Tooltip */
+  #tooltip {
+    position: fixed;
+    background: rgba(15,23,42,.9);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .1s;
+    z-index: 100;
+    line-height: 1.6;
+    max-width: 220px;
+  }
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <h1>Slay the Spire 2 — Ascension 10 RUNS</h1>
+  <span class="sub">Kieran's personal run history at A10 only (Not counting Neow Abandons) Click a character card to filter by character. Across many different versions, starting with initial release Spring 2026, updated 6/1/26</span>
+  <div id="hdr-right">
+    <span id="last-loaded"></span>
+    <button id="load-btn" onclick="document.getElementById('run-file-input').click()">Load Runs</button>
+    <input id="run-file-input" type="file" multiple accept=".run" style="display:none">
+  </div>
+</div>
+
+<div id="wrap">
+
+  <!-- Character cards -->
+  <div class="section-label">Character win rates</div>
+  <div id="char-row"></div>
+
+  <!-- HP trajectory -->
+  <div id="chart-section">
+    <div id="chart-header">
+      <div>
+        <div id="chart-title">HP Trajectory</div>
+        <div id="chart-sub">Floor-by-floor absolute HP · click a character card to filter</div>
+      </div>
+      <div style="font-size:10px;color:#374151;max-width:180px;line-height:1.5;text-align:center;padding:0 12px;border-left:1.5px solid #e2e8f0;border-right:1.5px solid #e2e8f0;">
+         The run is extend by 2 floors if you pick the <strong style="color:#1e293b">Golden Path</strong> boss reward
+      </div>
+      <div id="legend">
+        <div class="legend-item">
+          <div class="legend-line" style="background:#22c55e"></div>Win
+        </div>
+        <div class="legend-item">
+          <div class="legend-line" style="background:#ef4444"></div>Loss
+        </div>
+      </div>
+    </div>
+    <svg id="hp-chart"></svg>
+  </div>
+
+  <!-- Bottom row -->
+  <div id="bottom-row">
+    <div class="panel">
+      <div class="panel-title">Top Killers</div>
+      <div class="panel-sub">What ended your runs (losses only)</div>
+      <div id="kills-list"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Floors Reached</div>
+      <div class="panel-sub">Distribution across all qualifying runs</div>
+      <svg id="floors-chart"></svg>
+    </div>
+  </div>
+
+  <!-- Damage dealers -->
+  <div id="damage-section" style="margin-top:24px">
+    <div class="section-label" style="margin-bottom:12px">Top damage dealers · avg damage taken per encounter</div>
+    <div id="damage-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
+  </div>
+
+</div>
+
+<div id="tooltip"></div>
+
+<script src="sts2_data.js"></script>
+<script>
+// ── Constants ──────────────────────────────────────────────────────────
+const CHARS = ['NECROBINDER', 'REGENT', 'DEFECT', 'IRONCLAD', 'SILENT'];
+const CHAR_COLOR = {
+  IRONCLAD:    '#e55b4d',
+  SILENT:      '#3db88b',
+  DEFECT:      '#3b9ade',
+  REGENT:      '#e0a030',
+  NECROBINDER: '#9b6cce',
+};
+const CHAR_LABEL = {
+  IRONCLAD:    'Ironclad',
+  SILENT:      'Silent',
+  DEFECT:      'Defect',
+  REGENT:      'Regent',
+  NECROBINDER: 'Necrobinder',
+};
+
+// ── Data prep ─────────────────────────────────────────────────────────
+const runs = [...RUN_DATA]; // mutable; replaced on file load
+const chars = ['IRONCLAD', 'SILENT', 'REGENT', 'NECROBINDER', 'DEFECT'];
+
+// Runs grouped by character (rebuilt on every render)
+const byChar = {};
+
+// ── State ─────────────────────────────────────────────────────────────
+let activeChar = null; // null = show all
+
+// ── Tooltip ───────────────────────────────────────────────────────────
+const tip = document.getElementById('tooltip');
+function showTip(html, x, y) {
+  tip.innerHTML = html;
+  tip.style.opacity = 1;
+  tip.style.left = (x + 14) + 'px';
+  tip.style.top  = (y - 10) + 'px';
+}
+function hideTip() { tip.style.opacity = 0; }
+
+// ── Character cards ────────────────────────────────────────────────────
+function buildCharCards() {
+  const row = document.getElementById('char-row');
+  row.innerHTML = '';
+
+  chars.forEach(char => {
+    const group = byChar[char] || [];
+    const wins      = group.filter(r => r.win).length;
+    const losses    = group.length - wins;
+    const total     = group.length;
+    const winPct    = total > 0 ? Math.round(wins / total * 100) : 0;
+    const avgFloors = total > 0 ? (group.reduce((s, r) => s + r.floors, 0) / total).toFixed(1) : 0;
+    const topKiller = topKillerFor(char);
+    const color     = CHAR_COLOR[char] || '#64748b';
+
+    const wW = total > 0 ? wins / total * 100 : 0;
+    const wL = total > 0 ? losses / total * 100 : 0;
+
+    const card = document.createElement('div');
+    card.className = 'char-card';
+    card.style.setProperty('--c', color);
+    card.dataset.char = char;
+    card.innerHTML = `
+      <div class="accent-bar"></div>
+      <div class="char-name">${CHAR_LABEL[char] || char}</div>
+      <div class="win-rate">${winPct}%</div>
+      <div class="win-rate-label">WIN RATE</div>
+      <div class="wla-bar">
+        <div class="seg" style="width:${wW}%;background:#22c55e"></div>
+        <div class="seg" style="width:${wL}%;background:#ef4444"></div>
+      </div>
+      <div class="char-stats">
+        <div class="stat-row"><span class="label">Runs</span><span class="val">${total}</span></div>
+        <div class="stat-row"><span class="label">W / L</span><span class="val">${wins} / ${losses}</span></div>
+        <div class="stat-row"><span class="label">Avg floors</span><span class="val">${avgFloors}</span></div>
+        ${topKiller ? `<div class="stat-row"><span class="label">Top killer</span><span class="val" style="font-size:10px;max-width:110px;text-align:right;word-break:break-word">${fmtEncounter(topKiller)}</span></div>` : ''}
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      activeChar = activeChar === char ? null : char;
+      updateCardStates();
+      drawHpChart();
+      drawFloorsChart();
+      buildKillsList();
+      buildDamageSection();
+    });
+
+    row.appendChild(card);
+  });
+}
+
+function updateCardStates() {
+  document.querySelectorAll('.char-card').forEach(card => {
+    const c = card.dataset.char;
+    card.classList.toggle('active', activeChar === c);
+    card.classList.toggle('inactive', activeChar !== null && activeChar !== c);
+  });
+}
+
+function topKillerFor(char) {
+  const losses = (byChar[char] || []).filter(r => !r.win && r.killed_by !== 'NONE.NONE');
+  if (!losses.length) return null;
+  const counts = {};
+  losses.forEach(r => counts[r.killed_by] = (counts[r.killed_by] || 0) + 1);
+  return Object.entries(counts).sort((a,b) => b[1]-a[1])[0][0];
+}
+
+function fmtEncounter(id) {
+  if (!id || id === 'NONE.NONE') return '—';
+  return id.replace(/_BOSS$/, '').replace(/_ELITE$/, '').replace(/_/g, ' ').toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ── HP Trajectory ─────────────────────────────────────────────────────
+function drawHpChart() {
+  const svg = document.getElementById('hp-chart');
+  const W = svg.parentElement.clientWidth - 48;
+  const H = 280;
+  const PAD = { top: 10, right: 20, bottom: 36, left: 42 };
+
+  const visRuns = activeChar ? runs.filter(r => r.character === activeChar) : runs;
+
+  const maxFloor = Math.max(...visRuns.map(r => r.floor_hp.length));
+  const maxHpAll = Math.max(...visRuns.flatMap(r => r.floor_max_hp));
+  const xScale = fl => PAD.left + (fl / (maxFloor - 1)) * (W - PAD.left - PAD.right);
+  const yScale = hp => PAD.top + (1 - hp / maxHpAll) * (H - PAD.top - PAD.bottom);
+
+  // Act boundaries (approx)
+  const actBoundaries = [17, 33];
+
+  let pathsHtml = '';
+  let dotsHtml = '';
+
+  // Draw losses first (behind), then wins on top
+  const sorted = [...visRuns].sort((a, b) => (a.win ? 1 : 0) - (b.win ? 1 : 0));
+
+  sorted.forEach(run => {
+    const pts = run.floor_hp.map((hp, i) => [xScale(i), yScale(hp)]);
+
+    if (pts.length < 2) return;
+
+    const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+
+    const isWin = run.win;
+    const stroke = isWin ? '#22c55e' : (CHAR_COLOR[run.character] || '#ef4444');
+    const opacity = isWin ? 0.75 : 0.5;
+    const sw = isWin ? 2 : 1.5;
+
+    pathsHtml += `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-opacity="${opacity}" stroke-linecap="round" stroke-linejoin="round"
+      data-char="${run.character}" data-win="${run.win}" data-floors="${run.floors}"
+      data-killer="${run.killed_by}" class="run-line"/>`;
+
+    // End dot
+    const last = pts[pts.length - 1];
+    const dotColor = isWin ? '#22c55e' : '#ef4444';
+    dotsHtml += `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="${isWin ? 4 : 3}" fill="${dotColor}" fill-opacity="${opacity + .2}" class="run-dot"
+      data-char="${run.character}" data-win="${run.win}" data-floors="${run.floors}"
+      data-final-hp="${run.floor_hp[run.floor_hp.length-1]}"
+      data-killer="${run.killed_by}"/>`;
+  });
+
+  // Grid lines
+  let gridHtml = '';
+  [0, .25, .5, .75, 1].forEach(v => {
+    const hpVal = Math.round(v * maxHpAll);
+    const y = yScale(hpVal);
+    gridHtml += `<line x1="${PAD.left}" y1="${y.toFixed(1)}" x2="${W - PAD.right}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>`;
+    gridHtml += `<text x="${PAD.left - 6}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="9" fill="#374151">${hpVal}</text>`;
+  });
+
+  // Act boundary lines
+  const actLabels = ['Act 2', 'Act 3'];
+  actBoundaries.forEach((f, i) => {
+    if (f < maxFloor) {
+      const x = xScale(f);
+      gridHtml += `<line x1="${x.toFixed(1)}" y1="${PAD.top}" x2="${x.toFixed(1)}" y2="${H - PAD.bottom}" stroke="#cbd5e1" stroke-width="1" stroke-dasharray="4,3"/>`;
+      gridHtml += `<text x="${(x + 4).toFixed(1)}" y="${(PAD.top + 10).toFixed(1)}" font-size="9" fill="#374151">${actLabels[i]}</text>`;
+    }
+  });
+
+  // X axis labels
+  let xHtml = '';
+  for (let f = 0; f <= maxFloor; f += 5) {
+    const x = xScale(Math.min(f, maxFloor - 1));
+    xHtml += `<text x="${x.toFixed(1)}" y="${(H - PAD.bottom + 16).toFixed(1)}" text-anchor="middle" font-size="9" fill="#374151">F${f}</text>`;
+  }
+
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = `
+    <style>
+      .run-line { cursor: pointer; }
+      .run-line:hover { stroke-width: 3 !important; stroke-opacity: 1 !important; }
+      .run-dot { cursor: pointer; }
+      .run-dot:hover { r: 6; }
+    </style>
+    ${gridHtml}
+    ${pathsHtml}
+    ${dotsHtml}
+    <text x="${(W/2).toFixed(0)}" y="${(H - 4).toFixed(0)}" text-anchor="middle" font-size="10" fill="#374151">Floor</text>
+  `;
+
+  // Tooltip on lines
+  svg.querySelectorAll('.run-line, .run-dot').forEach(el => {
+    el.addEventListener('mousemove', e => {
+      const win = el.dataset.win === 'true';
+      const outcome = win ? '<span style="color:#4ade80">WIN</span>' : '<span style="color:#f87171">Loss</span>';
+      const killer = el.dataset.killer;
+      const killerLine = (!win && killer && killer !== 'NONE.NONE')
+        ? `<br>Killed by: ${fmtEncounter(killer)}`
+        : '';
+      showTip(`${CHAR_LABEL[el.dataset.char] || el.dataset.char}<br>${outcome} · ${el.dataset.floors} floors${killerLine}`, e.clientX, e.clientY);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+
+// ── Kill list ─────────────────────────────────────────────────────────
+function buildKillsList() {
+  const visRuns = activeChar ? runs.filter(r => r.character === activeChar) : runs;
+  const losses = visRuns.filter(r => !r.win && r.killed_by !== 'NONE.NONE');
+
+  const counts = {};
+  losses.forEach(r => counts[r.killed_by] = (counts[r.killed_by] || 0) + 1);
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0, 8);
+
+  const maxCount = sorted[0]?.[1] || 1;
+  const charColor = activeChar ? CHAR_COLOR[activeChar] : '#6366f1';
+
+  const list = document.getElementById('kills-list');
+  list.innerHTML = sorted.map(([k, n]) => `
+    <div class="kill-item">
+      <div class="kill-bar-wrap">
+        <div class="kill-bar-fill" style="width:${(n/maxCount*100).toFixed(1)}%;background:${charColor}88"></div>
+        <div class="kill-bar-label">${fmtEncounter(k)}</div>
+      </div>
+      <div class="kill-count">${n}</div>
+    </div>
+  `).join('');
+
+  if (!sorted.length) {
+    list.innerHTML = '<div style="color:#374151;font-size:12px;padding:8px 0">No losses in selection</div>';
+  }
+}
+
+// ── Floors distribution ───────────────────────────────────────────────
+function drawFloorsChart() {
+  const svg = document.getElementById('floors-chart');
+  const W = svg.parentElement.clientWidth - 48;
+  const H = 180;
+  const PAD = { top: 10, right: 10, bottom: 36, left: 36 };
+
+  const visRuns = activeChar ? runs.filter(r => r.character === activeChar) : runs;
+
+  // One bar per distinct floor count
+  const maxFloor = Math.max(...visRuns.map(r => r.floors));
+  const minFloor = Math.min(...visRuns.map(r => r.floors));
+  const range = maxFloor - minFloor + 1;
+  const bins = Array.from({length: range}, (_, i) => ({
+    floor: minFloor + i, wins: 0, losses: 0, total: 0
+  }));
+  const floorIndex = f => f - minFloor;
+
+  visRuns.forEach(r => {
+    const b = bins[floorIndex(r.floors)];
+    b.total++;
+    if (r.win) b.wins++;
+    else b.losses++;
+  });
+
+  const maxTotal = Math.max(...bins.map(b => b.total), 1);
+  const slot = (W - PAD.left - PAD.right) / range;
+  const barW = Math.max(slot - 1, 1);
+  const yScale = v => H - PAD.bottom - (v / maxTotal) * (H - PAD.top - PAD.bottom);
+
+  // X-axis: label every 5th floor
+  const xForFloor = f => PAD.left + (f - minFloor) * slot + slot / 2;
+
+  let barsHtml = '';
+  bins.forEach((b, i) => {
+    const x = PAD.left + i * slot;
+    let y = H - PAD.bottom;
+
+    // Stacked: wins (green), losses (red)
+    [['wins','#22c55e'], ['losses','#ef4444']].forEach(([key, color]) => {
+      const h = (b[key] / maxTotal) * (H - PAD.top - PAD.bottom);
+      if (h > 0) {
+        barsHtml += `<rect x="${x.toFixed(1)}" y="${(y - h).toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}" rx="1"
+          data-label="F${b.floor}" data-w="${b.wins}" data-l="${b.losses}"/>`;
+        y -= h;
+      }
+    });
+
+    // X label every 5 floors
+    if (b.floor % 5 === 0) {
+      barsHtml += `<text x="${(x + barW/2).toFixed(1)}" y="${(H - PAD.bottom + 14).toFixed(1)}" text-anchor="middle" font-size="9" fill="#374151">${b.floor}</text>`;
+    }
+  });
+
+  // Y grid
+  let gridHtml = '';
+  for (let v = 0; v <= maxTotal; v += Math.max(1, Math.floor(maxTotal/4))) {
+    const y = yScale(v);
+    gridHtml += `<line x1="${PAD.left}" y1="${y.toFixed(1)}" x2="${W - PAD.right}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>`;
+    gridHtml += `<text x="${(PAD.left - 4).toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#374151">${v}</text>`;
+  }
+
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = gridHtml + barsHtml;
+
+  svg.querySelectorAll('rect').forEach(el => {
+    el.addEventListener('mousemove', e => {
+      showTip(`${el.dataset.label}<br><span style="color:#4ade80">${el.dataset.w} wins</span> · <span style="color:#f87171">${el.dataset.l} losses</span>`, e.clientX, e.clientY);
+    });
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+
+// ── Run file parsing ──────────────────────────────────────────────────
+function parseRunFile(json) {
+  const r = json;
+  if (r.ascension !== 10 || r.was_abandoned) return null;
+  const player = r.players && r.players[0];
+  if (!player) return null;
+
+  const floorHp = [], floorMaxHp = [], floorTypes = [], floorGold = [], encounters = [];
+  (r.map_point_history || []).forEach(act => {
+    act.forEach(point => {
+      const ps = (point.player_stats || []).find(p => p.player_id === 1);
+      if (ps) {
+        floorHp.push(ps.current_hp);
+        floorMaxHp.push(ps.max_hp);
+        floorTypes.push(point.map_point_type);
+        floorGold.push(ps.current_gold);
+        if (['monster','elite','boss'].includes(point.map_point_type)) {
+          const room = (point.rooms || [])[0];
+          if (room) encounters.push({
+            name:   (room.model_id || '').replace('ENCOUNTER.', ''),
+            type:   point.map_point_type,
+            damage: ps.damage_taken || 0,
+          });
+        }
+      }
+    });
+  });
+
+  if (floorHp.length < 2) return null;
+
+  return {
+    character:    (player.character || '').replace('CHARACTER.', ''),
+    win:          !!r.win,
+    ascension:    r.ascension,
+    floors:       floorHp.length,
+    killed_by:    (r.killed_by_encounter || 'NONE.NONE').replace('ENCOUNTER.', ''),
+    acts_reached: (r.acts || []).length,
+    run_time_sec: r.run_time,
+    start_time:   r.start_time,
+    deck_size:    (player.deck || []).length,
+    relic_count:  (player.relics || []).length,
+    floor_hp:     floorHp,
+    floor_max_hp: floorMaxHp,
+    floor_types:  floorTypes,
+    floor_gold:   floorGold,
+    encounters:   encounters,
+  };
+}
+
+// ── Damage dealers ────────────────────────────────────────────────────
+const DMG_COLORS = { monster: '#6366f1', elite: '#e0a030', boss: '#e55b4d' };
+
+function buildDamageSection() {
+  const visRuns = activeChar ? runs.filter(r => r.character === activeChar) : runs;
+
+  const buckets = { monster: {}, elite: {}, boss: {} };
+
+  visRuns.forEach(run => {
+    (run.encounters || []).forEach(enc => {
+      const b = buckets[enc.type];
+      if (!b) return;
+      if (!b[enc.name]) b[enc.name] = { total: 0, count: 0 };
+      b[enc.name].total += enc.damage;
+      b[enc.name].count += 1;
+    });
+  });
+
+  const LABELS = { monster: 'Normal Fights', elite: 'Elite Fights', boss: 'Boss Fights' };
+  const row = document.getElementById('damage-row');
+  row.innerHTML = '';
+
+  ['monster', 'elite', 'boss'].forEach(type => {
+    const entries = Object.entries(buckets[type])
+      .map(([name, d]) => ({ name, avg: d.total / d.count, count: d.count }))
+      .sort((a, b) => b.avg - a.avg)
+      .slice(0, 10);
+
+    const maxAvg = entries[0]?.avg || 1;
+    const color = DMG_COLORS[type];
+
+    const panel = document.createElement('div');
+    panel.className = 'dmg-panel';
+    panel.innerHTML = `
+      <div class="dmg-panel-title">${LABELS[type]}</div>
+      <div class="dmg-panel-sub">avg damage taken per encounter</div>
+      ${entries.map(e => `
+        <div class="dmg-row">
+          <div class="dmg-bar-wrap">
+            <div class="dmg-bar-fill" style="width:${(e.avg/maxAvg*100).toFixed(1)}%;background:${color}99"></div>
+            <div class="dmg-bar-label">${fmtEncounter(e.name)}</div>
+          </div>
+          <div class="dmg-val">${e.avg.toFixed(1)} <span style="color:#374151;font-weight:500">(${e.count}×)</span></div>
+        </div>`).join('')}
+      ${entries.length === 0 ? '<div style="color:#374151;font-size:11px">No data</div>' : ''}
+    `;
+
+    // Tooltip with full name on hover for truncated labels
+    panel.querySelectorAll('.dmg-row').forEach((el, i) => {
+      const e = entries[i];
+      if (!e) return;
+      el.addEventListener('mousemove', ev => showTip(`${fmtEncounter(e.name)}<br>Avg damage: <strong>${e.avg.toFixed(1)}</strong><br>Encountered: ${e.count}×`, ev.clientX, ev.clientY));
+      el.addEventListener('mouseleave', hideTip);
+    });
+
+    row.appendChild(panel);
+  });
+}
+
+function renderAll() {
+  chars.forEach(c => byChar[c] = runs.filter(r => r.character === c));
+  activeChar = null;
+  buildCharCards();
+  drawHpChart();
+  buildKillsList();
+  drawFloorsChart();
+  buildDamageSection();
+}
+
+function updateLastLoaded(isoStr, count) {
+  const el = document.getElementById('last-loaded');
+  if (!isoStr) { el.textContent = ''; return; }
+  const d = new Date(isoStr);
+  const fmt = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  el.innerHTML = `Data as of <strong>${fmt}, ${time}</strong> · ${count} runs`;
+}
+
+// ── Load from localStorage on startup ────────────────────────────────
+(function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem('sts2_runs');
+    const ts    = localStorage.getItem('sts2_loaded_at');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length) {
+        runs.length = 0;
+        parsed.forEach(r => runs.push(r));
+        updateLastLoaded(ts, runs.length);
+      }
+    }
+  } catch (e) {}
+})();
+
+// ── File picker handler ───────────────────────────────────────────────
+document.getElementById('run-file-input').addEventListener('change', async function () {
+  const btn = document.getElementById('load-btn');
+  btn.textContent = 'Loading…';
+  btn.className = 'loading';
+
+  const files = Array.from(this.files);
+  const results = [];
+
+  await Promise.all(files.map(file => new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const run = parseRunFile(JSON.parse(e.target.result));
+        if (run) results.push(run);
+      } catch (_) {}
+      resolve();
+    };
+    reader.readAsText(file);
+  })));
+
+  if (results.length) {
+    runs.length = 0;
+    results.forEach(r => runs.push(r));
+
+    const ts = new Date().toISOString();
+    try {
+      localStorage.setItem('sts2_runs', JSON.stringify(runs));
+      localStorage.setItem('sts2_loaded_at', ts);
+    } catch (_) {}
+
+    updateLastLoaded(ts, runs.length);
+    renderAll();
+
+    btn.textContent = `Loaded ${results.length} runs`;
+    btn.className = 'success';
+    setTimeout(() => { btn.textContent = 'Load Runs'; btn.className = ''; }, 3000);
+  } else {
+    btn.textContent = 'No valid runs found';
+    btn.className = '';
+    setTimeout(() => { btn.textContent = 'Load Runs'; }, 2000);
+  }
+
+  this.value = '';
+});
+
+// ── Init ──────────────────────────────────────────────────────────────
+renderAll();
+
+window.addEventListener('resize', () => {
+  drawHpChart();
+  drawFloorsChart();
+});
+</script>
+</body>
+</html>
