@@ -176,6 +176,27 @@
   /* Floors bar chart */
   #floors-chart { display: block; width: 100%; }
 
+  /* Card pick rates */
+  #card-tabs { display:flex; border-bottom:1.5px solid #e2e8f0; }
+  .card-tab {
+    padding:10px 18px; font-size:11px; font-weight:700; letter-spacing:.5px;
+    cursor:pointer; border:none; background:none; font-family:inherit;
+    color:#374151; border-bottom:2px solid transparent; margin-bottom:-1.5px;
+    transition:color .15s, border-color .15s;
+  }
+  .card-tab:hover { color:#0f172a; }
+  .card-tab.active { color:var(--tc); border-bottom-color:var(--tc); }
+
+  .card-row {
+    display:grid; grid-template-columns:180px 1fr 60px;
+    align-items:center; gap:10px; padding:4px 0;
+  }
+  .card-name { font-size:11px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card-bar-wrap { height:16px; background:#f1f5f9; border-radius:3px; overflow:hidden; }
+  .card-bar-fill { height:100%; border-radius:3px; }
+  .card-rate { font-size:11px; font-weight:700; color:#1e293b; text-align:right; white-space:nowrap; }
+  .card-offered { font-size:10px; color:#374151; }
+
   /* Damage dealers */
   .dmg-panel { background:#fff; border:1.5px solid #e2e8f0; border-radius:10px; padding:18px 20px; }
   .dmg-panel-title { font-size:12px; font-weight:700; color:#0f172a; margin-bottom:2px; }
@@ -185,6 +206,18 @@
   .dmg-bar-fill { position:absolute; top:0; left:0; height:100%; border-radius:4px; }
   .dmg-bar-label { position:absolute; top:0; left:7px; height:100%; display:flex; align-items:center; font-size:10px; font-weight:600; color:#fff; white-space:nowrap; text-shadow:0 1px 2px rgba(0,0,0,.3); }
   .dmg-val { font-size:11px; font-weight:700; color:#475569; min-width:36px; text-align:right; white-space:nowrap; }
+
+  /* Patch filter */
+  #patch-row { display:flex; align-items:center; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .patch-btn {
+    padding:5px 12px; font-size:11px; font-weight:600; letter-spacing:.3px;
+    cursor:pointer; border:1.5px solid #e2e8f0; background:#fff; font-family:inherit;
+    border-radius:6px; transition:all .15s; color:#374151; text-align:center; line-height:1.4;
+  }
+  .patch-btn:hover { border-color:#94a3b8; color:#1e293b; }
+  .patch-btn.active { border-color:#6366f1; color:#6366f1; background:color-mix(in srgb, #6366f1 8%, #fff); }
+  .patch-btn .patch-date { display:block; font-size:9px; font-weight:500; color:#94a3b8; letter-spacing:.2px; margin-top:1px; }
+  .patch-btn.active .patch-date { color:#818cf8; }
 
   /* Tooltip */
   #tooltip {
@@ -217,6 +250,10 @@
 </div>
 
 <div id="wrap">
+
+  <!-- Patch filter -->
+  <div class="section-label">Patch filter</div>
+  <div id="patch-row"></div>
 
   <!-- Character cards -->
   <div class="section-label">Character win rates</div>
@@ -258,6 +295,15 @@
     </div>
   </div>
 
+  <!-- Card pick rates -->
+  <div id="card-section" style="margin-top:24px">
+    <div class="section-label" style="margin-bottom:12px">Card pick rates · sorted by pick rate</div>
+    <div class="panel" style="padding:0;overflow:hidden">
+      <div id="card-tabs"></div>
+      <div id="card-list" style="padding:16px 20px;max-height:420px;overflow-y:auto"></div>
+    </div>
+  </div>
+
   <!-- Damage dealers -->
   <div id="damage-section" style="margin-top:24px">
     <div class="section-label" style="margin-bottom:12px">Top damage dealers · avg damage taken per encounter</div>
@@ -295,7 +341,13 @@ const chars = ['IRONCLAD', 'SILENT', 'REGENT', 'NECROBINDER', 'DEFECT'];
 const byChar = {};
 
 // ── State ─────────────────────────────────────────────────────────────
-let activeChar = null; // null = show all
+let activeChar  = null; // null = show all
+let activePatch = null; // null = all patches
+
+function getVisRuns() {
+  let r = activePatch ? runs.filter(r => r.build_id === activePatch) : runs;
+  return activeChar ? r.filter(r => r.character === activeChar) : r;
+}
 
 // ── Tooltip ───────────────────────────────────────────────────────────
 const tip = document.getElementById('tooltip');
@@ -388,7 +440,7 @@ function drawHpChart() {
   const H = 280;
   const PAD = { top: 10, right: 20, bottom: 36, left: 42 };
 
-  const visRuns = activeChar ? runs.filter(r => r.character === activeChar) : runs;
+  const visRuns = getVisRuns();
 
   const maxFloor = Math.max(...visRuns.map(r => r.floor_hp.length));
   const maxHpAll = Math.max(...visRuns.flatMap(r => r.floor_max_hp));
@@ -488,7 +540,7 @@ function drawHpChart() {
 
 // ── Kill list ─────────────────────────────────────────────────────────
 function buildKillsList() {
-  const visRuns = activeChar ? runs.filter(r => r.character === activeChar) : runs;
+  const visRuns = getVisRuns();
   const losses = visRuns.filter(r => !r.win && r.killed_by !== 'NONE.NONE');
 
   const counts = {};
@@ -521,7 +573,7 @@ function drawFloorsChart() {
   const H = 180;
   const PAD = { top: 10, right: 10, bottom: 36, left: 36 };
 
-  const visRuns = activeChar ? runs.filter(r => r.character === activeChar) : runs;
+  const visRuns = getVisRuns();
 
   // One bar per distinct floor count
   const maxFloor = Math.max(...visRuns.map(r => r.floors));
@@ -596,7 +648,7 @@ function parseRunFile(json) {
   const player = r.players && r.players[0];
   if (!player) return null;
 
-  const floorHp = [], floorMaxHp = [], floorTypes = [], floorGold = [], encounters = [];
+  const floorHp = [], floorMaxHp = [], floorTypes = [], floorGold = [], encounters = [], cardChoices = [];
   (r.map_point_history || []).forEach(act => {
     act.forEach(point => {
       const ps = (point.player_stats || []).find(p => p.player_id === 1);
@@ -613,6 +665,9 @@ function parseRunFile(json) {
             damage: ps.damage_taken || 0,
           });
         }
+        (ps.card_choices || []).forEach(c => {
+          cardChoices.push({ card: (c.card?.id || '').replace('CARD.', ''), picked: !!c.was_picked });
+        });
       }
     });
   });
@@ -624,6 +679,7 @@ function parseRunFile(json) {
     win:          !!r.win,
     ascension:    r.ascension,
     floors:       floorHp.length,
+    build_id:     r.build_id || null,
     killed_by:    (r.killed_by_encounter || 'NONE.NONE').replace('ENCOUNTER.', ''),
     acts_reached: (r.acts || []).length,
     run_time_sec: r.run_time,
@@ -635,14 +691,85 @@ function parseRunFile(json) {
     floor_types:  floorTypes,
     floor_gold:   floorGold,
     encounters:   encounters,
+    card_choices: cardChoices,
   };
+}
+
+// ── Card pick rates ───────────────────────────────────────────────────
+let activeCardChar = 'IRONCLAD';
+
+function fmtCard(id) {
+  return id
+    .replace(/_IRONCLAD|_SILENT|_DEFECT|_REGENT|_NECROBINDER/g, '')
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function buildCardSection() {
+  // Build tabs
+  const tabsEl = document.getElementById('card-tabs');
+  tabsEl.innerHTML = chars.map(c => {
+    const color = CHAR_COLOR[c] || '#64748b';
+    const label = CHAR_LABEL[c] || c;
+    return `<button class="card-tab${c === activeCardChar ? ' active' : ''}" data-char="${c}"
+      style="--tc:${color}">${label}</button>`;
+  }).join('');
+
+  tabsEl.querySelectorAll('.card-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeCardChar = btn.dataset.char;
+      buildCardSection();
+    });
+  });
+
+  // Aggregate card choices for this character
+  const baseRuns = activePatch ? runs.filter(r => r.build_id === activePatch) : runs;
+  const charRuns = baseRuns.filter(r => r.character === activeCardChar);
+
+  const cards = {};
+  charRuns.forEach(run => {
+    (run.card_choices || []).forEach(c => {
+      if (!cards[c.card]) cards[c.card] = { offered: 0, picked: 0 };
+      cards[c.card].offered++;
+      if (c.picked) cards[c.card].picked++;
+    });
+  });
+
+  const sorted = Object.entries(cards)
+    .map(([name, d]) => ({ name, ...d, rate: d.picked / d.offered }))
+    .sort((a, b) => b.rate - a.rate || b.offered - a.offered);
+
+  const color = CHAR_COLOR[activeCardChar] || '#6366f1';
+  const listEl = document.getElementById('card-list');
+
+  if (!sorted.length) {
+    listEl.innerHTML = '<div style="color:#374151;font-size:12px;padding:8px 0">No data for this character</div>';
+    return;
+  }
+
+  listEl.innerHTML = `
+    <div class="card-row" style="margin-bottom:6px;border-bottom:1px solid #e2e8f0;padding-bottom:6px">
+      <div style="font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.8px">Card</div>
+      <div style="font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.8px">Pick rate</div>
+      <div style="font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.8px;text-align:right">Offered</div>
+    </div>
+    ${sorted.map(e => `
+      <div class="card-row">
+        <div class="card-name" title="${fmtCard(e.name)}">${fmtCard(e.name)}</div>
+        <div class="card-bar-wrap">
+          <div class="card-bar-fill" style="width:${(e.rate*100).toFixed(1)}%;background:${color}99"></div>
+        </div>
+        <div class="card-rate">${Math.round(e.rate*100)}% <span class="card-offered">${e.picked}/${e.offered}</span></div>
+      </div>`).join('')}
+  `;
 }
 
 // ── Damage dealers ────────────────────────────────────────────────────
 const DMG_COLORS = { monster: '#6366f1', elite: '#e0a030', boss: '#e55b4d' };
 
 function buildDamageSection() {
-  const visRuns = activeChar ? runs.filter(r => r.character === activeChar) : runs;
+  const visRuns = getVisRuns();
 
   const buckets = { monster: {}, elite: {}, boss: {} };
 
@@ -697,14 +824,46 @@ function buildDamageSection() {
   });
 }
 
+function buildPatchFilters() {
+  const row = document.getElementById('patch-row');
+  const patches = {};
+  runs.forEach(r => {
+    if (!r.build_id) return;
+    if (!patches[r.build_id]) patches[r.build_id] = { min: Infinity, max: -Infinity, count: 0 };
+    patches[r.build_id].min = Math.min(patches[r.build_id].min, r.start_time);
+    patches[r.build_id].max = Math.max(patches[r.build_id].max, r.start_time);
+    patches[r.build_id].count++;
+  });
+  const fmtDate = ts => new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const sorted = Object.entries(patches).sort((a, b) => a[1].min - b[1].min);
+  row.innerHTML = [
+    `<button class="patch-btn${activePatch === null ? ' active' : ''}" data-patch="">All<span class="patch-date">${runs.length} runs</span></button>`,
+    ...sorted.map(([v, d]) => {
+      const lo = fmtDate(d.min), hi = fmtDate(d.max);
+      const range = lo === hi ? lo : `${lo}–${hi}`;
+      return `<button class="patch-btn${activePatch === v ? ' active' : ''}" data-patch="${v}">${v}<span class="patch-date">${range} · ${d.count} runs</span></button>`;
+    })
+  ].join('');
+  row.querySelectorAll('.patch-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activePatch = btn.dataset.patch || null;
+      activeChar = null;
+      renderAll();
+    });
+  });
+}
+
 function renderAll() {
-  chars.forEach(c => byChar[c] = runs.filter(r => r.character === c));
+  const fr = activePatch ? runs.filter(r => r.build_id === activePatch) : runs;
+  chars.forEach(c => byChar[c] = fr.filter(r => r.character === c));
   activeChar = null;
+  buildPatchFilters();
   buildCharCards();
   drawHpChart();
   buildKillsList();
   drawFloorsChart();
   buildDamageSection();
+  buildCardSection();
 }
 
 function updateLastLoaded(isoStr, count) {
