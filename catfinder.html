@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐾 Cat Finder — Nana Plum's Picnic</title>
+<style>
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:Georgia, "Palatino Linotype", "Segoe UI", serif;
+    background:linear-gradient(160deg,#dff0e4 0%, #fdf3dd 60%, #fbe3cf 100%);
+    color:#4a4238; min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; padding:12px;
+  }
+  h1{font-size:26px; color:#6a5a48; margin:2px 0;}
+  h1 small{font-size:14px; color:#a08a72; font-style:italic;}
+  #topbar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center;
+    background:#fffdf7ee; border-radius:16px; padding:8px 16px; margin:8px 0;
+    box-shadow:0 3px 14px #0001;
+  }
+  #paws{display:flex; gap:6px;}
+  .paw{
+    width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:#eee5d8; font-size:16px; filter:grayscale(1) opacity(.45);
+    transition:all .4s; cursor:default; border:2px solid transparent;
+  }
+  .paw.found{filter:none; background:#fff; border-color:#e8c98a; cursor:pointer; transform:scale(1.08);}
+  #progressTxt{font-size:14px; color:#8a7a64; min-width:120px; text-align:center;}
+  button{
+    font-family:inherit; font-size:14px; padding:6px 12px; border-radius:12px;
+    border:2px solid #e5d9c5; background:#fffdf7; color:#5a4a3a; cursor:pointer;
+    transition:transform .1s, background .2s;
+  }
+  button:hover:not(:disabled){background:#fdf2dd; transform:translateY(-1px);}
+  button:disabled{opacity:.5; cursor:default;}
+  #stage{position:relative; border-radius:18px; overflow:hidden; box-shadow:0 10px 36px #0002; line-height:0;}
+  canvas#scene{max-width:min(96vw,1000px); height:auto; display:block;}
+  footer{font-size:12px; color:#a89880; margin-top:10px; font-style:italic;}
+  /* card + overlays */
+  #overlay{
+    position:fixed; inset:0; background:#3a2f2466; display:none;
+    align-items:center; justify-content:center; z-index:60; padding:16px;
+  }
+  #overlay.show{display:flex;}
+  #card{
+    background:linear-gradient(180deg,#fffdf7,#fdf4e3);
+    border-radius:22px; padding:26px 30px; max-width:520px; width:100%;
+    box-shadow:0 14px 50px #0005; text-align:center;
+    animation:pop .4s cubic-bezier(.2,1.4,.4,1); max-height:90vh; overflow-y:auto;
+    border:3px solid #f0e2c8;
+  }
+  @keyframes pop{from{transform:scale(.65); opacity:0;} to{transform:scale(1); opacity:1;}}
+  #card h2{font-size:26px; color:#6a5240; margin:6px 0 0;}
+  #card .title{color:#b08a5a; font-style:italic; font-size:15px; margin-bottom:8px;}
+  #card p{font-size:15px; line-height:1.65; margin:10px 0; text-align:left; color:#5a4c3c;}
+  #card .fact{
+    background:#f3ead7; border-radius:14px; padding:12px 14px; font-size:14px;
+    text-align:left; border-left:4px solid #d9b87a; line-height:1.6;
+  }
+  #card .fact b{color:#9a7a3a;}
+  #card button{font-size:16px; padding:10px 22px; margin-top:14px; background:#e9d7ae; border-color:#d9c08a;}
+  #portraitWrap{display:flex; justify-content:center;}
+  canvas#portrait{background:radial-gradient(circle at 50% 36%, #fff8e8, #f3e6cc); border-radius:50%; border:3px solid #ecd9b4;}
+  .rules{text-align:left; font-size:14.5px; line-height:1.7; color:#5a4c3c;}
+  .rules li{margin:6px 0 6px 20px;}
+</style>
+</head>
+<body>
+<h1>🐾 Cat Finder <small>— nine friends are hiding near Nana Plum's cottage</small></h1>
+<div id="topbar">
+  <div id="paws"></div>
+  <span id="progressTxt">0 / 9 friends found</span>
+  <button id="hintBtn" title="A little sparkle of whisker-sense">✨ Hint</button>
+  <button id="musicBtn" title="Music on/off">🎵</button>
+  <button id="sfxBtn" title="Sounds on/off">🔊</button>
+  <button id="newBtn" title="The cats find new hiding spots">🔄 Hide Again</button>
+  <button id="aboutBtn" title="What is this?">❓</button>
+</div>
+<div id="stage"><canvas id="scene"></canvas></div>
+<footer>No timers, no losing — just a meadow, a kettle on, and nine cats who'd love to be found.</footer>
+<div id="overlay"><div id="card"></div></div>
+
+<script>
+'use strict';
+/* ==========================================================
+   CAT FINDER — a gentle hidden-cat game.
+   Nine cats are hiding around Nana Plum's cottage. Find them
+   and they'll gather on the picnic blanket... it turns out
+   they were all waiting for her birthday party to begin.
+   ========================================================== */
+const IS_TEST = (typeof window!=='undefined') && window.__CF_TEST===true;
+
+// ---------- helpers ----------
+function mulberry32(a){ return function(){ a|=0; a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+function lerpColor(c1,c2,t){
+  const p=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+  const a=p(c1),b=p(c2);
+  return `rgb(${Math.round(lerp(a[0],b[0],t))},${Math.round(lerp(a[1],b[1],t))},${Math.round(lerp(a[2],b[2],t))})`;
+}
+function nowMs(){ return (typeof performance!=='undefined'&&performance.now)? performance.now():Date.now(); }
+const VW=960, VH=600;
+
+// ---------- the cats ----------
+const CATS=[
+  {name:'Mochi', title:'The Flowerbed Dreamer', pattern:'solid', base:'#f3e9dc', dark:'#e2d2bd', eye:'#7aa86a', collar:'#e8a0b0',
+   story:`Mochi arrived on a stormy night three springs ago, a soggy little cloud of a cat mewing at the cottage door. Nana Plum set out a saucer of warm milk and an old wool sock, and by morning Mochi had decided this was home forever. She sleeps among the tulips because they smell like that first kind morning.`,
+   fact:`Cats purr at frequencies between about 25 and 150 Hz — a range studies suggest may promote bone and tissue healing. A purring cat on your lap is, quite literally, a tiny therapy machine.`},
+  {name:'Biscuit', title:'The Roof Loafer', pattern:'tabby', base:'#e8a35c', dark:'#c97f3d', eye:'#c98a2a', collar:'#7aa86a',
+   story:`Every dawn, Biscuit climbs to the rooftop to supervise the sunrise, kneading the chimney-warmed shingles with great seriousness — Nana calls it "making the morning biscuits." He shares the warmest spot with a family of sparrows. They have an understanding, and it is sacred.`,
+   fact:`Around 4 out of 5 orange tabby cats are male, thanks to the way the orange fur gene rides on the X chromosome. Biscuit considers himself one of the lucky ones.`},
+  {name:'Juniper', title:'The Tree Philosopher', pattern:'solid', base:'#9aa3ad', dark:'#7f8893', eye:'#d9c04a', collar:'#5a7a96',
+   story:`Juniper spent her younger years as a ship's cat and crossed three seas before retiring to the old oak. Now she naps on the high branch where the leaves move like waves, and on quiet evenings she tells the kittens long stories about lighthouses and the moths that love them.`,
+   fact:`Cats have more than 30 muscles in each ear and can swivel them about 180 degrees — which is how Juniper hears the biscuit tin open from the top of a tree.`},
+  {name:'Captain Pickles', title:'The Pond Admiral', pattern:'tuxedo', base:'#3a3f4a', dark:'#2c3038', eye:'#7fc77a', collar:'#d9534f',
+   story:`Captain Pickles has stood guard over the pond for six proud years. He has never once caught a fish, and if he did he would have absolutely no idea what to do next. The koi know this. They drift up to visit him every afternoon, and he salutes each one by name.`,
+   fact:`A cat's whiskers can detect air movements smaller than a millimeter, helping them sense nearby objects in the dark — or notice a koi surfacing without even looking.`},
+  {name:'Clementine', title:'The Meadow Matchmaker', pattern:'calico', base:'#f5efe4', dark:'#e8964f', dark2:'#4a4440', eye:'#c98a2a', collar:'#e8c84a',
+   story:`Clementine patrols the tall grass making sure every bumblebee finds its way to a flower. She once spent an entire afternoon escorting a lost duckling back to the pond, walking exactly slow enough for tiny webbed feet. The meadow has been noticeably happier ever since she took the job.`,
+   fact:`Nearly all calico cats — about 999 in 1000 — are female. Their patchwork coats need two X chromosomes, which makes boys like a winning lottery ticket.`},
+  {name:'Umbra', title:'The Window Librarian', pattern:'solid', base:'#37343f', dark:'#2a2832', eye:'#e8b84a', collar:'#9a7ab0',
+   story:`Umbra lives on the windowsill beside Nana's bookshelf and takes her duties as librarian very seriously. She sits on whichever book you ought to read next, and she is somehow always right. Late at night, she watches over the cottage while everyone dreams, which she considers the most important shelf of all.`,
+   fact:`A black cat's fur can "rust" into a reddish-brown in strong sunshine as the pigment breaks down — Umbra's summer highlights are entirely natural and very fashionable.`},
+  {name:'Poppy', title:'The Tiny Gardener', pattern:'bicolor', base:'#f0b070', dark:'#f5efe4', eye:'#6a9ad0', collar:'#7aa86a', kitten:true,
+   story:`Poppy is the youngest by far, and she is convinced the watering can is a sleeping dragon that she alone has tamed. Every morning she headbutts it until it tips, watering exactly one daisy. That daisy is now the tallest flower in the garden, and Poppy takes full credit.`,
+   fact:`Kittens sleep up to 20 hours a day — growing happens mostly during sleep. Poppy is not lazy; she is extremely busy becoming a cat.`},
+  {name:'Earl Grey', title:'The Mail Inspector', pattern:'solid', base:'#b9c2cc', dark:'#9aa6b2', eye:'#c97a4a', collar:'#4a6a8a',
+   story:`Earl Grey meets the mail carrier at the gate every morning at 9:02 sharp, and inspects each envelope with one solemn sniff. He receives more postcards than anyone in the village — though it took Nana years to discover the mail carrier had been writing them himself, one for every birthday and rainy day.`,
+   fact:`When a cat looks at you and blinks slowly, it's a sign of trust — a "cat kiss." If you slow-blink back at Earl Grey, he will absolutely return it. Try it with a cat you know.`},
+  {name:'Waffles', title:'The Pastry Guard', pattern:'bicolor', base:'#b58a64', dark:'#f5efe4', eye:'#8a7a4a', collar:'#d98a3a',
+   story:`Waffles guards Nana's cooling pies from the crows with tremendous dignity. There was, admittedly, the Incident — he fell asleep mid-shift and woke to find a crow holding a strawberry. After a long staring contest, they split it. He and that crow now share a strawberry every Sunday, and the pies remain officially untouched.`,
+   fact:`Cats can't taste sweetness at all — they're missing part of the gene for sweet receptors. Waffles guards the pie purely out of loyalty, which somehow makes it more noble.`},
+];
+
+// ---------- hiding spots (the scene is fixed; which cat hides where shuffles) ----------
+const SPOTS=[
+  {id:'oak',     x:189, y:204, r:38, peek:'ears', ps:1.05, hint:'somewhere high in the old oak tree'},
+  {id:'chimney', x:828, y:200, r:36, peek:'tail', ps:1.0,  hint:'up where the chimney smoke curls'},
+  {id:'window',  x:696, y:299, r:32, peek:'face', ps:1.0,  hint:'watching from inside the cottage'},
+  {id:'reeds',   x:432, y:462, r:36, peek:'tail', ps:1.0,  hint:'among the whispering pond reeds'},
+  {id:'grass',   x:520, y:436, r:36, peek:'ears', ps:0.95, hint:'low in the tall meadow grass'},
+  {id:'flowers', x:716, y:430, r:36, peek:'back', ps:1.0,  hint:'snoozing in the flower bed'},
+  {id:'bush',    x:924, y:364, r:38, peek:'ears', ps:1.0,  hint:'behind the big berry bush'},
+  {id:'mailbox', x:560, y:372, r:30, peek:'face', ps:0.85, hint:'peeking past the mailbox'},
+  {id:'can',     x:776, y:457, r:28, peek:'ears', ps:0.62, hint:'hiding behind the watering can'},
+];
+const BLANKET={x:152, y:543};
+const SEATS=[[72,-12],[100,14],[42,24],[126,-16],[16,-4],[148,22],[64,46],[112,50],[-46,16]];
+
+// ---------- state ----------
+const S={
+  seed:0, rng:Math.random, assign:[], found:[], sprites:[], clicks:0, hintsUsed:0,
+  complete:false, bannerT:0, lastCard:null, sparkle:null, petals:[], puffs:[],
+  musicOn:true, sfxOn:true, hintReadyAt:0, finaleShown:false,
+};
+function newGame(seed){
+  S.seed = (seed===undefined)? Math.floor(Math.random()*1e6) : seed;
+  S.rng = mulberry32(S.seed);
+  // shuffle cat -> spot assignment
+  const idx=[...CATS.keys()];
+  for(let i=idx.length-1;i>0;i--){ const j=Math.floor(S.rng()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
+  S.assign=idx;                       // assign[spotIndex] = catIndex
+  S.found=SPOTS.map(()=>false);
+  S.sprites=[]; S.clicks=0; S.hintsUsed=0; S.complete=false; S.bannerT=0;
+  S.lastCard=null; S.sparkle=null; S.petals=[]; S.puffs=[]; S.hintReadyAt=0; S.finaleShown=false;
+  updateUI();
+}
+function foundCount(){ return S.found.filter(Boolean).length; }
+function catAtSpot(i){ return CATS[S.assign[i]]; }
+
+// ---------- finding ----------
+function clickAt(x,y){
+  S.clicks++;
+  // a found cat lounging at the picnic? say hi again
+  for(const sp of S.sprites){
+    if(sp.phase==='party' && Math.hypot(x-sp.x, y-sp.y)<30){
+      showCatCard(sp.cat, true);
+      sfx('meow');
+      return {type:'party', cat:sp.cat};
+    }
+  }
+  // an unfound hiding spot?
+  for(let i=0;i<SPOTS.length;i++){
+    if(S.found[i]) continue;
+    const sp=SPOTS[i];
+    if(Math.hypot(x-sp.x, y-sp.y)<=sp.r){
+      S.found[i]=true;
+      const cat=catAtSpot(i);
+      const seat=SEATS[i];
+      S.sprites.push({cat, spotIdx:i, phase:'walk', x:sp.x, y:Math.min(sp.y+20,560),
+        tx:BLANKET.x+seat[0], ty:BLANKET.y+seat[1], t0:nowMs(), dur:2600+S.rng()*800});
+      burstSparkles(sp.x,sp.y);
+      sfx('chime'); setTimeout(()=>sfx('meow'), IS_TEST?0:240);
+      showCatCard(cat,false);
+      updateUI();
+      if(foundCount()===SPOTS.length){ S.complete=true; }
+      return {type:'found', cat, spot:sp};
+    }
+  }
+  // gentle miss: a puff of petals and a rustle
+  S.puffs.push({x,y,t0:nowMs()});
+  sfx('rustle');
+  return {type:'miss'};
+}
+function hint(){
+  const t=nowMs();
+  if(t<S.hintReadyAt) return null;
+  const unfound=[...SPOTS.keys()].filter(i=>!S.found[i]);
+  if(!unfound.length) return null;
+  const i=unfound[Math.floor(Math.random()*unfound.length)];
+  S.sparkle={x:SPOTS[i].x, y:SPOTS[i].y, until:t+2600, spotIdx:i};
+  S.hintsUsed++; S.hintReadyAt=t+9000;
+  sfx('twinkle');
+  updateUI();
+  return SPOTS[i];
+}
+function burstSparkles(x,y){
+  if(IS_TEST) return;
+  for(let i=0;i<14;i++){
+    const a=Math.random()*Math.PI*2, sp=0.4+Math.random()*1.4;
+    S.petals.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-0.8,g:0.03,r:2+Math.random()*2.5,
+      color:['#ffd97a','#fff3c4','#ffb3c0'][i%3], t0:nowMs(), life:900, spin:Math.random()*6});
+  }
+}
+function petalRain(){
+  if(IS_TEST) return;
+  for(let i=0;i<90;i++){
+    S.petals.push({x:Math.random()*VW, y:-20-Math.random()*200, vx:(Math.random()-.5)*0.6,
+      vy:0.5+Math.random()*0.9, g:0.002, r:3+Math.random()*3,
+      color:['#ffb3c0','#ffd0da','#fff0b8','#ffc89a'][i%4], t0:nowMs(), life:9000, spin:Math.random()*6});
+  }
+}
+
+// ---------- cat drawing (parametric cuties) ----------
+function catScale(c){ return c.kitten? 0.74 : 1; }
+function blinkAmt(time, phase){
+  const t=(time*0.001+phase)%4.6;            // blink every ~4.6s
+  return t<0.18? Math.sin(t/0.18*Math.PI) : 0;
+}
+function drawCatFull(g, c, x, y, s, facing, time){
+  s*=catScale(c);
+  const sway=Math.sin(time*0.0016+(c.name.length))*0.12;
+  g.save(); g.translate(x,y); g.scale(facing*s,s);
+  // tail (curled beside body, swaying)
+  g.strokeStyle=c.base; g.lineWidth=7; g.lineCap='round';
+  g.beginPath(); g.moveTo(-14,8);
+  g.quadraticCurveTo(-26,6,-27,-4+sway*22);
+  g.stroke();
+  if(c.pattern==='tabby'){ g.strokeStyle=c.dark; g.lineWidth=7; g.setLineDash([4,5]); g.beginPath(); g.moveTo(-14,8); g.quadraticCurveTo(-26,6,-27,-4+sway*22); g.stroke(); g.setLineDash([]); }
+  // body (sitting bean)
+  g.fillStyle=c.base;
+  g.beginPath(); g.ellipse(0,4,15,14,0,0,Math.PI*2); g.fill();
+  // chest
+  g.fillStyle=(c.pattern==='tuxedo')?'#f5f2ea':(c.pattern==='bicolor'? c.dark : lighten(c.base));
+  g.beginPath(); g.ellipse(3,8,8,9,0,0,Math.PI*2); g.fill();
+  // patches
+  if(c.pattern==='calico'){
+    g.fillStyle=c.dark; g.beginPath(); g.ellipse(-7,-2,7,6,0.4,0,Math.PI*2); g.fill();
+    g.fillStyle=c.dark2||'#4a4440'; g.beginPath(); g.ellipse(7,2,5.5,5,-0.4,0,Math.PI*2); g.fill();
+  }
+  if(c.pattern==='bicolor'){ g.fillStyle=c.base; g.beginPath(); g.ellipse(-6,-3,8,7,0.3,0,Math.PI*2); g.fill(); }
+  if(c.pattern==='tabby'){
+    g.strokeStyle=c.dark; g.lineWidth=2.4;
+    for(const off of [-7,-1,5]){ g.beginPath(); g.arc(off,-2,9,Math.PI*1.25,Math.PI*1.75); g.stroke(); }
+  }
+  // paws
+  g.fillStyle=(c.pattern==='tuxedo')?'#f5f2ea':c.base;
+  g.beginPath(); g.ellipse(-4,17,4,2.6,0,0,Math.PI*2); g.fill();
+  g.beginPath(); g.ellipse(6,17,4,2.6,0,0,Math.PI*2); g.fill();
+  // head
+  g.fillStyle=c.base;
+  g.beginPath(); g.arc(2,-15,11.5,0,Math.PI*2); g.fill();
+  // ears
+  const tw=Math.sin(time*0.003+(c.name.length*2))>0.96? 0.25:0;
+  ear(g,c,-6,-23,-0.25+tw); ear(g,c,10,-23,0.25);
+  if(c.pattern==='tabby'){ g.strokeStyle=c.dark; g.lineWidth=2; g.beginPath(); g.arc(2,-20,7,Math.PI*1.2,Math.PI*1.8); g.stroke(); }
+  // muzzle for tuxedo
+  if(c.pattern==='tuxedo'){ g.fillStyle='#f5f2ea'; g.beginPath(); g.ellipse(4,-11,6,5,0,0,Math.PI*2); g.fill(); }
+  // face
+  const bl=blinkAmt(time, c.name.length*1.3);
+  eye(g,c,-2.5,-16,bl); eye(g,c,8.5,-16,bl);
+  g.fillStyle='#d98a8a';
+  g.beginPath(); g.moveTo(3,-12.2); g.lineTo(5.4,-12.2); g.lineTo(4.2,-10.4); g.closePath(); g.fill();
+  g.strokeStyle='#0002'; g.lineWidth=1;
+  g.beginPath(); g.moveTo(4.2,-10.4); g.lineTo(4.2,-9); g.stroke();
+  // whiskers
+  g.strokeStyle='rgba(80,70,60,0.45)'; g.lineWidth=1;
+  for(const [y1,y2] of [[-12,-11.4],[-10.5,-10.5],[-9,-9.6]]){
+    g.beginPath(); g.moveTo(8,y1); g.lineTo(16,y2); g.stroke();
+    g.beginPath(); g.moveTo(0,y1); g.lineTo(-8,y2); g.stroke();
+  }
+  // collar + bell
+  g.strokeStyle=c.collar; g.lineWidth=3;
+  g.beginPath(); g.arc(2,-15,11.5,Math.PI*0.32,Math.PI*0.68); g.stroke();
+  g.fillStyle='#e8c84a'; g.beginPath(); g.arc(2,-3.2,2.2,0,Math.PI*2); g.fill();
+  g.fillStyle='#a8882a'; g.beginPath(); g.arc(2,-2.6,0.8,0,Math.PI*2); g.fill();
+  g.restore();
+}
+function lighten(hex){
+  const p=h=>parseInt(h,16);
+  const r=p(hex.slice(1,3)),gr=p(hex.slice(3,5)),b=p(hex.slice(5,7));
+  return `rgb(${Math.min(255,r+26)},${Math.min(255,gr+26)},${Math.min(255,b+26)})`;
+}
+function ear(g,c,x,y,rot){
+  g.save(); g.translate(x,y); g.rotate(rot);
+  g.fillStyle=c.base;
+  g.beginPath(); g.moveTo(-5,6); g.lineTo(0,-7); g.lineTo(5,6); g.closePath(); g.fill();
+  g.fillStyle='#e8a8a8';
+  g.beginPath(); g.moveTo(-2.4,4); g.lineTo(0,-3); g.lineTo(2.4,4); g.closePath(); g.fill();
+  g.restore();
+}
+function eye(g,c,x,y,blink){
+  if(blink>0.5){ g.strokeStyle='#3a342c'; g.lineWidth=1.6; g.beginPath(); g.arc(x,y+1,2.4,0.15*Math.PI,0.85*Math.PI); g.stroke(); return; }
+  g.fillStyle=c.eye;
+  g.beginPath(); g.ellipse(x,y,2.8,3.2*(1-blink),0,0,Math.PI*2); g.fill();
+  g.fillStyle='#2a261f';
+  g.beginPath(); g.ellipse(x,y,1.3,2.2*(1-blink),0,0,Math.PI*2); g.fill();
+  g.fillStyle='#fff';
+  g.beginPath(); g.arc(x+0.9,y-1.1,0.8,0,Math.PI*2); g.fill();
+}
+// --- partial "peek" drawings, in each cat's own colors ---
+function drawPeek(g, spot, c, time){
+  const x=spot.x, y=spot.y, s=spot.ps*catScale(c);
+  g.save(); g.translate(x,y); g.scale(s,s);
+  if(spot.peek==='ears'){
+    const tw=Math.sin(time*0.0026+x)>0.95? 0.2:0;
+    g.fillStyle=c.base;
+    g.beginPath(); g.arc(0,7,11,Math.PI,0); g.fill();   // top of head
+    ear(g,c,-7,-1,-0.28+tw); ear(g,c,7,-1,0.28);
+    if(c.pattern==='tabby'){ g.strokeStyle=c.dark; g.lineWidth=2; g.beginPath(); g.arc(0,5,7,Math.PI*1.2,Math.PI*1.8); g.stroke(); }
+  } else if(spot.peek==='tail'){
+    const sway=Math.sin(time*0.0019+y)*7;
+    g.strokeStyle=c.base; g.lineWidth=8; g.lineCap='round';
+    g.beginPath(); g.moveTo(0,16); g.quadraticCurveTo(4,-2, sway, -16); g.stroke();
+    if(c.pattern==='tabby'||c.pattern==='calico'){
+      g.strokeStyle=c.dark; g.lineWidth=8; g.setLineDash([5,6]);
+      g.beginPath(); g.moveTo(0,16); g.quadraticCurveTo(4,-2, sway, -16); g.stroke(); g.setLineDash([]);
+    }
+    g.fillStyle=lighten(c.base); g.beginPath(); g.arc(sway,-16,4.5,0,Math.PI*2); g.fill();
+  } else if(spot.peek==='face'){
+    g.fillStyle=c.base;
+    g.beginPath(); g.arc(0,2,11,0,Math.PI*2); g.fill();
+    ear(g,c,-7,-7,-0.28); ear(g,c,7,-7,0.28);
+    const bl=blinkAmt(time, x*0.1);
+    eye(g,c,-4,-0.5,bl); eye(g,c,4.5,-0.5,bl);
+    g.fillStyle='#d98a8a';
+    g.beginPath(); g.moveTo(-0.9,3.4); g.lineTo(1.5,3.4); g.lineTo(0.3,5); g.closePath(); g.fill();
+  } else if(spot.peek==='back'){
+    const br=1+Math.sin(time*0.0013+x)*0.03;  // gentle breathing
+    g.scale(1,br);
+    g.fillStyle=c.base;
+    g.beginPath(); g.ellipse(0,4,16,11,0,Math.PI,0); g.fill();
+    if(c.pattern==='tabby'){ g.strokeStyle=c.dark; g.lineWidth=2.4;
+      for(const off of [-8,0,8]){ g.beginPath(); g.moveTo(off,-4); g.lineTo(off+2,3); g.stroke(); } }
+    if(c.pattern==='calico'){ g.fillStyle=c.dark; g.beginPath(); g.ellipse(-6,0,5,4,0,Math.PI,0); g.fill(); }
+    ear(g,c,9,-6,0.4);
+  }
+  g.restore();
+}
+
+// ---------- scene drawing ----------
+let canvas=null, ctx=null;
+function progress(){ return foundCount()/SPOTS.length; }
+function draw(time){
+  if(!ctx) return;
+  const p=progress();
+  // sky: morning -> golden hour
+  const grd=ctx.createLinearGradient(0,0,0,360);
+  grd.addColorStop(0, lerpColor('#7fb9e0','#e8916f',p));
+  grd.addColorStop(1, lerpColor('#d9f0f8','#ffd9a0',p));
+  ctx.fillStyle=grd; ctx.fillRect(0,0,VW,360);
+  // sun drifting toward the pond horizon
+  const sx=lerp(110,330,p), sy=lerp(92,300,p);
+  const glow=ctx.createRadialGradient(sx,sy,5,sx,sy,90+p*60);
+  glow.addColorStop(0, lerpColor('#fff6d0','#ffd9a8',p));
+  glow.addColorStop(1,'rgba(255,240,200,0)');
+  ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(sx,sy,90+p*60,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=lerpColor('#fff2b8','#ffca7a',p);
+  ctx.beginPath(); ctx.arc(sx,sy,26,0,Math.PI*2); ctx.fill();
+  // clouds
+  cloud(150+((time*0.006)%1100)-70, 70, 1.0, time);
+  cloud(560+((time*0.004)%1150)-80, 120, 0.75, time);
+  cloud(330+((time*0.005)%1200)-90, 45, 0.55, time);
+  // distant hills
+  ctx.fillStyle=lerpColor('#b5d99a','#cfba7f',p*0.6);
+  ctx.beginPath(); ctx.moveTo(0,330); ctx.quadraticCurveTo(190,235,420,318); ctx.quadraticCurveTo(610,255,960,325); ctx.lineTo(960,360); ctx.lineTo(0,360); ctx.fill();
+  // meadow
+  const mg=ctx.createLinearGradient(0,330,0,600);
+  mg.addColorStop(0, lerpColor('#9ed273','#b3c46a',p*0.5));
+  mg.addColorStop(1, lerpColor('#7dbb59','#96ab53',p*0.5));
+  ctx.fillStyle=mg; ctx.fillRect(0,330,VW,270);
+  // winding path to the cottage door
+  ctx.fillStyle='#e3cf9f';
+  ctx.beginPath();
+  ctx.moveTo(660,600); ctx.quadraticCurveTo(700,480,790,418);
+  ctx.lineTo(842,418); ctx.quadraticCurveTo(760,500,740,600); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#d4ba84';
+  for(let i=0;i<7;i++){ ctx.beginPath(); ctx.ellipse(742+i*9-(i*i),585-i*26,7-i*0.5,3.4,0.2,0,Math.PI*2); ctx.fill(); }
+  // fence along the back
+  fence(0,348,610);
+  // pond
+  pond(time,p);
+  // picnic blanket + Nana Plum
+  picnic(time,p);
+  // big oak (cat may peek from notch)
+  oak(time);
+  if(!S.found[0]) drawPeek(ctx, SPOTS[0], catAtSpot(0), time);
+  oakFrontLeaves(time);
+  // cottage (window cat behind glass shine)
+  cottage(time,p);
+  // mailbox + peeking face
+  if(!S.found[7]) drawPeek(ctx, SPOTS[7], catAtSpot(7), time);
+  mailbox(time);
+  // flower bed + curled back
+  if(!S.found[5]) drawPeek(ctx, SPOTS[5], catAtSpot(5), time);
+  flowerbed(time);
+  // reeds + tail
+  if(!S.found[3]) drawPeek(ctx, SPOTS[3], catAtSpot(3), time);
+  reeds(432,468,time);
+  // tall grass + ears
+  if(!S.found[4]) drawPeek(ctx, SPOTS[4], catAtSpot(4), time);
+  tallGrass(520,448,time);
+  // bush + ears
+  if(!S.found[6]) drawPeek(ctx, SPOTS[6], catAtSpot(6), time);
+  bush(924,402,time);
+  // watering can + kitten ears
+  if(!S.found[8]) drawPeek(ctx, SPOTS[8], catAtSpot(8), time);
+  wateringCan(776,486);
+  // chimney tail & window face draw above their structures
+  if(!S.found[1]) drawPeek(ctx, SPOTS[1], catAtSpot(1), time);
+  // butterflies
+  butterfly(time, 0); butterfly(time, 1); butterfly(time+9000, 2);
+  // found cats walking / partying
+  for(const sp of S.sprites) drawSprite(sp,time);
+  // birthday banner finale
+  if(S.complete){ S.bannerT=clamp(S.bannerT+0.012,0,1); banner(S.bannerT,time); }
+  // sparkles (hint)
+  if(S.sparkle){
+    if(nowMs()>S.sparkle.until) S.sparkle=null;
+    else sparkleStars(S.sparkle.x, S.sparkle.y, time);
+  }
+  // petals & puffs
+  drawPetals();
+  drawPuffs(time);
+  // soft vignette
+  const v=ctx.createRadialGradient(VW/2,VH/2,300,VW/2,VH/2,640);
+  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(90,60,30,0.16)');
+  ctx.fillStyle=v; ctx.fillRect(0,0,VW,VH);
+}
+function cloud(x,y,s,time){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  ctx.fillStyle='rgba(255,255,255,0.85)';
+  for(const [cx,cy,r] of [[0,0,22],[24,-7,17],[46,2,20],[22,9,16]]){
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function fence(x0,y,w){
+  ctx.fillStyle='#cba87e';
+  for(let x=x0;x<x0+w;x+=34){
+    ctx.fillRect(x,y-22,7,30);
+    ctx.beginPath(); ctx.moveTo(x,y-22); ctx.lineTo(x+3.5,y-28); ctx.lineTo(x+7,y-22); ctx.fill();
+  }
+  ctx.fillRect(x0,y-14,w,4.5); ctx.fillRect(x0,y-2,w,4.5);
+}
+function pond(time,p){
+  ctx.fillStyle=lerpColor('#7fc4dd','#e8b87f',p*0.45);
+  ctx.beginPath(); ctx.ellipse(270,497,152,50,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.25)';
+  for(let i=0;i<3;i++){
+    const ph=(time*0.0007+i*0.33)%1;
+    ctx.beginPath(); ctx.ellipse(270,497,30+ph*110,(30+ph*110)*0.3,0,0,Math.PI*2);
+    ctx.globalAlpha=0.3*(1-ph);
+    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  // lilypads + koi
+  ctx.fillStyle='#5da95a';
+  ctx.beginPath(); ctx.ellipse(210,505,16,8,0.2,0.25,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(330,485,13,6.5,-0.2,0.25,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0a0b0';
+  ctx.beginPath(); ctx.arc(210,500,4,0,Math.PI*2); ctx.fill();
+  const kx=270+Math.sin(time*0.0009)*70, ky=505+Math.cos(time*0.0013)*14;
+  ctx.fillStyle='rgba(240,140,90,0.8)';
+  ctx.beginPath(); ctx.ellipse(kx,ky,9,3.5,Math.sin(time*0.0009)*0.4,0,Math.PI*2); ctx.fill();
+}
+function picnic(time,p){
+  const {x,y}=BLANKET;
+  ctx.save(); ctx.translate(x,y);
+  // blanket
+  ctx.fillStyle='#e86a6a';
+  ctx.beginPath(); ctx.moveTo(-95,0); ctx.lineTo(95,-14); ctx.lineTo(135,38); ctx.lineTo(-60,52); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=3;
+  for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(-80+i*38,-5+i*1); ctx.lineTo(-45+i*38,48); ctx.stroke(); }
+  for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(-90,8+i*14); ctx.lineTo(120,-4+i*16); ctx.stroke(); }
+  // teapot & cups
+  ctx.fillStyle='#f5f2ea';
+  ctx.beginPath(); ctx.ellipse(38,12,13,10,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(49,8); ctx.quadraticCurveTo(58,6,58,12); ctx.lineTo(52,14); ctx.fill();
+  ctx.fillStyle='#9ab0d0'; ctx.beginPath(); ctx.arc(38,3,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f5f2ea';
+  ctx.beginPath(); ctx.ellipse(14,26,6,4.5,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(60,28,6,4.5,0,0,Math.PI*2); ctx.fill();
+  // little cake (the secret!)
+  ctx.fillStyle='#f0c8d8'; ctx.fillRect(82,8,26,14);
+  ctx.fillStyle='#fff'; ctx.fillRect(82,8,26,5);
+  ctx.fillStyle='#e84a6a'; ctx.beginPath(); ctx.arc(95,6,3,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  // Nana Plum, knitting happily
+  nana(x-60,y-8,time,p);
+}
+function nana(x,y,time,p){
+  ctx.save(); ctx.translate(x,y);
+  const rock=Math.sin(time*0.0014)*0.03;
+  ctx.rotate(rock);
+  // skirt
+  ctx.fillStyle='#9a86b8';
+  ctx.beginPath(); ctx.ellipse(0,22,26,18,0,Math.PI,0); ctx.fill();
+  // torso & cardigan
+  ctx.fillStyle='#c8a2b8';
+  ctx.beginPath(); ctx.ellipse(0,-2,15,17,0,0,Math.PI*2); ctx.fill();
+  // arms holding needles
+  ctx.strokeStyle='#c8a2b8'; ctx.lineWidth=8; ctx.lineCap='round';
+  const knit=Math.sin(time*0.006)*2;
+  ctx.beginPath(); ctx.moveTo(-11,2); ctx.lineTo(-16,14+knit); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(11,2); ctx.lineTo(17,14-knit); ctx.stroke();
+  // knitting needles + yarn
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(-16,14+knit); ctx.lineTo(2,6); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(17,14-knit); ctx.lineTo(0,7); ctx.stroke();
+  ctx.fillStyle='#e86a6a'; ctx.beginPath(); ctx.arc(1,16,5,0,Math.PI*2); ctx.fill();
+  // head
+  ctx.fillStyle='#f3d9c4';
+  ctx.beginPath(); ctx.arc(0,-26,11,0,Math.PI*2); ctx.fill();
+  // silver bun
+  ctx.fillStyle='#dcdce2';
+  ctx.beginPath(); ctx.arc(0,-33,8,Math.PI,0); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,-38,4.5,0,Math.PI*2); ctx.fill();
+  // glasses + smile + cheeks
+  ctx.strokeStyle='#8a7a6a'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.arc(-4,-26,3.2,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(4,-26,3.2,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-1,-26); ctx.lineTo(1,-26); ctx.stroke();
+  ctx.strokeStyle='#b07a6a'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(0,-22,3.5,0.2*Math.PI,0.8*Math.PI); ctx.stroke();
+  ctx.fillStyle='rgba(230,140,140,0.4)';
+  ctx.beginPath(); ctx.arc(-7,-22,2.4,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(7,-22,2.4,0,Math.PI*2); ctx.fill();
+  // hearts when the party is on
+  if(S.complete){
+    const hb=(time*0.001)%1.6;
+    ctx.globalAlpha=clamp(1-hb/1.6,0,1);
+    heart(2,-48-hb*22,4.5,'#e87a9a');
+    ctx.globalAlpha=1;
+  }
+  ctx.restore();
+}
+function heart(x,y,s,col){
+  ctx.fillStyle=col;
+  ctx.beginPath();
+  ctx.moveTo(x,y+s);
+  ctx.bezierCurveTo(x-s*1.4,y-s*0.4,x-s*0.6,y-s*1.4,x,y-s*0.4);
+  ctx.bezierCurveTo(x+s*0.6,y-s*1.4,x+s*1.4,y-s*0.4,x,y+s);
+  ctx.fill();
+}
+function oak(time){
+  // trunk
+  ctx.fillStyle='#8a6a4a';
+  ctx.beginPath();
+  ctx.moveTo(128,408); ctx.quadraticCurveTo(138,300,132,240);
+  ctx.lineTo(168,240); ctx.quadraticCurveTo(166,300,176,408); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#7a5a3c'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(146,400); ctx.quadraticCurveTo(150,330,148,280); ctx.stroke();
+  // branch toward the peek notch
+  ctx.fillStyle='#8a6a4a';
+  ctx.beginPath(); ctx.moveTo(160,250); ctx.quadraticCurveTo(185,232,202,224);
+  ctx.lineTo(204,232); ctx.quadraticCurveTo(186,240,164,258); ctx.closePath(); ctx.fill();
+  // back canopy
+  const swy=Math.sin(time*0.0012)*2;
+  ctx.fillStyle='#5fa54f';
+  for(const [cx,cy,r] of [[100,190,52],[150,150,60],[210,170,50],[120,240,46],[195,235,40]]){
+    ctx.beginPath(); ctx.arc(cx,cy+swy*0.5,r,0,Math.PI*2); ctx.fill();
+  }
+}
+function oakFrontLeaves(time){
+  const swy=Math.sin(time*0.0012)*2;
+  ctx.fillStyle='#74b85f';
+  for(const [cx,cy,r] of [[88,212,36],[136,182,44],[212,148,38],[148,232,30],[236,212,26]]){
+    ctx.beginPath(); ctx.arc(cx,cy+swy,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='#8ccb74';
+  for(const [cx,cy,r] of [[115,170,26],[180,150,28],[150,215,22]]){
+    ctx.beginPath(); ctx.arc(cx,cy+swy,r,0,Math.PI*2); ctx.fill();
+  }
+}
+function cottage(time,p){
+  // wall
+  ctx.fillStyle='#f3e3c2';
+  ctx.fillRect(648,252,244,160);
+  // roof
+  ctx.fillStyle='#c4734a';
+  ctx.beginPath(); ctx.moveTo(628,258); ctx.lineTo(770,158); ctx.lineTo(912,258); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#a85a36'; ctx.lineWidth=2;
+  for(let i=1;i<4;i++){
+    ctx.beginPath(); ctx.moveTo(628+(770-628)*i/4, 258-(100*i/4)); ctx.lineTo(912-(912-770)*i/4, 258-(100*i/4)); ctx.stroke();
+  }
+  // chimney + smoke
+  ctx.fillStyle='#b08a6a'; ctx.fillRect(818,182,30,56);
+  ctx.fillStyle='#9a7858'; ctx.fillRect(815,176,36,10);
+  for(let i=0;i<3;i++){
+    const ph=(time*0.0004+i*0.34)%1;
+    ctx.fillStyle=`rgba(255,255,255,${0.5*(1-ph)})`;
+    ctx.beginPath(); ctx.arc(833+Math.sin(ph*5)*8, 168-ph*52, 7+ph*9, 0, Math.PI*2); ctx.fill();
+  }
+  // window (a cat may live here)
+  ctx.fillStyle='#7a9ab8'; ctx.fillRect(679,282,56,56);
+  // (peeking cat drawn between glass and frame)
+  if(!S.found[2]) drawPeek(ctx, SPOTS[2], catAtSpot(2), nowMs());
+  ctx.fillStyle='rgba(255,255,255,0.18)';
+  ctx.beginPath(); ctx.moveTo(679,338); ctx.lineTo(700,282); ctx.lineTo(716,282); ctx.lineTo(693,338); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#fff'; ctx.lineWidth=5; ctx.strokeRect(679,282,56,56);
+  ctx.beginPath(); ctx.moveTo(707,282); ctx.lineTo(707,338); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(679,310); ctx.lineTo(735,310); ctx.stroke();
+  // shutters
+  ctx.fillStyle='#7aa86a'; ctx.fillRect(666,282,11,56); ctx.fillRect(737,282,11,56);
+  // flower box
+  ctx.fillStyle='#a87a52'; ctx.fillRect(672,338,72,11);
+  for(let i=0;i<5;i++){ ctx.fillStyle=['#e86a8a','#f0c84a','#e88a5a'][i%3]; ctx.beginPath(); ctx.arc(680+i*14,336,4,0,Math.PI*2); ctx.fill(); }
+  // door
+  ctx.fillStyle='#9a6a44';
+  ctx.beginPath(); ctx.moveTo(790,412); ctx.lineTo(790,346); ctx.arc(816,346,26,Math.PI,0); ctx.lineTo(842,412); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#e8c84a'; ctx.beginPath(); ctx.arc(834,382,2.8,0,Math.PI*2); ctx.fill();
+  // lantern by the door, lit at golden hour
+  ctx.strokeStyle='#5a4a3a'; ctx.lineWidth=2.4;
+  ctx.beginPath(); ctx.moveTo(774,332); ctx.lineTo(774,346); ctx.stroke();
+  ctx.fillStyle = p>0.5? '#ffe9a0':'#cfc4ae';
+  ctx.fillRect(768,346,12,16);
+  if(p>0.5){ const fl=ctx.createRadialGradient(774,354,2,774,354,22); fl.addColorStop(0,'rgba(255,230,150,0.5)'); fl.addColorStop(1,'rgba(255,230,150,0)'); ctx.fillStyle=fl; ctx.beginPath(); ctx.arc(774,354,22,0,Math.PI*2); ctx.fill(); }
+}
+function mailbox(time){
+  ctx.fillStyle='#8a6a4a'; ctx.fillRect(553,358,7,44);
+  ctx.fillStyle='#d96a5a';
+  ctx.beginPath(); ctx.moveTo(534,358); ctx.lineTo(534,340); ctx.arc(544,340,10,Math.PI,0); ctx.lineTo(580,340); ctx.lineTo(580,358); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#b85044';
+  ctx.beginPath(); ctx.ellipse(580,349,4,9,0,0,Math.PI*2); ctx.fill();
+  // little flag
+  ctx.strokeStyle='#5a4a3a'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(537,340); ctx.lineTo(537,328); ctx.stroke();
+  ctx.fillStyle='#f0c84a'; ctx.fillRect(537,328,9,6);
+}
+function flowerbed(time){
+  const sway=Math.sin(time*0.0019)*1.6;
+  for(let i=0;i<11;i++){
+    const x=656+i*23, y=446;
+    ctx.strokeStyle='#5fa54f'; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.quadraticCurveTo(x+sway,y-12,x+sway,y-20); ctx.stroke();
+    const col=['#e86a8a','#f0c84a','#b88ae0','#e88a5a','#f0f0e8'][i%5];
+    ctx.fillStyle=col;
+    for(let k=0;k<5;k++){
+      const a=k/5*Math.PI*2;
+      ctx.beginPath(); ctx.arc(x+sway+Math.cos(a)*5,y-22+Math.sin(a)*5,3.6,0,Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle='#f5e08a'; ctx.beginPath(); ctx.arc(x+sway,y-22,3,0,Math.PI*2); ctx.fill();
+  }
+}
+function reeds(x,y,time){
+  const sway=Math.sin(time*0.0016)*3;
+  for(let i=0;i<7;i++){
+    const rx=x-22+i*8, h=34+(i%3)*10;
+    ctx.strokeStyle=i%2?'#5fa54f':'#4f954a'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(rx,y+12); ctx.quadraticCurveTo(rx+sway,y-h*0.5,rx+sway*1.5,y-h); ctx.stroke();
+    if(i%2){ ctx.fillStyle='#8a6a4a'; ctx.beginPath(); ctx.ellipse(rx+sway*1.5,y-h,3,8,0,0,Math.PI*2); ctx.fill(); }
+  }
+}
+function tallGrass(x,y,time){
+  const sway=Math.sin(time*0.0021)*3;
+  ctx.strokeStyle='#6fae4f'; ctx.lineWidth=3;
+  for(let i=0;i<10;i++){
+    const gx=x-30+i*7, h=22+((i*13)%18);
+    ctx.strokeStyle=i%2?'#6fae4f':'#7fbe5f';
+    ctx.beginPath(); ctx.moveTo(gx,y+10); ctx.quadraticCurveTo(gx+sway,y-h*0.4,gx+sway*1.6,y-h); ctx.stroke();
+  }
+}
+function bush(x,y,time){
+  const br=1+Math.sin(time*0.0014)*0.012;
+  ctx.save(); ctx.translate(x,y); ctx.scale(br,br);
+  ctx.fillStyle='#4f954a';
+  for(const [cx,cy,r] of [[-22,4,22],[0,-8,26],[22,6,22],[0,10,24]]){
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='#5fa54f';
+  for(const [cx,cy,r] of [[-12,-4,16],[12,-6,15]]){
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='#d9486a';
+  for(const [bx,by] of [[-18,-6],[6,-14],[18,0],[-4,6],[12,10]]){
+    ctx.beginPath(); ctx.arc(bx,by,3,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function wateringCan(x,y){
+  ctx.fillStyle='#8aa6b8';
+  ctx.beginPath(); ctx.roundRect? ctx.roundRect(x-20,y-22,40,28,5) : ctx.rect(x-20,y-22,40,28); ctx.fill();
+  // spout
+  ctx.beginPath(); ctx.moveTo(x-20,y-14); ctx.lineTo(x-38,y-26); ctx.lineTo(x-33,y-31); ctx.lineTo(x-17,y-20); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#7a96a8';
+  ctx.beginPath(); ctx.ellipse(x-36,y-29,5,3.4,0.6,0,Math.PI*2); ctx.fill();
+  // handle
+  ctx.strokeStyle='#7a96a8'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.arc(x,y-22,14,Math.PI,0); ctx.stroke();
+  // one proud daisy
+  ctx.strokeStyle='#5fa54f'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x+30,y+6); ctx.quadraticCurveTo(x+31,y-10,x+30,y-18); ctx.stroke();
+  ctx.fillStyle='#fff';
+  for(let k=0;k<6;k++){ const a=k/6*Math.PI*2; ctx.beginPath(); ctx.ellipse(x+30+Math.cos(a)*6,y-20+Math.sin(a)*6,3.4,2,a,0,Math.PI*2); ctx.fill(); }
+  ctx.fillStyle='#f0c84a'; ctx.beginPath(); ctx.arc(x+30,y-20,3.6,0,Math.PI*2); ctx.fill();
+}
+function butterfly(time,i){
+  const t=time*0.0004+i*2.1;
+  const x=480+Math.sin(t)*380+Math.sin(t*2.7)*60;
+  const y=300+Math.cos(t*1.3)*120+Math.sin(t*3.1)*30;
+  const flap=Math.sin(time*0.02+i)*0.6;
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle=['#e8a0c0','#a0c0e8','#f0d080'][i%3];
+  ctx.beginPath(); ctx.ellipse(-3,0,5,8,flap,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(3,0,5,8,-flap,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#5a4a3a'; ctx.beginPath(); ctx.ellipse(0,0,1.4,5,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function drawSprite(sp,time){
+  if(sp.phase==='walk'){
+    const t=clamp((nowMs()-sp.t0)/sp.dur,0,1);
+    const e=t<0.5? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+    sp.x=lerp(sp.x0??(sp.x0=sp.x), sp.tx, e);
+    sp.y=lerp(sp.y0??(sp.y0=sp.y), sp.ty, e) - Math.abs(Math.sin(t*Math.PI*6))*5;
+    if(t>=1){ sp.phase='party'; sp.x=sp.tx; sp.y=sp.ty; }
+    drawCatFull(ctx, sp.cat, sp.x, sp.y, 1, sp.tx>sp.x?1:-1, time);
+  } else {
+    const facing = sp.x>BLANKET.x-60? -1:1;   // gaze toward Nana
+    drawCatFull(ctx, sp.cat, sp.x, sp.y, 1, facing, time);
+    if(S.complete && Math.sin(time*0.001+sp.x)>0.93) heart(sp.x, sp.y-38, 3.4, '#e87a9a');
+  }
+}
+function banner(t,time){
+  const y=lerp(-60,118,t);
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(150,y-28); ctx.quadraticCurveTo(480,y+22,790,y-38); ctx.stroke();
+  // bunting
+  for(let i=0;i<13;i++){
+    const bt=i/12, bx=lerp(150,790,bt), by=lerp(y-28,y-38,bt)+Math.sin(bt*Math.PI)*48+6;
+    ctx.fillStyle=['#e86a6a','#f0c84a','#7aa86a','#9a86b8','#e8a0c0'][i%5];
+    ctx.beginPath(); ctx.moveTo(bx-9,by-7); ctx.lineTo(bx+9,by-7); ctx.lineTo(bx,by+11); ctx.closePath(); ctx.fill();
+  }
+  // sign
+  const sx=470, sy=y+44+Math.sin(time*0.0014)*2.5;
+  ctx.fillStyle='#fff8e8';
+  ctx.strokeStyle='#d9b87a'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.roundRect? ctx.roundRect(sx-170,sy-24,340,48,12):ctx.rect(sx-170,sy-24,340,48);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#b06a3a'; ctx.font='bold 21px Georgia'; ctx.textAlign='center';
+  ctx.fillText('Happy Birthday, Nana Plum! 🎂', sx, sy+7);
+}
+function sparkleStars(x,y,time){
+  for(let i=0;i<5;i++){
+    const a=time*0.003+i*1.26, r=18+Math.sin(time*0.005+i)*7;
+    const px=x+Math.cos(a)*r, py=y+Math.sin(a)*r*0.7;
+    star(px,py,3.2+Math.sin(time*0.01+i)*1.2,'#ffe9a0');
+  }
+}
+function star(x,y,s,col){
+  ctx.fillStyle=col;
+  ctx.save(); ctx.translate(x,y);
+  ctx.beginPath();
+  for(let k=0;k<8;k++){
+    const a=k*Math.PI/4, r=k%2?s*0.4:s;
+    ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+  }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function drawPetals(){
+  const t=nowMs();
+  S.petals=S.petals.filter(p=>t-p.t0<p.life && p.y<VH+20);
+  for(const p of S.petals){
+    p.x+=p.vx+Math.sin((t-p.t0)*0.003+p.spin)*0.4; p.y+=p.vy; p.vy+=p.g;
+    ctx.globalAlpha=clamp(1-(t-p.t0)/p.life,0,1);
+    ctx.fillStyle=p.color;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.spin+(t-p.t0)*0.002);
+    ctx.beginPath(); ctx.ellipse(0,0,p.r,p.r*0.55,0,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.globalAlpha=1;
+}
+function drawPuffs(time){
+  const t=nowMs();
+  S.puffs=S.puffs.filter(p=>t-p.t0<500);
+  for(const p of S.puffs){
+    const a=(t-p.t0)/500;
+    ctx.globalAlpha=(1-a)*0.6;
+    ctx.strokeStyle='#fff';
+    ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(p.x,p.y,4+a*18,0,Math.PI*2); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+}
+
+// ---------- audio: a tiny music box ----------
+let actx=null, musicTimer=null, chirpTimer=null, step=0;
+function ensureAudio(){
+  if(IS_TEST) return;
+  if(!actx && typeof AudioContext!=='undefined'){ try{ actx=new AudioContext(); }catch(e){} }
+  if(actx && actx.state==='suspended') actx.resume();
+  if(actx && !musicTimer) startMusic();
+}
+function note(midi){ return 440*Math.pow(2,(midi-69)/12); }
+const PENTA=[60,62,64,67,69,72,74,76];
+let melodyPos=3;
+function startMusic(){
+  if(musicTimer) return;
+  musicTimer=setInterval(()=>{
+    if(!actx || !S.musicOn) { step++; return; }
+    const t=actx.currentTime;
+    // gentle wandering melody
+    if(step%2===0 && Math.random()<0.8){
+      melodyPos=clamp(melodyPos+(Math.random()<0.5?-1:1)*(Math.random()<0.25?2:1),0,PENTA.length-1);
+      tone(note(PENTA[melodyPos]), 0.034, 1.1, 'triangle', t);
+      if(Math.random()<0.25) tone(note(PENTA[melodyPos])*2, 0.012, 0.9, 'sine', t);
+    }
+    // soft bass heartbeat
+    if(step%8===0){
+      const roots=[48,43,45,41];
+      tone(note(roots[(step/8|0)%4]), 0.05, 2.2, 'sine', t);
+    }
+    step++;
+  }, 280);
+  chirpTimer=setInterval(()=>{
+    if(!actx || !S.sfxOn || Math.random()<0.4) return;
+    const t=actx.currentTime;
+    for(let i=0;i<2+Math.floor(Math.random()*2);i++) chirpOnce(t+i*0.14);
+  }, 6000);
+}
+function tone(freq,vol,dur,type,t0){
+  if(!actx) return;
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol,t0);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t0); o.stop(t0+dur+0.05);
+}
+function chirpOnce(t0){
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(2600,t0);
+  o.frequency.exponentialRampToValueAtTime(3900,t0+0.07);
+  o.frequency.exponentialRampToValueAtTime(2900,t0+0.12);
+  g.gain.setValueAtTime(0.018,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+0.14);
+  o.connect(g); g.connect(actx.destination); o.start(t0); o.stop(t0+0.16);
+}
+function sfx(kind){
+  if(IS_TEST || !S.sfxOn) return;
+  ensureAudio(); if(!actx) return;
+  const t=actx.currentTime;
+  if(kind==='meow'){
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(520,t);
+    o.frequency.exponentialRampToValueAtTime(940,t+0.13);
+    o.frequency.exponentialRampToValueAtTime(430,t+0.36);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(0.09,t+0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.4);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+0.45);
+  } else if(kind==='purr'){
+    const o=actx.createOscillator(), g=actx.createGain(), l=actx.createOscillator(), lg=actx.createGain();
+    o.type='triangle'; o.frequency.value=52;
+    l.type='sine'; l.frequency.value=21; lg.gain.value=0.022;
+    l.connect(lg); lg.connect(g.gain);
+    g.gain.value=0.028;
+    o.connect(g); g.connect(actx.destination);
+    o.start(t); l.start(t); o.stop(t+1.5); l.stop(t+1.5);
+    g.gain.setValueAtTime(0.028,t+1.1); g.gain.linearRampToValueAtTime(0.0001,t+1.5);
+  } else if(kind==='chime'){
+    [76,79,84].forEach((m,i)=>tone(note(m),0.06,0.9,'triangle',t+i*0.09));
+  } else if(kind==='twinkle'){
+    [88,91,96].forEach((m,i)=>tone(note(m),0.03,0.5,'sine',t+i*0.07));
+  } else if(kind==='rustle'){
+    const len=actx.sampleRate*0.12, buf=actx.createBuffer(1,len,actx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+    const src=actx.createBufferSource(); src.buffer=buf;
+    const f=actx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=1500; f.Q.value=0.8;
+    const g=actx.createGain(); g.gain.value=0.05;
+    src.connect(f); f.connect(g); g.connect(actx.destination); src.start(t);
+  } else if(kind==='fanfare'){
+    [72,76,79,81,79,84].forEach((m,i)=>tone(note(m),0.07,0.7,'triangle',t+i*0.13));
+    sfx('purr');
+  }
+}
+
+// ---------- UI ----------
+function $(id){ return (typeof document!=='undefined')? document.getElementById(id):null; }
+function updateUI(){
+  if(typeof document==='undefined') return;
+  const pawBox=$('paws');
+  if(pawBox && typeof document.createElement==='function'){
+    pawBox.innerHTML='';
+    SPOTS.forEach((sp,i)=>{
+      const d=document.createElement('div');
+      d.className='paw'+(S.found[i]?' found':'');
+      d.textContent='🐾';
+      if(S.found[i]){
+        const c=catAtSpot(i);
+        d.title=c.name;
+        d.style.background=c.base;
+        d.onclick=()=>{ showCatCard(c,true); sfx('meow'); };
+      } else d.title='???';
+      pawBox.appendChild(d);
+    });
+  }
+  const pt=$('progressTxt');
+  if(pt) pt.textContent = S.complete? '🎉 everyone is here!' : `${foundCount()} / ${SPOTS.length} friends found`;
+  const hb=$('hintBtn');
+  if(hb){
+    const left=Math.ceil((S.hintReadyAt-nowMs())/1000);
+    hb.disabled = left>0 || S.complete;
+    hb.textContent = left>0? `✨ ${left}s` : '✨ Hint';
+  }
+}
+function showCatCard(cat, revisit){
+  const o=$('overlay'); if(!o){ S.lastCard=cat.name; return; }
+  const all=foundCount()===SPOTS.length;
+  $('card').innerHTML=`
+    <div id="portraitWrap"><canvas id="portrait" width="150" height="150"></canvas></div>
+    <h2>${cat.name}</h2>
+    <div class="title">${cat.title}</div>
+    <p>${cat.story}</p>
+    <div class="fact"><b>A true cat fact:</b> ${cat.fact}</div>
+    <button onclick="CF.closeCard()">${all && !revisit? 'To the party! 🎉' : revisit? 'Back to the meadow 🐾' : 'Keep looking 🐾'}</button>`;
+  o.classList.add('show');
+  S.lastCard=cat.name;
+  const pc=$('portrait');
+  if(pc && pc.getContext){
+    const g=pc.getContext('2d');
+    g.clearRect(0,0,150,150);
+    drawCatFull(g, cat, 75, 92, 2.4, 1, 1234);
+  }
+  sfx('purr');
+}
+function closeCard(){
+  const o=$('overlay'); if(o) o.classList.remove('show');
+  if(S.complete && !S.finaleShown){
+    S.finaleShown=true;
+    petalRain();
+    sfx('fanfare');
+    setTimeout(showFinale, IS_TEST?0:2400);
+  }
+  updateUI();
+}
+function showFinale(){
+  if(!S.complete) return;
+  const o=$('overlay'); if(!o) return;
+  $('card').innerHTML=`
+    <h2>🎂 Surprise!</h2>
+    <div class="title">So that's why they were hiding...</div>
+    <p>The cats weren't lost at all — they were waiting for the signal. Today is <b>Nana Plum's birthday</b>, and not one of her nine friends forgot. As the sun melts into the pond, the kettle sings, the cake is cut (Waffles inspects it, out of loyalty), and nine warm little bodies settle around the blanket like the happiest constellation.</p>
+    <p style="text-align:center; font-style:italic; color:#9a7a5a;">You found every friend in ${S.clicks} click${S.clicks===1?'':'s'}${S.hintsUsed? ` with ${S.hintsUsed} sparkle${S.hintsUsed===1?'':'s'} of help`:''}. 🐾</p>
+    <button onclick="CF.stay()">Stay at the picnic 🌅</button>
+    <button onclick="CF.again()">Play again — new hiding spots 🔄</button>`;
+  o.classList.add('show');
+}
+const CF={
+  closeCard,
+  stay(){ const o=$('overlay'); if(o) o.classList.remove('show'); },
+  again(){ const o=$('overlay'); if(o) o.classList.remove('show'); newGame(); },
+  intro(){
+    const o=$('overlay'); if(!o) return;
+    $('card').innerHTML=`
+      <h2>🐾 Cat Finder</h2>
+      <div class="title">a very gentle hidden-cat game</div>
+      <ul class="rules">
+        <li><b>Nine cats</b> are hiding around Nana Plum's cottage — watch for a flick of a tail, the tips of two ears, a pair of eyes in a window.</li>
+        <li><b>Click a cat</b> to meet them: every cat has a name, a story, and a true cat fact to share.</li>
+        <li>Found cats trot over to the picnic blanket. They seem to be... waiting for something?</li>
+        <li>Stuck? The <b>✨ Hint</b> button gives a little sparkle of whisker-sense.</li>
+        <li>No timer. No score. Just sunshine. ☀️</li>
+      </ul>
+      <button onclick="CF.closeCard()">Start looking 🐱</button>`;
+    o.classList.add('show');
+  },
+};
+
+// ---------- input & boot ----------
+function canvasPoint(ev){
+  const r=canvas.getBoundingClientRect();
+  return [ (ev.clientX-r.left)/r.width*VW, (ev.clientY-r.top)/r.height*VH ];
+}
+function boot(){
+  canvas=$('scene');
+  if(!canvas) return;
+  const dpr=(typeof window!=='undefined'&&window.devicePixelRatio)||1;
+  canvas.width=VW*dpr; canvas.height=VH*dpr;
+  canvas.style.width=VW+'px';
+  ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  canvas.addEventListener('click', ev=>{
+    ensureAudio();
+    const overlayOpen=$('overlay').classList.contains('show');
+    if(overlayOpen) return;
+    const [x,y]=canvasPoint(ev);
+    clickAt(x,y);
+  });
+  $('newBtn').addEventListener('click', ()=>{ $('overlay').classList.remove('show'); newGame(); });
+  $('hintBtn').addEventListener('click', ()=>{ ensureAudio(); hint(); });
+  $('aboutBtn').addEventListener('click', ()=>CF.intro());
+  $('musicBtn').addEventListener('click', ()=>{ ensureAudio(); S.musicOn=!S.musicOn; $('musicBtn').textContent=S.musicOn?'🎵':'🚫'; });
+  $('sfxBtn').addEventListener('click', ()=>{ ensureAudio(); S.sfxOn=!S.sfxOn; $('sfxBtn').textContent=S.sfxOn?'🔊':'🔇'; });
+  document.addEventListener('keydown', ev=>{ if(ev.key==='Escape') CF.stay(); });
+  setInterval(updateUI, 600);     // keeps the hint cooldown label fresh
+  newGame();
+  CF.intro();
+  (function loop(t){ draw(t||0); requestAnimationFrame(loop); })(0);
+}
+
+// expose for tests + onclick
+const API={S, newGame, clickAt, hint, foundCount, CATS, SPOTS, catAtSpot, drawCatFull, closeCard, showCatCard, BLANKET};
+if(typeof globalThis!=='undefined'){ globalThis.CFG=API; globalThis.CF=CF; }
+if(typeof document!=='undefined' && !IS_TEST){
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+}
+</script>
+</body>
+</html>

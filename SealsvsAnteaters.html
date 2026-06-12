@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦭 Seals vs Anteaters 🐜</title>
+<style>
+  :root{
+    --bg1:#cfe9f5; --bg2:#f6e7c8;
+    --card:#ffffffee; --ink:#3a4a5a; --accent:#4a9fd8; --accent2:#b07a4a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"Segoe UI", "Comic Sans MS", system-ui, sans-serif;
+    background:linear-gradient(135deg,var(--bg1) 0%, #e8f4ec 50%, var(--bg2) 100%);
+    color:var(--ink);
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh; padding:10px;
+  }
+  h1{font-size:26px; letter-spacing:.5px; margin:4px 0 2px;}
+  h1 .vs{color:#e08a8a; font-size:20px;}
+  #topbar{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:center;
+    background:var(--card); border-radius:14px; padding:8px 14px; margin:6px 0;
+    box-shadow:0 3px 12px #0001;
+  }
+  #topbar .stat{font-weight:600; font-size:15px; padding:2px 8px; border-radius:8px; background:#eef6fb;}
+  #topbar button, #panel button, select{
+    font-family:inherit; font-size:14px; padding:5px 10px; border-radius:10px;
+    border:2px solid #d8e4ee; background:#fff; color:var(--ink); cursor:pointer;
+    transition:transform .08s, background .15s;
+  }
+  #topbar button:hover, #panel button:hover:not(:disabled){background:#eaf4fc; transform:translateY(-1px);}
+  #seedLabel{cursor:pointer; font-size:12px; color:#7a8a9a;}
+  #seedLabel:hover{text-decoration:underline;}
+  #layout{display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; justify-content:center;}
+  #boardWrap{position:relative; border-radius:16px; overflow:hidden; box-shadow:0 6px 24px #0002;}
+  canvas#board{display:block; background:#9fd66b; max-width:min(96vw,840px); height:auto;}
+  #banner{
+    position:absolute; left:0; right:0; top:42%; text-align:center;
+    font-size:34px; font-weight:800; color:#fff; text-shadow:0 2px 8px #0006;
+    pointer-events:none; opacity:0; transition:opacity .25s, transform .25s;
+    transform:scale(.8);
+  }
+  #banner.show{opacity:1; transform:scale(1);}
+  #panel{
+    width:240px; background:var(--card); border-radius:14px; padding:12px;
+    box-shadow:0 3px 12px #0001; display:flex; flex-direction:column; gap:10px;
+  }
+  #panel h3{font-size:14px; text-transform:uppercase; letter-spacing:1px; color:#8aa;}
+  #unitInfo{min-height:84px; background:#f4f9fc; border-radius:10px; padding:8px; font-size:13px; line-height:1.45;}
+  #unitInfo b{font-size:15px;}
+  .recruitCard{
+    display:flex; justify-content:space-between; align-items:center;
+    width:100%; text-align:left; margin-bottom:6px;
+  }
+  .recruitCard small{display:block; color:#7a8a9a; font-weight:normal;}
+  .recruitCard:disabled{opacity:.45; cursor:not-allowed;}
+  #endTurnBtn{
+    font-size:17px !important; font-weight:700; padding:10px !important;
+    background:linear-gradient(180deg,#5fb0e0,#4a9fd8) !important; color:#fff !important;
+    border:none !important;
+  }
+  #endTurnBtn:disabled{opacity:.5;}
+  #restBtn{background:#fdf3e3 !important;}
+  #log{font-size:11.5px; color:#6a7a8a; max-height:110px; overflow-y:auto; line-height:1.5;
+    background:#f8fafc; border-radius:8px; padding:6px;}
+  #tooltip{
+    position:fixed; pointer-events:none; background:#2e3e4ee8; color:#fff;
+    padding:6px 10px; border-radius:8px; font-size:12.5px; line-height:1.4;
+    z-index:50; display:none; max-width:230px; box-shadow:0 4px 14px #0004;
+  }
+  #overlay{
+    position:fixed; inset:0; background:#1a2a3a99; display:none;
+    align-items:center; justify-content:center; z-index:100;
+  }
+  #overlay.show{display:flex;}
+  #overlayCard{
+    background:#fff; border-radius:20px; padding:28px 34px; max-width:480px;
+    text-align:center; box-shadow:0 12px 48px #0005; animation:pop .35s ease;
+    max-height:86vh; overflow-y:auto;
+  }
+  @keyframes pop{from{transform:scale(.7); opacity:0;} to{transform:scale(1); opacity:1;}}
+  #overlayCard h2{font-size:30px; margin-bottom:10px;}
+  #overlayCard p{margin:8px 0; font-size:15px; line-height:1.5;}
+  #overlayCard button{
+    font-size:16px; padding:10px 18px; margin:8px 5px 0; border-radius:12px;
+    border:2px solid #d8e4ee; background:#fff; cursor:pointer; font-family:inherit;
+  }
+  #overlayCard button.primary{background:#4a9fd8; color:#fff; border-color:#4a9fd8;}
+  #overlayCard .rules{text-align:left; font-size:13.5px;}
+  #overlayCard .rules li{margin:5px 0 5px 18px;}
+  .fishGlyph{color:#e8923a; font-weight:700;}
+  footer{font-size:11px; color:#9ab; margin-top:8px;}
+</style>
+</head>
+<body>
+<h1>🦭 Seals <span class="vs">vs</span> Anteaters 🐜</h1>
+<div id="topbar">
+  <span class="stat">Turn <span id="turnNum">1</span></span>
+  <span class="stat">🐟 <span id="fishNum">0</span> <small style="color:#9ab">(+2/turn)</small></span>
+  <span class="stat">🐜 foes: <span id="antNum">0</span></span>
+  <select id="difficulty" title="Difficulty (applies on New Map)">
+    <option value="cozy">😌 Cozy</option>
+    <option value="normal" selected>🙂 Normal</option>
+    <option value="fierce">😤 Fierce</option>
+  </select>
+  <button id="newMapBtn" title="Generate a fresh map">🔄 New Map</button>
+  <button id="helpBtn" title="How to play">❓</button>
+  <button id="muteBtn" title="Toggle sound">🔊</button>
+  <span id="seedLabel" title="Click to enter a seed">seed #0</span>
+</div>
+<div id="layout">
+  <div id="boardWrap">
+    <canvas id="board"></canvas>
+    <div id="banner"></div>
+  </div>
+  <div id="panel">
+    <h3>Selected</h3>
+    <div id="unitInfo">Click one of your seals to begin! 🦭</div>
+    <button id="restBtn" style="display:none">😴 Rest (+1 HP, end action)</button>
+    <h3>Recruit at the Rookery</h3>
+    <div id="recruitArea"></div>
+    <button id="endTurnBtn">End Turn ➤</button>
+    <h3>Events</h3>
+    <div id="log"></div>
+  </div>
+</div>
+<footer>Click a seal • blue = move • red ring = attack • green ring = heal • Esc deselects • Enter ends turn</footer>
+<div id="tooltip"></div>
+<div id="overlay"><div id="overlayCard"></div></div>
+
+<script>
+'use strict';
+/* ============================================================
+   SEALS vs ANTEATERS — a cozy asymmetric tactics game
+   Seals glide through water but waddle on land.
+   Anteaters scurry over sand and grass but can't swim deep.
+   Destroy the Great Anthill before your Rookery falls!
+   ============================================================ */
+
+const IS_TEST = (typeof window !== 'undefined') && window.__SVA_TEST === true;
+
+// ---------- tiny helpers ----------
+function mulberry32(a){ return function(){ a|=0; a=(a+0x6D2B79F5)|0; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+const sleep = ms => new Promise(r=>setTimeout(r, IS_TEST?0:ms));
+const mdist = (ax,ay,bx,by)=>Math.abs(ax-bx)+Math.abs(ay-by);
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp = (a,b,t)=>a+(b-a)*t;
+const key = (x,y)=>x+','+y;
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+function tileHash(x,y,k){ let h=(x*374761393 + y*668265263 + (k||0)*1274126177)|0; h=(h^(h>>>13))*1274126177; h=(h^(h>>>16))>>>0; return h/4294967296; }
+function safeStore(k,v){ try{ if(typeof localStorage!=='undefined'){ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,v);} }catch(e){} return null; }
+
+// ---------- definitions ----------
+const T = {DEEP:0, SHALLOW:1, GRASS:2, SAND:3, ROCK:4};
+const TERRAIN_NAME = ['Deep Water','Shallow Water','Grass','Sand','Boulder'];
+const LW = 14, LH = 10, TS = 52;            // logical board width/height, tile px
+
+const UNIT_DEFS = {
+  pup:     {side:'seal', name:'Seal Pup',    icon:'🍼', cost:4,  hp:8,  atk:2, rng:1, mp:6, desc:'Speedy little forager — collects 5🐟 from fish instead of 3.'},
+  splasher:{side:'seal', name:'Splasher',    icon:'💦', cost:7,  hp:10, atk:4, rng:2, mp:5, desc:'Squirts water 2 tiles away. Melee foes can\'t counterattack it at range.'},
+  medic:   {side:'seal', name:'Medic Seal',  icon:'⛑️', cost:6,  hp:9,  atk:1, rng:1, mp:5, heal:4, desc:'Click a hurt friend next to it to heal 4 HP.'},
+  bull:    {side:'seal', name:'Bull Seal',   icon:'💪', cost:9,  hp:20, atk:5, rng:1, mp:4, desc:'Hefty bruiser. Slams enemies back a tile (+2 dmg if they can\'t budge).'},
+  worker:  {side:'ant',  name:'Worker Anteater', icon:'🐜', cost:3,  hp:7,  atk:2, rng:1, mp:4, desc:'Cheap and scrappy.'},
+  slurper: {side:'ant',  name:'Slurper',     icon:'👅', cost:6,  hp:9,  atk:4, rng:2, mp:3, desc:'Whips its sticky tongue 2 tiles.'},
+  soldier: {side:'ant',  name:'Soldier Anteater', icon:'🪖', cost:7,  hp:16, atk:4, rng:1, mp:3, desc:'Armored and stubborn.'},
+  guard:   {side:'ant',  name:"Queen's Guard",   icon:'👑', cost:12, hp:24, atk:6, rng:1, mp:3, desc:'The hive\'s mightiest defender.'},
+};
+const SEAL_RECRUITS = ['pup','medic','splasher','bull'];
+const DIFF = {
+  cozy:   {label:'Cozy',   antIncome:2, aggroTurn:7, armyCap:5, startAnts:['soldier','worker'],          swarm:['worker','worker'],  guards:false},
+  normal: {label:'Normal', antIncome:3, aggroTurn:5, armyCap:7, startAnts:['soldier','worker','worker'], swarm:['soldier','worker'], guards:false},
+  fierce: {label:'Fierce', antIncome:4, aggroTurn:3, armyCap:9, startAnts:['soldier','worker','worker','slurper'], swarm:['soldier','soldier'], guards:true},
+};
+const FISH_VALUE = 3, PUP_FISH_VALUE = 5, PLAYER_INCOME = 2, MAX_FISH_ON_MAP = 5, PLAYER_UNIT_CAP = 8;
+const TARGET_PRIORITY = {medic:8, splasher:6, slurper:6, pup:3, bull:4, worker:3, soldier:4, guard:5};
+
+// ---------- game state ----------
+const G = {
+  seed:0, rng:Math.random, difficulty:'normal',
+  tiles:[], units:[], structures:[], fishes:[],
+  turn:1, fish:6, ants:4, phase:'seal',      // whose phase
+  selected:null, inspect:null, reach:null, attackables:null, healables:null,
+  hoverTile:null, busy:0, over:null, aiAggro:false, swarmed:false, ralliedPup:false,
+  kills:0, losses:0, noAnim:IS_TEST, muted:false, nextId:1,
+};
+let floats=[], particles=[], logLines=[];
+
+// ---------- map generation ----------
+function inBounds(x,y){ return x>=0 && y>=0 && x<LW && y<LH; }
+function passCost(side,t){
+  if(t===T.ROCK) return Infinity;
+  if(side==='seal') return t===T.DEEP?1 : t===T.SHALLOW?1 : t===T.GRASS?2 : 3;
+  return t===T.DEEP?Infinity : t===T.SHALLOW?3 : 1;
+}
+function unitAt(x,y){ return G.units.find(u=>u.x===x&&u.y===y) || null; }
+function structAt(x,y){ return G.structures.find(s=>s.x===x&&s.y===y) || null; }
+function fishAt(x,y){ return G.fishes.find(f=>f.x===x&&f.y===y) || null; }
+function isOccupied(x,y){ return !!unitAt(x,y) || !!structAt(x,y); }
+
+function genMap(){
+  const rng = G.rng;
+  for(let tries=0; tries<60; tries++){
+    const tiles = Array.from({length:LH},()=>Array(LW).fill(T.GRASS));
+    // lakes on the left/center (seal territory)
+    const lakeSeeds = 3 + Math.floor(rng()*2);
+    for(let i=0;i<lakeSeeds;i++){
+      let x = 1+Math.floor(rng()*(LW*0.55)), y = Math.floor(rng()*LH);
+      const steps = 10+Math.floor(rng()*10);
+      for(let s=0;s<steps;s++){
+        if(inBounds(x,y)) tiles[y][x]=T.SHALLOW;
+        const d = DIRS[Math.floor(rng()*4)];
+        x=clamp(x+d[0],0,Math.floor(LW*0.7)); y=clamp(y+d[1],0,LH-1);
+      }
+    }
+    // sandy desert on the right (anteater territory)
+    const sandSeeds = 3 + Math.floor(rng()*2);
+    for(let i=0;i<sandSeeds;i++){
+      let x = Math.floor(LW*0.55)+Math.floor(rng()*(LW*0.45)), y=Math.floor(rng()*LH);
+      const steps = 12+Math.floor(rng()*10);
+      for(let s=0;s<steps;s++){
+        if(inBounds(x,y) && tiles[y][x]===T.GRASS) tiles[y][x]=T.SAND;
+        const d=DIRS[Math.floor(rng()*4)];
+        x=clamp(x+d[0],Math.floor(LW*0.4),LW-1); y=clamp(y+d[1],0,LH-1);
+      }
+    }
+    // bases
+    const ry = 2+Math.floor(rng()*(LH-4));
+    const ay = 2+Math.floor(rng()*(LH-4));
+    const rookery = {type:'rookery', name:'Rookery', x:1, y:ry, hp:28, maxHp:28, side:'seal'};
+    const anthill = {type:'anthill', name:'Great Anthill', x:LW-2, y:ay, hp:28, maxHp:28, side:'ant'};
+    // shore around rookery: some water, some land
+    for(const [dx,dy] of [[-1,0],[0,-1],[0,1],[-1,-1],[-1,1]]){
+      const x=rookery.x+dx, y=rookery.y+dy;
+      if(inBounds(x,y)) tiles[y][x]=T.SHALLOW;
+    }
+    for(const [dx,dy] of [[1,0],[1,-1],[1,1]]){
+      const x=rookery.x+dx, y=rookery.y+dy;
+      if(inBounds(x,y) && tiles[y][x]===T.ROCK) tiles[y][x]=T.GRASS;
+    }
+    // sand apron around anthill
+    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+      const x=anthill.x+dx,y=anthill.y+dy;
+      if(inBounds(x,y) && Math.abs(dx)+Math.abs(dy)<=2 && tiles[y][x]!==T.SHALLOW) tiles[y][x]=T.SAND;
+    }
+    tiles[rookery.y][rookery.x]=T.SHALLOW;
+    tiles[anthill.y][anthill.x]=T.SAND;
+    // deepen interior water
+    const deepify=[];
+    for(let y=0;y<LH;y++)for(let x=0;x<LW;x++){
+      if(tiles[y][x]===T.SHALLOW && DIRS.every(([dx,dy])=>!inBounds(x+dx,y+dy)||tiles[y+dy][x+dx]===T.SHALLOW||tiles[y+dy][x+dx]===T.DEEP)) deepify.push([x,y]);
+    }
+    deepify.forEach(([x,y])=>{ if(!(x===rookery.x&&y===rookery.y)) tiles[y][x]=T.DEEP; });
+    // boulders
+    let rocks = 4+Math.floor(rng()*4);
+    let rockGuard=0;
+    while(rocks>0 && rockGuard++<300){
+      const x=Math.floor(rng()*LW), y=Math.floor(rng()*LH);
+      if(tiles[y][x]===T.GRASS && mdist(x,y,rookery.x,rookery.y)>2 && mdist(x,y,anthill.x,anthill.y)>2){ tiles[y][x]=T.ROCK; rocks--; }
+    }
+    // small mounds (anteater economy — destroy them to starve the hive!)
+    const structures=[rookery,anthill];
+    const moundCount = G.difficulty==='fierce'?3:2;
+    let placed=0, guardLoop=0;
+    while(placed<moundCount && guardLoop++<200){
+      const x = Math.floor(LW*0.45)+Math.floor(rng()*(LW*0.5)), y=Math.floor(rng()*LH);
+      if(inBounds(x,y) && (tiles[y][x]===T.SAND||tiles[y][x]===T.GRASS) && !structures.some(s=>mdist(s.x,s.y,x,y)<3)){
+        structures.push({type:'mound', name:'Ant Mound', x, y, hp:8, maxHp:8, side:'ant'});
+        placed++;
+      }
+    }
+    // validate: anteaters must be able to reach the rookery, seals the anthill
+    G.tiles = tiles; G.structures = structures; G.units=[];
+    if(pathExists('ant', anthill, rookery) && pathExists('seal', rookery, anthill)
+       && countWater(tiles)>=10) {
+      return {rookery, anthill};
+    }
+  }
+  return {rookery:G.structures[0], anthill:G.structures[1]}; // fallback: accept last
+}
+function countWater(tiles){ let n=0; for(let y=0;y<LH;y++)for(let x=0;x<LW;x++) if(tiles[y][x]<=T.SHALLOW) n++; return n; }
+function pathExists(side, from, to){
+  const seen=new Set([key(from.x,from.y)]);
+  const q=[[from.x,from.y]];
+  while(q.length){
+    const [x,y]=q.shift();
+    if(mdist(x,y,to.x,to.y)<=1) return true;
+    for(const [dx,dy] of DIRS){
+      const nx=x+dx, ny=y+dy;
+      if(!inBounds(nx,ny)||seen.has(key(nx,ny))) continue;
+      if(passCost(side,G.tiles[ny][nx])===Infinity) continue;
+      if(structAt(nx,ny) && !(nx===to.x&&ny===to.y)) continue;
+      seen.add(key(nx,ny)); q.push([nx,ny]);
+    }
+  }
+  return false;
+}
+
+function makeUnit(type,x,y){
+  const d=UNIT_DEFS[type];
+  return {id:G.nextId++, type, side:d.side, x, y, hp:d.hp, maxHp:d.hp, atk:d.atk, rng:d.rng, mp:d.mp,
+          moved:false, acted:false, facing:d.side==='seal'?1:-1, rx:x, ry:y, bump:null, animTo:null};
+}
+function spawnNear(type, sx, sy, preferWater){
+  const d=UNIT_DEFS[type];
+  const cand=[];
+  for(let r=1;r<=3;r++){
+    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+      if(Math.abs(dx)+Math.abs(dy)!==r) continue;
+      const x=sx+dx,y=sy+dy;
+      if(!inBounds(x,y)||isOccupied(x,y)) continue;
+      if(passCost(d.side,G.tiles[y][x])===Infinity) continue;
+      cand.push({x,y,r,water:G.tiles[y][x]<=T.SHALLOW?0:1});
+    }
+    if(cand.length) break;
+  }
+  if(!cand.length) return null;
+  cand.sort((a,b)=> (preferWater? a.water-b.water : 0) || a.r-b.r);
+  const c=cand[0];
+  const u=makeUnit(type,c.x,c.y);
+  G.units.push(u);
+  return u;
+}
+
+function newGame(seed, diff){
+  G.seed = (seed===undefined)? Math.floor(Math.random()*1e6) : seed;
+  G.rng = mulberry32(G.seed);
+  if(DIFF[diff]) G.difficulty = diff;
+  else if(!DIFF[G.difficulty]) G.difficulty = 'normal';
+  G.turn=1; G.fish=6; G.ants=4; G.phase='seal'; G.over=null;
+  G.aiAggro=false; G.swarmed=false; G.ralliedPup=false; G.kills=0; G.losses=0;
+  G.selected=null; G.inspect=null; G.reach=null; G.attackables=null; G.healables=null;
+  G.units=[]; G.fishes=[]; G.nextId=1; G.busy=0;
+  floats=[]; particles=[]; logLines=[];
+  const {rookery, anthill} = genMap();
+  spawnNear('bull', rookery.x, rookery.y, true);
+  spawnNear('splasher', rookery.x, rookery.y, true);
+  spawnNear('pup', rookery.x, rookery.y, true);
+  for(const t of DIFF[G.difficulty].startAnts) spawnNear(t, anthill.x, anthill.y, false);
+  // starting fish snacks
+  for(let i=0;i<3;i++) spawnFish();
+  addLog(`A new shore! ${DIFF[G.difficulty].label} difficulty, seed #${G.seed}.`);
+  updateUI();
+}
+
+function spawnFish(){
+  const spots=[];
+  for(let y=0;y<LH;y++)for(let x=0;x<LW;x++){
+    if(G.tiles[y][x]<=T.SHALLOW && !isOccupied(x,y) && !fishAt(x,y)) spots.push([x,y]);
+  }
+  if(!spots.length) return;
+  const [x,y]=spots[Math.floor(G.rng()*spots.length)];
+  G.fishes.push({x,y,born:now()});
+}
+
+// ---------- movement & range ----------
+function reachable(u){
+  // Dijkstra; allies may be passed through but not landed on; enemies & structures block.
+  const dist=new Map(); const from=new Map();
+  const start=key(u.x,u.y);
+  dist.set(start,0);
+  const open=[[0,u.x,u.y]];
+  while(open.length){
+    open.sort((a,b)=>a[0]-b[0]);
+    const [d,x,y]=open.shift();
+    if(d>(dist.get(key(x,y))??Infinity)) continue;
+    for(const [dx,dy] of DIRS){
+      const nx=x+dx, ny=y+dy;
+      if(!inBounds(nx,ny)) continue;
+      const c=passCost(u.side,G.tiles[ny][nx]);
+      if(c===Infinity) continue;
+      if(structAt(nx,ny)) continue;
+      const other=unitAt(nx,ny);
+      if(other && other.side!==u.side) continue;
+      const nd=d+c;
+      if(nd>u.mp) continue;
+      if(nd<(dist.get(key(nx,ny))??Infinity)){
+        dist.set(key(nx,ny),nd); from.set(key(nx,ny),key(x,y));
+        open.push([nd,nx,ny]);
+      }
+    }
+  }
+  return {dist, from, origin:start};
+}
+function endableTiles(u, reach){
+  const out=[];
+  for(const k of reach.dist.keys()){
+    const [x,y]=k.split(',').map(Number);
+    if(k!==reach.origin && unitAt(x,y)) continue;  // can't stop on an ally
+    out.push([x,y]);
+  }
+  return out;
+}
+function pathTo(reach, x, y){
+  let k=key(x,y);
+  if(!reach.dist.has(k)) return null;
+  const path=[];
+  while(k!==reach.origin){ const [px,py]=k.split(',').map(Number); path.unshift([px,py]); k=reach.from.get(k); }
+  return path;
+}
+function enemiesInRangeFrom(u, x, y){
+  const out=[];
+  for(const e of G.units) if(e.side!==u.side){
+    const d=mdist(x,y,e.x,e.y);
+    if(d>=1 && d<=u.rng) out.push(e);
+  }
+  for(const s of G.structures) if(s.side!==u.side){
+    const d=mdist(x,y,s.x,s.y);
+    if(d>=1 && d<=u.rng) out.push(s);
+  }
+  return out;
+}
+function computeAttackOptions(u){
+  // returns Map targetRef -> {tile:[x,y], cost} best tile to attack from
+  const opts=new Map();
+  const reach = u.moved? null : (G.reach||reachable(u));
+  const tiles = u.moved ? [[u.x,u.y]] : endableTiles(u, reach);
+  for(const [x,y] of tiles){
+    const cost = u.moved? 0 : reach.dist.get(key(x,y));
+    for(const t of enemiesInRangeFrom(u,x,y)){
+      const cur=opts.get(t);
+      if(!cur || cost<cur.cost) opts.set(t,{tile:[x,y],cost});
+    }
+  }
+  return opts;
+}
+function computeHealOptions(u){
+  if(!UNIT_DEFS[u.type].heal) return new Map();
+  const opts=new Map();
+  const reach = u.moved? null : (G.reach||reachable(u));
+  const tiles = u.moved ? [[u.x,u.y]] : endableTiles(u, reach);
+  for(const [x,y] of tiles){
+    const cost = u.moved? 0 : reach.dist.get(key(x,y));
+    for(const a of G.units){
+      if(a.side!==u.side || a===u || a.hp>=a.maxHp) continue;
+      if(mdist(x,y,a.x,a.y)===1){
+        const cur=opts.get(a);
+        if(!cur || cost<cur.cost) opts.set(a,{tile:[x,y],cost});
+      }
+    }
+  }
+  return opts;
+}
+
+// ---------- combat ----------
+function defBonus(t){ // damage reduction from terrain (t = target unit)
+  const ter = G.tiles[t.y][t.x];
+  if(t.side==='seal'){ if(ter===T.DEEP) return 2; if(ter===T.SHALLOW) return 1; }
+  else { if(ter===T.SAND) return 1; }
+  return 0;
+}
+function isUnit(t){ return !!t && t.id!==undefined; }
+function calcDmg(att, target){
+  const red = isUnit(target)? defBonus(target) : 0;
+  return Math.max(1, att.atk - red);
+}
+
+async function doAttack(att, target){
+  G.busy++;
+  att.facing = Math.sign(target.x-att.x) || att.facing;
+  await bumpToward(att, target);
+  let dmg = calcDmg(att, target);
+  let slamNote='';
+  // Bull slam: shove the target back a tile
+  if(att.type==='bull' && isUnit(target)){
+    const dx=Math.sign(target.x-att.x), dy=Math.sign(target.y-att.y);
+    const px=target.x+dx, py=target.y+dy;
+    const can = inBounds(px,py) && !isOccupied(px,py) && passCost(target.side,G.tiles[py][px])!==Infinity;
+    if(can){ target.x=px; target.y=py; slamNote=' (slam!)'; sfx('slam'); }
+    else { dmg+=2; slamNote=' (squish!)'; sfx('slam'); }
+  }
+  applyDamage(target, dmg, att);
+  addLog(`${nameOf(att)} hits ${nameOf(target)} for ${dmg}${slamNote}`);
+  sfx(att.rng>1?'splash':'thud');
+  // counterattack
+  if(!G.over && isUnit(target) && target.hp>0 && mdist(att.x,att.y,target.x,target.y)<=target.rng){
+    await sleep(200);
+    target.facing = Math.sign(att.x-target.x) || target.facing;
+    await bumpToward(target, att);
+    const cd = calcDmg(target, att);
+    applyDamage(att, cd, target);
+    addLog(`${nameOf(target)} counters for ${cd}!`);
+    sfx('thud');
+  }
+  att.moved=true; att.acted=true;
+  G.busy--;
+}
+function applyDamage(t, dmg, src){
+  t.hp -= dmg;
+  addFloat(t.x, t.y, '-'+dmg, '#ff5a5a');
+  burst(t.x, t.y, isUnit(t)? (t.side==='seal'?'#7ec8e3':'#caa06a') : '#999', 8);
+  if(t.hp<=0){
+    if(isUnit(t)){
+      G.units.splice(G.units.indexOf(t),1);
+      if(t.side==='ant'){ G.kills++; addFloat(t.x,t.y,'⭐','#ffd34d'); }
+      else { G.losses++; addFloat(t.x,t.y,'💔','#ff8a8a'); }
+      if(G.selected===t) deselect();
+      addLog(`${nameOf(t)} is defeated!`);
+      sfx('pop');
+    } else {
+      G.structures.splice(G.structures.indexOf(t),1);
+      burst(t.x,t.y,'#8a6a4a',20);
+      addLog(`${t.name} crumbles!`);
+      sfx('crumble');
+      if(t.type==='anthill') endGame('win');
+      else if(t.type==='rookery') endGame('lose');
+      else addFloat(t.x,t.y,'-1 🐜 income','#caa06a');
+    }
+  } else {
+    // hive swarm / pup rally dramatic moments
+    if(t.type==='anthill' && !G.swarmed && t.hp<=t.maxHp/2){
+      G.swarmed=true;
+      for(const ty of DIFF[G.difficulty].swarm){ const u=spawnNear(ty,t.x,t.y,false); if(u){u.acted=true;u.moved=true;} }
+      addLog('🐜 The hive swarms! Reinforcements pour out!');
+      showBanner('🐜 The hive swarms!');
+    }
+    if(t.type==='rookery' && !G.ralliedPup && t.hp<=t.maxHp/2){
+      G.ralliedPup=true;
+      const u=spawnNear('pup',t.x,t.y,true); if(u){u.acted=true;u.moved=true;}
+      addLog('🦭 A brave pup rallies to defend the Rookery!');
+      showBanner('🦭 A pup rallies!');
+    }
+  }
+}
+async function doHeal(medic, ally){
+  G.busy++;
+  medic.facing = Math.sign(ally.x-medic.x)||medic.facing;
+  await bumpToward(medic, ally);
+  const amt = Math.min(UNIT_DEFS.medic.heal, ally.maxHp-ally.hp);
+  ally.hp += amt;
+  addFloat(ally.x, ally.y, '+'+amt+' ♥', '#5ec77a');
+  burst(ally.x,ally.y,'#8fe3a8',6);
+  addLog(`${nameOf(medic)} heals ${nameOf(ally)} for ${amt}.`);
+  sfx('heal');
+  medic.moved=true; medic.acted=true;
+  G.busy--;
+}
+
+// ---------- moving ----------
+async function moveUnit(u, path){
+  if(!path || !path.length){ u.moved=true; return; }
+  G.busy++;
+  const dest=path[path.length-1];
+  if(G.noAnim){
+    u.x=dest[0]; u.y=dest[1]; u.rx=u.x; u.ry=u.y;
+  } else {
+    for(const [x,y] of path){
+      u.facing = Math.sign(x-u.x)||u.facing;
+      u.x=x; u.y=y;
+      const ter=G.tiles[y][x];
+      burst(x,y, ter<=T.SHALLOW?'#bfe8f5':'#e8d9b0', 3);
+      await new Promise(res=>{ u.animTo={x,y,res}; });
+    }
+    sfx('move');
+  }
+  u.moved=true;
+  // fish pickup
+  if(u.side==='seal'){
+    const f=fishAt(u.x,u.y);
+    if(f){
+      G.fishes.splice(G.fishes.indexOf(f),1);
+      const v = u.type==='pup'? PUP_FISH_VALUE : FISH_VALUE;
+      G.fish += v;
+      addFloat(u.x,u.y,`+${v} 🐟`,'#e8923a');
+      addLog(`${nameOf(u)} gobbles a fish! +${v} 🐟`);
+      sfx('nom');
+    }
+  }
+  G.busy--;
+}
+function bumpToward(u, t){
+  if(G.noAnim) return Promise.resolve();
+  u.bump={dx:Math.sign(t.x-u.x)*0.3, dy:Math.sign(t.y-u.y)*0.3, t0:now()};
+  return sleep(220);
+}
+
+// ---------- turn flow ----------
+function nameOf(t){ return isUnit(t)? UNIT_DEFS[t.type].name : t.name; }
+function aliveSide(side){ return G.units.filter(u=>u.side===side); }
+function baseOf(side){ return G.structures.find(s=>s.side===side && (s.type==='rookery'||s.type==='anthill')) || null; }
+function moundsAlive(){ return G.structures.filter(s=>s.type==='mound').length; }
+function antIncome(){ return DIFF[G.difficulty].antIncome + moundsAlive(); }
+
+function startPlayerTurn(){
+  if(G.over) return;
+  G.phase='seal';
+  G.fish += PLAYER_INCOME;
+  // rookery comfort: heal adjacent seals
+  const rook = baseOf('seal');
+  if(rook) for(const u of aliveSide('seal')){
+    if(mdist(u.x,u.y,rook.x,rook.y)===1 && u.hp<u.maxHp){
+      const amt=Math.min(3,u.maxHp-u.hp); u.hp+=amt; addFloat(u.x,u.y,'+'+amt+' ♥','#5ec77a');
+    }
+  }
+  // fish spawns
+  if(G.fishes.length<MAX_FISH_ON_MAP && G.rng()<0.65) spawnFish();
+  if(G.fishes.length<MAX_FISH_ON_MAP && G.rng()<0.3) spawnFish();
+  for(const u of aliveSide('seal')){ u.moved=false; u.acted=false; }
+  showBanner('🦭 Your turn!');
+  checkDoom();
+  updateUI();
+}
+
+async function endTurn(){
+  if(G.busy>0 || G.over || G.phase!=='seal') return;
+  deselect();
+  G.phase='ant';
+  updateUI();
+  await runAntTurn();
+  if(G.over) return;
+  G.turn++;
+  startPlayerTurn();
+}
+
+async function runAntTurn(){
+  G.busy++;
+  showBanner("🐜 Anteaters' turn");
+  await sleep(700);
+  G.ants += antIncome();
+  const hill = baseOf('ant');
+  if(hill) for(const u of aliveSide('ant')){
+    if(mdist(u.x,u.y,hill.x,hill.y)===1 && u.hp<u.maxHp){ u.hp=Math.min(u.maxHp,u.hp+2); }
+  }
+  for(const u of aliveSide('ant')){ u.moved=false; u.acted=false; }
+  G.busy--;
+  await aiTurn('ant');
+  if(!G.over) await aiRecruit('ant');
+  checkDoom();
+}
+
+// ---------- AI (side-agnostic so tests can auto-battle) ----------
+function aiCheckAggro(){
+  const d=DIFF[G.difficulty];
+  if(G.aiAggro) return;
+  if(G.turn>=d.aggroTurn) { G.aiAggro=true; return; }
+  const threats = aliveSide('seal').some(s=> G.structures.filter(st=>st.side==='ant').some(st=>mdist(s.x,s.y,st.x,st.y)<=4));
+  if(threats || aliveSide('ant').length>=d.armyCap-1) G.aiAggro=true;
+}
+function distField(side, gx, gy){
+  // Dijkstra distance-to-goal over terrain (ignores units so armies don't deadlock)
+  const dist=new Map(); dist.set(key(gx,gy),0);
+  const open=[[0,gx,gy]];
+  while(open.length){
+    open.sort((a,b)=>a[0]-b[0]);
+    const [d,x,y]=open.shift();
+    if(d>(dist.get(key(x,y))??Infinity)) continue;
+    for(const [dx,dy] of DIRS){
+      const nx=x+dx,ny=y+dy;
+      if(!inBounds(nx,ny)) continue;
+      const c=passCost(side,G.tiles[ny][nx]);
+      if(c===Infinity) continue;
+      const nd=d+c;
+      if(nd<(dist.get(key(nx,ny))??Infinity)){ dist.set(key(nx,ny),nd); open.push([nd,nx,ny]); }
+    }
+  }
+  return dist;
+}
+async function aiTurn(side){
+  if(side==='ant') aiCheckAggro();
+  const myUnits = aliveSide(side).slice();
+  for(const u of myUnits){
+    if(G.over) return;
+    if(!G.units.includes(u) || u.acted) continue;
+    await aiUnitAct(u, side);
+    await sleep(220);
+  }
+}
+async function aiUnitAct(u, side){
+  const reach = reachable(u);
+  const ends = endableTiles(u, reach);
+  // 1. best attack from any reachable tile
+  let best=null;
+  for(const [x,y] of ends){
+    for(const t of enemiesInRangeFrom(u,x,y)){
+      const dmg = Math.min(calcDmg(u,t), t.hp);
+      const kill = t.hp<=calcDmg(u,t);
+      let score = dmg*2 + (kill? 10 + (TARGET_PRIORITY[t.type]||6) : 0);
+      score += isUnit(t)? (TARGET_PRIORITY[t.type]||3) : (t.type==='rookery'||t.type==='anthill'? 9 : 4);
+      // expected counter
+      if(isUnit(t) && !kill && mdist(x,y,t.x,t.y)<=t.rng) score -= calcDmg(t,u)*1.4;
+      // prefer attacking from defensive terrain
+      const ter=G.tiles[y][x];
+      if(side==='seal' && ter<=T.SHALLOW) score+=1.5;
+      if(side==='ant' && ter===T.SAND) score+=1;
+      if(!best || score>best.score) best={score, tile:[x,y], target:t};
+    }
+  }
+  if(best && best.score>0){
+    const p=pathTo(reach,best.tile[0],best.tile[1]);
+    if(p && p.length) await moveUnit(u,p); else u.moved=true;
+    if(!G.over) await doAttack(u,best.target);
+    return;
+  }
+  // 2. otherwise march somewhere sensible
+  let goal=null;
+  const enemySide = side==='seal'?'ant':'seal';
+  const myBase = baseOf(side);
+  const low = u.hp <= u.maxHp*0.3;
+  const nearestEnemy = nearestOf(u, aliveSide(enemySide));
+  if(low && myBase && nearestEnemy && mdist(u.x,u.y,nearestEnemy.x,nearestEnemy.y)<=3){
+    goal = myBase; // retreat home to heal
+  } else if(side==='ant' && !G.aiAggro){
+    const intruder = nearestOf(u, aliveSide(enemySide).filter(s=>myBase && mdist(s.x,s.y,myBase.x,myBase.y)<=6));
+    goal = intruder || myBase;
+  } else {
+    const eBase = baseOf(enemySide);
+    const candidates = aliveSide(enemySide).concat(eBase?[eBase]:[]);
+    if(side==='seal'){
+      // seals also like snacking on fish and smashing mounds
+      const f = nearestOf(u, G.fishes);
+      const m = nearestOf(u, G.structures.filter(s=>s.type==='mound'));
+      const opts=[...candidates]; if(f) opts.push(f); if(m) opts.push(m);
+      goal = nearestOf(u, opts);
+    } else {
+      goal = nearestOf(u, candidates);
+    }
+  }
+  if(!goal){ u.moved=true; u.acted=true; return; }
+  const df = distField(side, goal.x, goal.y);
+  let bt=null, bd=(df.get(key(u.x,u.y))??Infinity);
+  for(const [x,y] of ends){
+    const d=df.get(key(x,y));
+    if(d===undefined) continue;
+    if(d<bd){ bd=d; bt=[x,y]; }
+  }
+  if(bt && (bt[0]!==u.x||bt[1]!==u.y)){
+    await moveUnit(u, pathTo(reach,bt[0],bt[1]));
+    // attack of opportunity from new spot
+    const t = enemiesInRangeFrom(u,u.x,u.y)[0];
+    if(t && !G.over) { await doAttack(u,t); return; }
+  }
+  u.moved=true; u.acted=true;
+}
+function nearestOf(u, list){
+  let best=null,bd=Infinity;
+  for(const t of list){ const d=mdist(u.x,u.y,t.x,t.y); if(d<bd){bd=d;best=t;} }
+  return best;
+}
+async function aiRecruit(side){
+  const d=DIFF[G.difficulty];
+  const hill=baseOf(side);
+  if(!hill) return;
+  const pool = side==='ant'
+    ? [['soldier',.35],['slurper',.3],['worker',.2]].concat(d.guards&&G.turn>=8?[['guard',.15]]:[])
+    : [['bull',.3],['splasher',.3],['pup',.2],['medic',.2]];
+  const cap = side==='ant'? d.armyCap : PLAYER_UNIT_CAP;
+  let safety=12;
+  while(safety-->0 && aliveSide(side).length<cap){
+    const wallet = side==='ant'? G.ants : G.fish;
+    const affordable = pool.filter(([t])=>UNIT_DEFS[t].cost<=wallet);
+    if(!affordable.length) break;
+    let r=G.rng()*affordable.reduce((s,[,w])=>s+w,0);
+    let pick=affordable[0][0];
+    for(const [t,w] of affordable){ if(r<w){pick=t;break;} r-=w; }
+    const u=spawnNear(pick, hill.x, hill.y, side==='seal');
+    if(!u) break;
+    u.acted=true; u.moved=true;
+    if(side==='ant') G.ants-=UNIT_DEFS[pick].cost; else G.fish-=UNIT_DEFS[pick].cost;
+    addLog(`${side==='ant'?'🐜 The hive':'🦭 The rookery'} recruits a ${UNIT_DEFS[pick].name}!`);
+    sfx('recruit');
+    await sleep(220);
+  }
+}
+
+// ---------- player actions ----------
+function recruit(type){
+  if(G.over || G.phase!=='seal' || G.busy>0) return false;
+  const d=UNIT_DEFS[type];
+  if(!d || d.side!=='seal' || G.fish<d.cost) return false;
+  if(aliveSide('seal').length>=PLAYER_UNIT_CAP){ addLog('Your rookery is full! (8 seals max)'); updateUI(); return false; }
+  const rook=baseOf('seal');
+  if(!rook) return false;
+  const u=spawnNear(type, rook.x, rook.y, true);
+  if(!u) { addLog('No room to recruit near the Rookery!'); updateUI(); return false; }
+  G.fish-=d.cost;
+  u.acted=true; u.moved=true; // arrives sleepy
+  addFloat(u.x,u.y,'✨','#ffd34d');
+  addLog(`${d.name} joins your colony! (-${d.cost} 🐟)`);
+  sfx('recruit');
+  updateUI();
+  return true;
+}
+function restUnit(u){
+  if(!u || u.acted || G.busy>0) return;
+  u.acted=true; u.moved=true;
+  if(u.hp<u.maxHp){ u.hp++; addFloat(u.x,u.y,'+1 ♥','#5ec77a'); }
+  else addFloat(u.x,u.y,'💤','#9ab');
+  deselect(); updateUI();
+}
+function selectUnit(u){
+  G.selected=u; G.inspect=u;
+  G.reach = u.moved? null : reachable(u);
+  G.attackables=computeAttackOptions(u);
+  G.healables=computeHealOptions(u);
+  updateUI();
+}
+function deselect(){ G.selected=null; G.reach=null; G.attackables=null; G.healables=null; updateUI(); }
+function deselectOverlaysOnly(){ G.reach=null; G.attackables=null; G.healables=null; }
+
+async function playerMoveTo(x,y){
+  const u=G.selected;
+  if(!u||u.moved||!G.reach) return;
+  const p=pathTo(G.reach,x,y);
+  if(!p) return;
+  deselectOverlaysOnly();
+  await moveUnit(u,p);
+  // keep selected if it can still do something
+  if(!G.over && !u.acted){
+    G.reach=null;
+    G.attackables=computeAttackOptions(u);
+    G.healables=computeHealOptions(u);
+    if(G.attackables.size===0 && G.healables.size===0){
+      u.acted=true; deselect();
+    }
+  }
+  checkDoom();
+  updateUI();
+}
+async function playerAttack(target){
+  const u=G.selected;
+  if(!u||u.acted||!G.attackables) return;
+  const opt=G.attackables.get(target);
+  if(!opt) return;
+  const [tx,ty]=opt.tile;
+  deselectOverlaysOnly(); updateUI();
+  if(!u.moved && (tx!==u.x||ty!==u.y)){
+    const reach=reachable(u);
+    await moveUnit(u, pathTo(reach,tx,ty));
+  }
+  const stillThere = isUnit(target)? G.units.includes(target) : G.structures.includes(target);
+  if(!G.over && stillThere && mdist(u.x,u.y,target.x,target.y)<=u.rng){
+    await doAttack(u,target);
+  }
+  deselect();
+  checkDoom();
+  updateUI();
+}
+async function playerHeal(ally){
+  const u=G.selected;
+  if(!u||u.acted||!G.healables) return;
+  const opt=G.healables.get(ally);
+  if(!opt) return;
+  const [tx,ty]=opt.tile;
+  deselectOverlaysOnly(); updateUI();
+  if(!u.moved && (tx!==u.x||ty!==u.y)){
+    const reach=reachable(u);
+    await moveUnit(u, pathTo(reach,tx,ty));
+  }
+  if(!G.over && G.units.includes(ally) && mdist(u.x,u.y,ally.x,ally.y)===1) await doHeal(u,ally);
+  deselect(); updateUI();
+}
+
+function checkDoom(){
+  if(G.over) return;
+  // out of seals and can't afford any: that's a loss
+  if(aliveSide('seal').length===0){
+    const cheapest=Math.min(...SEAL_RECRUITS.map(t=>UNIT_DEFS[t].cost));
+    if(G.fish<cheapest) endGame('lose');
+  }
+}
+function endGame(result){
+  if(G.over) return;
+  G.over=result;
+  deselect();
+  if(result==='win'){
+    sfx('win');
+    confetti();
+    const k='sva_best_'+G.difficulty;
+    const prev=safeStore(k);
+    let record='';
+    if(prev===null || G.turn<parseInt(prev,10)){ safeStore(k,String(G.turn)); if(prev!==null) record=' 🏅 New personal best!'; }
+    const bestNow = prev===null? G.turn : Math.min(G.turn,parseInt(prev,10));
+    showOverlay(`<h2>🦭 Victory! 🎉</h2>
+      <p>The Great Anthill has crumbled and the beach belongs to the seals!</p>
+      <p><b>Turns:</b> ${G.turn} &nbsp; <b>Foes bonked:</b> ${G.kills} &nbsp; <b>Seals lost:</b> ${G.losses}${record}</p>
+      <p>Best on ${DIFF[G.difficulty].label}: ${bestNow} turns</p>
+      <button class="primary" onclick="UI.restart()">🔄 New Map</button>
+      <button onclick="UI.replaySeed()">↩️ Replay This Map</button>`);
+  } else {
+    sfx('lose');
+    showOverlay(`<h2>🐜 Defeat... 😢</h2>
+      <p>The anteaters have overrun the Rookery. The seals slip sadly into the sea.</p>
+      <p><b>Turns survived:</b> ${G.turn} &nbsp; <b>Foes bonked:</b> ${G.kills}</p>
+      <p>Tip: fish = power! Grab every 🐟 and try smashing the small ant mounds to starve the hive.</p>
+      <button class="primary" onclick="UI.restart()">🔄 Try a New Map</button>
+      <button onclick="UI.replaySeed()">↩️ Retry This Map</button>`);
+  }
+  updateUI();
+}
+
+// ---------- floating text & particles ----------
+function now(){ return (typeof performance!=='undefined'&&performance.now)? performance.now() : Date.now(); }
+function addFloat(x,y,txt,color){ floats.push({x,y,txt,color,t0:now()}); }
+function burst(x,y,color,n){
+  if(G.noAnim) return;
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, sp=0.5+Math.random()*1.6;
+    particles.push({x:x*TS+TS/2, y:y*TS+TS/2, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-1, g:0.06, life:600+Math.random()*400, t0:now(), color, r:2+Math.random()*2});
+  }
+}
+function confetti(){
+  if(G.noAnim) return;
+  const colors=['#ffd34d','#5fb0e0','#5ec77a','#ff8a8a','#caa0e8'];
+  for(let i=0;i<130;i++){
+    particles.push({x:Math.random()*LW*TS, y:-10-Math.random()*150, vx:(Math.random()-0.5)*1.4, vy:1+Math.random()*2, g:0.02, life:3200+Math.random()*1500, t0:now(), color:colors[i%colors.length], r:3+Math.random()*3});
+  }
+}
+function addLog(s){
+  logLines.push(s);
+  if(logLines.length>40) logLines.shift();
+  if(typeof document==='undefined') return;
+  const el=document.getElementById('log');
+  if(el){ el.innerHTML=logLines.slice(-12).map(l=>'• '+l).join('<br>'); el.scrollTop=el.scrollHeight; }
+}
+
+// ---------- sound (tiny WebAudio chirps) ----------
+let actx=null;
+function ensureAudio(){ if(!actx && typeof AudioContext!=='undefined'){ try{actx=new AudioContext();}catch(e){} } }
+function sfx(kind){
+  if(G.muted || IS_TEST) return;
+  ensureAudio(); if(!actx) return;
+  const t=actx.currentTime;
+  const tone=(f0,f1,dur,type,vol)=>{
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||'sine'; o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(Math.max(40,f1),t+dur);
+    g.gain.setValueAtTime(vol||0.08,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+dur+0.02);
+  };
+  switch(kind){
+    case 'move': tone(300,380,0.08,'sine',0.04); break;
+    case 'thud': tone(160,70,0.15,'square',0.06); break;
+    case 'splash': tone(700,250,0.18,'sine',0.06); break;
+    case 'slam': tone(120,50,0.22,'sawtooth',0.08); break;
+    case 'heal': tone(520,780,0.18,'sine',0.06); tone(660,990,0.22,'sine',0.04); break;
+    case 'nom': tone(440,660,0.1,'triangle',0.07); break;
+    case 'recruit': tone(392,523,0.15,'triangle',0.06); break;
+    case 'pop': tone(500,200,0.12,'triangle',0.07); break;
+    case 'crumble': tone(200,60,0.4,'sawtooth',0.07); break;
+    case 'win': [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,f,0.25,'triangle',0.09), i*140)); break;
+    case 'lose': [392,330,262,196].forEach((f,i)=>setTimeout(()=>tone(f,f*0.9,0.3,'sine',0.08), i*200)); break;
+  }
+}
+
+// ---------- rendering ----------
+let canvas=null, ctx=null;
+const TERRAIN_COL = {[T.DEEP]:'#3f8ec7',[T.SHALLOW]:'#83cbe5',[T.GRASS]:'#a8dd77',[T.SAND]:'#f2dfa7',[T.ROCK]:'#a8dd77'};
+function draw(time){
+  if(!ctx) return;
+  ctx.clearRect(0,0,LW*TS,LH*TS);
+  // terrain
+  for(let y=0;y<LH;y++)for(let x=0;x<LW;x++){
+    const t=G.tiles[y]?G.tiles[y][x]:T.GRASS;
+    ctx.fillStyle=TERRAIN_COL[t];
+    ctx.fillRect(x*TS,y*TS,TS,TS);
+    drawTileDetail(x,y,t,time);
+  }
+  // faint grid
+  ctx.strokeStyle='rgba(0,0,0,0.05)'; ctx.lineWidth=1;
+  for(let x=1;x<LW;x++){ ctx.beginPath(); ctx.moveTo(x*TS,0); ctx.lineTo(x*TS,LH*TS); ctx.stroke(); }
+  for(let y=1;y<LH;y++){ ctx.beginPath(); ctx.moveTo(0,y*TS); ctx.lineTo(LW*TS,y*TS); ctx.stroke(); }
+  // move overlay
+  if(G.selected && G.reach && !G.selected.moved){
+    for(const [x,y] of endableTiles(G.selected,G.reach)){
+      if(x===G.selected.x&&y===G.selected.y) continue;
+      ctx.fillStyle='rgba(70,140,255,0.32)';
+      roundRect(x*TS+4,y*TS+4,TS-8,TS-8,8); ctx.fill();
+    }
+  }
+  // hover tile
+  if(G.hoverTile){
+    ctx.strokeStyle='rgba(255,255,255,0.8)'; ctx.lineWidth=2;
+    roundRect(G.hoverTile[0]*TS+2,G.hoverTile[1]*TS+2,TS-4,TS-4,8); ctx.stroke();
+  }
+  // fish
+  for(const f of G.fishes) drawFish(f,time);
+  // structures
+  for(const s of G.structures) drawStructure(s,time);
+  // units (sorted by y for nice layering)
+  const sorted=[...G.units].sort((a,b)=>a.ry-b.ry);
+  for(const u of sorted) drawUnit(u,time);
+  // target rings
+  const pulse=1+Math.sin(time*0.006)*0.12;
+  if(G.attackables) for(const t of G.attackables.keys()){
+    ctx.strokeStyle='#ff5a5a'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(t.x*TS+TS/2,t.y*TS+TS/2,(TS/2-5)*pulse,0,Math.PI*2); ctx.stroke();
+  }
+  if(G.healables) for(const t of G.healables.keys()){
+    ctx.strokeStyle='#4ecf72'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(t.x*TS+TS/2,t.y*TS+TS/2,(TS/2-5)*pulse,0,Math.PI*2); ctx.stroke();
+  }
+  // selection ring
+  if(G.selected){
+    const u=G.selected;
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.setLineDash([6,5]);
+    ctx.lineDashOffset=-time*0.02;
+    ctx.beginPath(); ctx.arc(u.rx*TS+TS/2,u.ry*TS+TS/2,TS/2-3,0,Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // particles
+  const tnow=now();
+  particles=particles.filter(p=>tnow-p.t0<p.life);
+  for(const p of particles){
+    const age=(tnow-p.t0);
+    p.x+=p.vx; p.y+=p.vy; p.vy+=p.g;
+    ctx.globalAlpha=clamp(1-age/p.life,0,1);
+    ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  // floating texts
+  floats=floats.filter(f=>tnow-f.t0<950);
+  ctx.font='bold 15px "Segoe UI", sans-serif'; ctx.textAlign='center';
+  for(const f of floats){
+    const a=(tnow-f.t0)/950;
+    ctx.globalAlpha=1-a;
+    ctx.fillStyle='#fff';
+    ctx.fillText(f.txt, f.x*TS+TS/2+1, f.y*TS+8-a*30+1);
+    ctx.fillStyle=f.color;
+    ctx.fillText(f.txt, f.x*TS+TS/2, f.y*TS+7-a*30);
+  }
+  ctx.globalAlpha=1;
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function drawTileDetail(x,y,t,time){
+  const cx=x*TS, cy=y*TS;
+  if(t===T.DEEP||t===T.SHALLOW){
+    // drifting wave arcs
+    const ph=tileHash(x,y,1)*Math.PI*2;
+    const off=Math.sin(time*0.0012+ph)*4;
+    ctx.strokeStyle = t===T.DEEP?'rgba(255,255,255,0.22)':'rgba(255,255,255,0.35)';
+    ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx+14+off, cy+18, 6, Math.PI*0.15, Math.PI*0.85); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx+34-off, cy+36, 5, Math.PI*0.15, Math.PI*0.85); ctx.stroke();
+    if(t===T.DEEP){ ctx.fillStyle='rgba(0,0,60,0.10)'; ctx.fillRect(cx,cy,TS,TS); }
+  } else if(t===T.GRASS){
+    ctx.strokeStyle='rgba(70,140,50,0.4)'; ctx.lineWidth=1.4;
+    for(let i=0;i<3;i++){
+      const gx=cx+8+tileHash(x,y,i)*36, gy=cy+10+tileHash(x,y,i+7)*34;
+      ctx.beginPath(); ctx.moveTo(gx,gy+4); ctx.quadraticCurveTo(gx+1,gy-1,gx+3,gy-3); ctx.stroke();
+    }
+  } else if(t===T.SAND){
+    ctx.fillStyle='rgba(160,120,60,0.3)';
+    for(let i=0;i<4;i++){
+      const gx=cx+6+tileHash(x,y,i)*40, gy=cy+6+tileHash(x,y,i+3)*40;
+      ctx.beginPath(); ctx.arc(gx,gy,1.2,0,Math.PI*2); ctx.fill();
+    }
+  } else if(t===T.ROCK){
+    ctx.fillStyle='#b3a89c';
+    ctx.beginPath(); ctx.ellipse(cx+TS/2,cy+TS/2+6,18,13,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c8bdb0';
+    ctx.beginPath(); ctx.ellipse(cx+TS/2-2,cy+TS/2,16,13,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#a3998d';
+    ctx.beginPath(); ctx.ellipse(cx+TS/2+5,cy+TS/2+3,5,3.5,0.4,0,Math.PI*2); ctx.fill();
+  }
+}
+function drawFish(f,time){
+  const px=f.x*TS+TS/2, py=f.y*TS+TS/2+Math.sin(time*0.003+f.x*3)*2.5;
+  ctx.save(); ctx.translate(px,py);
+  ctx.rotate(Math.sin(time*0.002+f.y)*0.15);
+  ctx.fillStyle='#f5a14b';
+  ctx.beginPath(); ctx.ellipse(0,0,9,5,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-8,0); ctx.lineTo(-14,-5); ctx.lineTo(-14,5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(4,-1.2,1.8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#333'; ctx.beginPath(); ctx.arc(4.4,-1.2,1,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function drawHpBar(px,py,hp,maxHp,w){
+  w=w||30;
+  const ratio=clamp(hp/maxHp,0,1);
+  ctx.fillStyle='rgba(0,0,0,0.45)';
+  roundRect(px-w/2-1,py-1,w+2,5.5,3); ctx.fill();
+  ctx.fillStyle = ratio>0.55?'#5ec77a':ratio>0.28?'#f0c04a':'#f06a5a';
+  if(ratio>0){ roundRect(px-w/2,py,w*ratio,3.5,2); ctx.fill(); }
+}
+function drawStructure(s,time){
+  const px=s.x*TS+TS/2, py=s.y*TS+TS/2;
+  ctx.save(); ctx.translate(px,py);
+  if(s.type==='rookery'){
+    // cozy ice den
+    ctx.fillStyle='#e8f2fa';
+    ctx.beginPath(); ctx.ellipse(0,6,21,16,0,Math.PI,0); ctx.fill();
+    ctx.fillStyle='#d2e4f2';
+    ctx.beginPath(); ctx.ellipse(0,6,21,16,0,Math.PI,Math.PI*1.5); ctx.fill();
+    ctx.strokeStyle='#b9d2e6'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.ellipse(0,6,21,16,0,Math.PI,0); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-21,6); ctx.lineTo(21,6); ctx.stroke();
+    ctx.fillStyle='#5a7a96';
+    ctx.beginPath(); ctx.ellipse(0,6,7,8,0,Math.PI,0); ctx.fill();
+    // fishy flag
+    ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(14,-8); ctx.lineTo(14,-22); ctx.stroke();
+    ctx.fillStyle='#f5a14b';
+    const wob=Math.sin(time*0.004)*1.5;
+    ctx.beginPath(); ctx.moveTo(14,-22); ctx.lineTo(26+wob,-19); ctx.lineTo(14,-15); ctx.closePath(); ctx.fill();
+  } else {
+    // anthill / mound
+    const big = s.type==='anthill';
+    const sc = big?1:0.62;
+    ctx.scale(sc,sc);
+    ctx.fillStyle='#b08a5e';
+    ctx.beginPath(); ctx.moveTo(-21,16);
+    ctx.quadraticCurveTo(-14,-8,0,-15); ctx.quadraticCurveTo(14,-8,21,16); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#9a754c';
+    ctx.beginPath(); ctx.moveTo(-9,16); ctx.quadraticCurveTo(0,-4,9,16); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#4a3826';
+    ctx.beginPath(); ctx.ellipse(0,-9,5,3.5,0,0,Math.PI*2); ctx.fill();
+    // busy little ants
+    ctx.fillStyle='#3a2a1a';
+    for(let i=0;i<3;i++){
+      const a=time*0.0015+i*2.2;
+      ctx.beginPath(); ctx.arc(Math.cos(a)*13, 6+Math.sin(a*1.3)*6, 1.6, 0, Math.PI*2); ctx.fill();
+    }
+    if(big){
+      ctx.fillStyle='#ffd34d';
+      ctx.beginPath();
+      ctx.moveTo(-7,-15); ctx.lineTo(-5,-21); ctx.lineTo(-2,-16); ctx.lineTo(0,-22); ctx.lineTo(2,-16); ctx.lineTo(5,-21); ctx.lineTo(7,-15);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  ctx.restore();
+  drawHpBar(px, py+TS/2-7, s.hp, s.maxHp, 34);
+}
+function drawUnit(u,time){
+  // smooth render position
+  if(!G.noAnim){
+    if(u.animTo){
+      u.rx=lerp(u.rx,u.animTo.x,0.25); u.ry=lerp(u.ry,u.animTo.y,0.25);
+      if(Math.abs(u.rx-u.animTo.x)<0.05 && Math.abs(u.ry-u.animTo.y)<0.05){
+        u.rx=u.animTo.x; u.ry=u.animTo.y;
+        const res=u.animTo.res; u.animTo=null; res();
+      }
+    } else { u.rx=lerp(u.rx,u.x,0.3); u.ry=lerp(u.ry,u.y,0.3); }
+  } else { u.rx=u.x; u.ry=u.y; }
+  let px=u.rx*TS+TS/2, py=u.ry*TS+TS/2;
+  if(u.bump){
+    const a=clamp((now()-u.bump.t0)/220,0,1);
+    const k=Math.sin(a*Math.PI);
+    px+=u.bump.dx*TS*k; py+=u.bump.dy*TS*k;
+    if(a>=1) u.bump=null;
+  }
+  const done = u.acted && G.phase===u.side && !G.over;
+  ctx.save();
+  if(done) ctx.globalAlpha=0.55;
+  if(u.side==='seal') drawSeal(px,py,u,time); else drawAnteater(px,py,u,time);
+  ctx.restore();
+  if(done){
+    ctx.font='11px "Segoe UI"'; ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.fillText('💤', px+14, py-14);
+  }
+  drawHpBar(px, py-TS/2+3, u.hp, u.maxHp);
+}
+function drawSeal(px,py,u,time){
+  const bob=Math.sin(time*0.004+u.id*1.7)*1.5;
+  const inWater = G.tiles[u.y] && G.tiles[u.y][u.x]<=T.SHALLOW;
+  const cols={pup:['#d6dfe8','#f2f6fa'], splasher:['#9fc4e8','#d8e8f8'], medic:['#c3cdd7','#f0f4f8'], bull:['#94a5b3','#c4d0da']};
+  const [body,belly]=cols[u.type]||cols.medic;
+  const s=u.type==='bull'?1.12:u.type==='pup'?0.78:0.97;
+  ctx.save(); ctx.translate(px,py+bob+3);
+  if(u.facing<0) ctx.scale(-1,1);
+  ctx.scale(s,s);
+  // shadow / ripple
+  ctx.fillStyle=inWater?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.12)';
+  ctx.beginPath(); ctx.ellipse(0,12,16,4.5,0,0,Math.PI*2); ctx.fill();
+  // tail flippers
+  ctx.fillStyle=body;
+  ctx.beginPath(); ctx.ellipse(-16,6,5.5,3.5,-0.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-16,10,5.5,3.5,0.5,0,Math.PI*2); ctx.fill();
+  // body
+  ctx.beginPath(); ctx.ellipse(-2,5,14.5,10,-0.12,0,Math.PI*2); ctx.fill();
+  // belly
+  ctx.fillStyle=belly;
+  ctx.beginPath(); ctx.ellipse(1,8,9,6,-0.1,0,Math.PI*2); ctx.fill();
+  // front flipper
+  ctx.fillStyle=body;
+  ctx.beginPath(); ctx.ellipse(2,12,5,2.8,0.5,0,Math.PI*2); ctx.fill();
+  // head
+  ctx.beginPath(); ctx.arc(9,-6,9.5,0,Math.PI*2); ctx.fill();
+  // muzzle
+  ctx.fillStyle=belly;
+  ctx.beginPath(); ctx.ellipse(14,-3,5,4,0,0,Math.PI*2); ctx.fill();
+  // eyes — big and shiny!
+  ctx.fillStyle='#2a2a2a';
+  ctx.beginPath(); ctx.arc(7,-8,2.6,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(14.5,-8,2.6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(7.9,-8.9,1,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(15.4,-8.9,1,0,Math.PI*2); ctx.fill();
+  // nose
+  ctx.fillStyle='#4a3a3a';
+  ctx.beginPath(); ctx.ellipse(15.5,-4.5,1.8,1.3,0,0,Math.PI*2); ctx.fill();
+  // whisker dots
+  ctx.fillStyle='rgba(60,60,60,0.5)';
+  for(const [wx,wy] of [[12,-2],[14,-1],[16.5,-1.5]]){ ctx.beginPath(); ctx.arc(wx,wy,0.7,0,Math.PI*2); ctx.fill(); }
+  // class accessories
+  if(u.type==='pup'){
+    ctx.fillStyle='rgba(255,140,150,0.45)';
+    ctx.beginPath(); ctx.arc(5,-3.5,2,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(17,-3.5,2,0,Math.PI*2); ctx.fill();
+  } else if(u.type==='medic'){
+    ctx.fillStyle='#fff';
+    ctx.fillRect(3,-15.5,13,4.5);
+    ctx.fillStyle='#e05a5a';
+    ctx.fillRect(8.4,-15,1.8,3.6); ctx.fillRect(7.2,-13.9,4.2,1.5);
+  } else if(u.type==='splasher'){
+    ctx.fillStyle='#5fb0e0';
+    ctx.beginPath(); ctx.moveTo(9,-21); ctx.quadraticCurveTo(13,-15,9,-13.5); ctx.quadraticCurveTo(5,-15,9,-21); ctx.fill();
+    ctx.fillStyle='#bfe2f5'; ctx.beginPath(); ctx.arc(8,-15.5,1.2,0,Math.PI*2); ctx.fill();
+  } else if(u.type==='bull'){
+    ctx.strokeStyle='#4a4a4a'; ctx.lineWidth=1.8;
+    ctx.beginPath(); ctx.moveTo(3.5,-12); ctx.lineTo(8.5,-10.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(18,-12); ctx.lineTo(13,-10.5); ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawAnteater(px,py,u,time){
+  const bob=Math.sin(time*0.0045+u.id*2.1)*1.3;
+  const cols={worker:['#c19a6f','#a9805c'], soldier:['#a9805c','#8a6647'], slurper:['#b58a64','#97704f'], guard:['#9a7250','#7d5a3c']};
+  const [body,dark]=cols[u.type]||cols.worker;
+  const s=u.type==='guard'?1.15:u.type==='worker'?0.82:1;
+  ctx.save(); ctx.translate(px,py+bob+3);
+  if(u.facing>0) ctx.scale(-1,1);   // art faces right; default anteater facing is left (-1)
+  ctx.scale(s,s);
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.12)';
+  ctx.beginPath(); ctx.ellipse(0,13,16,4.5,0,0,Math.PI*2); ctx.fill();
+  // bushy tail
+  ctx.fillStyle=dark;
+  ctx.beginPath(); ctx.ellipse(-15,1,8,7.5,-0.3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=body;
+  ctx.beginPath(); ctx.ellipse(-14,0,6,5.5,-0.3,0,Math.PI*2); ctx.fill();
+  // legs
+  ctx.fillStyle=dark;
+  for(const lx of [-6,0,6]){ ctx.beginPath(); ctx.ellipse(lx,11.5,2.4,3.4,0,0,Math.PI*2); ctx.fill(); }
+  // body
+  ctx.fillStyle=body;
+  ctx.beginPath(); ctx.ellipse(0,3,13.5,8.5,0,0,Math.PI*2); ctx.fill();
+  // stripe
+  ctx.fillStyle=dark;
+  ctx.beginPath(); ctx.moveTo(-3,-5); ctx.quadraticCurveTo(2,3,-3,11); ctx.lineTo(-8,11); ctx.quadraticCurveTo(-3,3,-8,-4); ctx.closePath(); ctx.fill();
+  // head
+  ctx.fillStyle=body;
+  ctx.beginPath(); ctx.arc(10,-3,6.5,0,Math.PI*2); ctx.fill();
+  // long snoot!
+  ctx.strokeStyle=body; ctx.lineWidth=5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(13,-3); ctx.quadraticCurveTo(21,-2,24,3); ctx.stroke();
+  ctx.fillStyle='#5a4632';
+  ctx.beginPath(); ctx.arc(24.5,3.5,1.6,0,Math.PI*2); ctx.fill();
+  // ear
+  ctx.fillStyle=dark;
+  ctx.beginPath(); ctx.ellipse(8,-9,2,3,0.3,0,Math.PI*2); ctx.fill();
+  // eye — cute bead
+  ctx.fillStyle='#2a2a2a';
+  ctx.beginPath(); ctx.arc(10.5,-4.5,2.1,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(11.2,-5.2,0.8,0,Math.PI*2); ctx.fill();
+  // class accessories
+  if(u.type==='soldier'){
+    ctx.fillStyle='#6b7280';
+    ctx.beginPath(); ctx.arc(10,-6,6.8,Math.PI,0); ctx.fill();
+    ctx.fillRect(3.2,-7,13.6,2);
+  } else if(u.type==='slurper'){
+    const wig=Math.sin(time*0.01+u.id)*2;
+    ctx.strokeStyle='#e88a9a'; ctx.lineWidth=2; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(24,4); ctx.quadraticCurveTo(28,7+wig,31,5+wig); ctx.stroke();
+  } else if(u.type==='guard'){
+    ctx.fillStyle='#ffd34d';
+    ctx.beginPath(); ctx.moveTo(5,-9); ctx.lineTo(7,-15); ctx.lineTo(9.5,-10); ctx.lineTo(12,-15); ctx.lineTo(14,-9); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------- UI ----------
+function $(id){ return (typeof document!=='undefined')? document.getElementById(id) : null; }
+function showBanner(txt){
+  const b=$('banner'); if(!b) return;
+  b.textContent=txt; b.classList.add('show');
+  setTimeout(()=>b.classList.remove('show'), IS_TEST?0:1100);
+}
+function showOverlay(html){
+  const o=$('overlay'); if(!o) return;
+  $('overlayCard').innerHTML=html;
+  o.classList.add('show');
+}
+function hideOverlay(){ const o=$('overlay'); if(o) o.classList.remove('show'); }
+function updateUI(){
+  if(typeof document==='undefined') return;
+  const set=(id,v)=>{ const e=$(id); if(e) e.textContent=v; };
+  set('turnNum',G.turn); set('fishNum',G.fish);
+  set('antNum',aliveSide('ant').length);
+  set('seedLabel','seed #'+G.seed);
+  const et=$('endTurnBtn'); if(et) et.disabled = G.busy>0 || G.phase!=='seal' || !!G.over;
+  // unit info
+  const info=$('unitInfo');
+  if(info){
+    const t=G.selected||G.inspect;
+    const alive = t && (isUnit(t)? G.units.includes(t) : G.structures.includes(t));
+    if(alive){
+      if(isUnit(t)){
+        const d=UNIT_DEFS[t.type];
+        info.innerHTML=`<b>${d.icon} ${d.name}</b> ${t.side==='ant'?'(enemy)':''}<br>
+          ♥ ${t.hp}/${t.maxHp} &nbsp; ⚔ ${t.atk} &nbsp; 🎯 ${t.rng} &nbsp; 👣 ${t.mp}<br>
+          <span style="color:#7a8a9a">${d.desc||''}</span>`;
+      } else {
+        info.innerHTML=`<b>${t.name}</b><br>♥ ${t.hp}/${t.maxHp}<br>
+          <span style="color:#7a8a9a">${t.type==='mound'?'Feeds the hive +1 🐜 income each turn. Smash it!':t.type==='rookery'?'Home sweet home. Heals adjacent seals +3 each turn. Protect it!':'The enemy hive. Destroy it to win!'}</span>`;
+      }
+    } else {
+      info.innerHTML = G.over? 'Game over!' : 'Click one of your seals to begin! 🦭';
+    }
+  }
+  const rest=$('restBtn');
+  if(rest) rest.style.display = (G.selected && !G.selected.acted && G.phase==='seal' && !G.over)? 'block':'none';
+  // recruit cards
+  const ra=$('recruitArea');
+  if(ra && typeof document.createElement==='function'){
+    ra.innerHTML='';
+    for(const t of SEAL_RECRUITS){
+      const d=UNIT_DEFS[t];
+      const b=document.createElement('button');
+      b.className='recruitCard';
+      b.disabled = G.fish<d.cost || !!G.over || G.phase!=='seal' || G.busy>0;
+      b.innerHTML=`<span>${d.icon} <b>${d.name}</b><small>♥${d.hp} ⚔${d.atk} 🎯${d.rng} 👣${d.mp}</small></span><span class="fishGlyph">${d.cost}🐟</span>`;
+      b.title=d.desc;
+      b.onclick=()=>{ ensureAudio(); recruit(t); };
+      ra.appendChild(b);
+    }
+  }
+}
+
+// ---------- input ----------
+function canvasTile(ev){
+  const r=canvas.getBoundingClientRect();
+  const x=Math.floor((ev.clientX-r.left)/r.width*LW);
+  const y=Math.floor((ev.clientY-r.top)/r.height*LH);
+  return inBounds(x,y)? [x,y]:null;
+}
+async function onBoardClick(ev){
+  ensureAudio();
+  if(G.over || G.busy>0 || G.phase!=='seal') return;
+  const t=canvasTile(ev); if(!t) return;
+  const [x,y]=t;
+  const u=unitAt(x,y), s=structAt(x,y);
+  // attack target?
+  if(G.selected && G.attackables){
+    for(const tgt of G.attackables.keys()){
+      if(tgt.x===x && tgt.y===y && tgt.side!=='seal'){ await playerAttack(tgt); return; }
+    }
+  }
+  // heal target?
+  if(G.selected && G.healables){
+    for(const tgt of G.healables.keys()){
+      if(tgt.x===x && tgt.y===y){ await playerHeal(tgt); return; }
+    }
+  }
+  // own unit: select
+  if(u && u.side==='seal'){
+    if(!u.acted) { selectUnit(u); sfx('move'); }
+    else { G.inspect=u; updateUI(); }
+    return;
+  }
+  // move?
+  if(G.selected && !G.selected.moved && G.reach && !u && !s && G.reach.dist.has(key(x,y))){
+    await playerMoveTo(x,y);
+    return;
+  }
+  // inspect enemy / structure
+  if(u||s){ G.inspect=u||s; G.selected=null; deselectOverlaysOnly(); updateUI(); return; }
+  deselect();
+}
+function onBoardMove(ev){
+  const t=canvasTile(ev);
+  G.hoverTile=t;
+  const tip=$('tooltip');
+  if(!tip) return;
+  if(!t){ tip.style.display='none'; return; }
+  const [x,y]=t;
+  const u=unitAt(x,y), s=structAt(x,y), f=fishAt(x,y);
+  const ter=G.tiles[y][x];
+  let html=`<b>${TERRAIN_NAME[ter]}</b>`;
+  if(ter===T.DEEP) html+=' — seals only! Seals take −2 dmg here.';
+  else if(ter===T.SHALLOW) html+=' — seals glide (−1 dmg), anteaters wade slowly.';
+  else if(ter===T.SAND) html+=' — anteaters love it (−1 dmg). Seals waddle slowly.';
+  else if(ter===T.GRASS) html+=' — open ground.';
+  else html+=' — impassable.';
+  if(u){
+    const d=UNIT_DEFS[u.type];
+    html+=`<br><b>${d.icon} ${d.name}</b> ${u.side==='ant'?'🐜':'🦭'} ♥${u.hp}/${u.maxHp} ⚔${u.atk} 🎯${u.rng}`;
+  }
+  if(s) html+=`<br><b>${s.name}</b> ♥${s.hp}/${s.maxHp}`;
+  if(f) html+=`<br>🐟 A tasty fish! Swim over it (+3, pups +5)`;
+  tip.innerHTML=html;
+  tip.style.display='block';
+  tip.style.left=Math.min(ev.clientX+14, (window.innerWidth||800)-240)+'px';
+  tip.style.top=(ev.clientY+14)+'px';
+}
+
+// ---------- public hooks ----------
+const UI={
+  restart(){ hideOverlay(); newGame(undefined, currentDiff()); },
+  replaySeed(){ hideOverlay(); newGame(G.seed, currentDiff()); },
+  help(){
+    showOverlay(`<h2>How to Play 🦭🐜</h2>
+    <ul class="rules">
+      <li><b>Goal:</b> destroy the <b>Great Anthill</b> 👑 before the anteaters wreck your <b>Rookery</b>.</li>
+      <li><b>Click a seal</b>, then a blue tile to move. Red rings = enemies you can attack (you'll auto-move into range). Each seal can move <i>and</i> attack once per turn.</li>
+      <li><b>Terrain matters!</b> Seals are speedy in water (and take less damage there) but waddle slowly on sand. Anteaters rule the land but can't enter deep water.</li>
+      <li><b>Fish 🐟</b> appear in the water — swim over them for extra income, then <b>recruit</b> new seals at the Rookery.</li>
+      <li><b>Ant Mounds</b> feed the hive +1 income each turn. Smashing them starves the anteater army.</li>
+      <li>Units: 🍼 <b>Pup</b> forages fast • 💦 <b>Splasher</b> attacks at range 2 (no melee counters!) • ⛑️ <b>Medic</b> heals friends • 💪 <b>Bull</b> slams enemies backward.</li>
+      <li>Resting next to the Rookery heals +3 per turn. Beware: the hive <i>swarms</i> when wounded...</li>
+    </ul>
+    <button class="primary" onclick="UI.closeHelp()">Let's go! 🦭</button>`);
+  },
+  closeHelp(){ hideOverlay(); },
+};
+function currentDiff(){ const e=$('difficulty'); const v=e? e.value:'normal'; return DIFF[v]? v:'normal'; }
+
+// ---------- boot ----------
+function boot(){
+  canvas=$('board');
+  if(!canvas) return;
+  const dpr=(typeof window!=='undefined'&&window.devicePixelRatio)||1;
+  canvas.width=LW*TS*dpr; canvas.height=LH*TS*dpr;
+  canvas.style.width=(LW*TS)+'px';
+  ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  canvas.addEventListener('click', onBoardClick);
+  canvas.addEventListener('mousemove', onBoardMove);
+  canvas.addEventListener('mouseleave', ()=>{ G.hoverTile=null; const tp=$('tooltip'); if(tp) tp.style.display='none'; });
+  canvas.addEventListener('contextmenu', ev=>{ ev.preventDefault(); deselect(); });
+  $('endTurnBtn').addEventListener('click', ()=>{ ensureAudio(); endTurn(); });
+  $('newMapBtn').addEventListener('click', ()=>{ hideOverlay(); newGame(undefined, currentDiff()); });
+  $('helpBtn').addEventListener('click', ()=>UI.help());
+  $('muteBtn').addEventListener('click', ()=>{ G.muted=!G.muted; $('muteBtn').textContent=G.muted?'🔇':'🔊'; });
+  $('restBtn').addEventListener('click', ()=>restUnit(G.selected));
+  $('seedLabel').addEventListener('click', ()=>{
+    const v=prompt('Enter a map seed (number):', G.seed);
+    if(v!==null && v.trim()!==''){ const n=parseInt(v,10); if(!isNaN(n)) newGame(n, currentDiff()); }
+  });
+  document.addEventListener('keydown', ev=>{
+    const modalOpen = $('overlay') && $('overlay').classList.contains('show');
+    if(ev.key==='Escape'){ if(modalOpen && !G.over) hideOverlay(); else deselect(); }
+    if((ev.key==='Enter' || ev.key==='e') && !modalOpen) endTurn();
+  });
+  newGame(undefined, currentDiff());
+  // first-time help
+  if(!safeStore('sva_seen')){ safeStore('sva_seen','1'); UI.help(); }
+  (function loop(t){ draw(t||0); requestAnimationFrame(loop); })(0);
+}
+
+// expose for tests & onclick handlers
+const API={G, newGame, endTurn, aiTurn, aiRecruit, recruit, reachable, calcDmg, passCost,
+  doAttack, doHeal, moveUnit, pathTo, endableTiles, aliveSide, baseOf, antIncome, spawnNear,
+  startPlayerTurn, runAntTurn, checkDoom, restUnit, selectUnit, UNIT_DEFS, DIFF, T, makeUnit,
+  unitAt, structAt, fishAt, mdist, genMap, distField, moundsAlive};
+if(typeof globalThis!=='undefined'){ globalThis.SVA=API; globalThis.UI=UI; }
+
+if(typeof document!=='undefined' && !IS_TEST){
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambient Solar System — the Long Ascent</title>
+<style>
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%; overflow:hidden;}
+  body{
+    font-family:Georgia, "Palatino Linotype", serif;
+    background:#05060d; transition:background 1.2s;
+  }
+  body.light{background:#f2eee2;}
+  canvas#space{position:fixed; inset:0; display:block;}
+  /* ---- top controls ---- */
+  #topbar{
+    position:fixed; top:14px; left:50%; transform:translateX(-50%);
+    display:flex; gap:8px; align-items:center; z-index:10;
+    background:rgba(10,14,26,0.55); backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,0.10); border-radius:999px;
+    padding:7px 16px; transition:background 1.2s, border-color 1.2s;
+  }
+  body.light #topbar{background:rgba(255,253,246,0.65); border-color:rgba(60,50,30,0.15);}
+  #topbar .title{
+    font-size:13px; letter-spacing:2.5px; text-transform:uppercase;
+    color:#aab8cc; margin-right:8px; white-space:nowrap;
+  }
+  body.light #topbar .title{color:#6a5f4c;}
+  #topbar button{
+    font-family:inherit; font-size:14px; color:#cfd8e6;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+    border-radius:999px; padding:4px 13px; cursor:pointer;
+    transition:background .2s, color 1.2s, border-color 1.2s;
+    min-width:46px;
+  }
+  #topbar button:hover{background:rgba(255,255,255,0.14);}
+  body.light #topbar button{color:#4a4234; background:rgba(60,50,30,0.06); border-color:rgba(60,50,30,0.18);}
+  body.light #topbar button:hover{background:rgba(60,50,30,0.12);}
+  /* ---- HUD ---- */
+  #hud{
+    position:fixed; left:22px; bottom:20px; z-index:5;
+    color:#aab8cc; font-size:13px; line-height:1.8; pointer-events:none;
+    text-shadow:0 1px 6px rgba(0,0,0,0.6); transition:color 1.2s;
+  }
+  body.light #hud{color:#5a5142; text-shadow:none;}
+  #hud .year{font-size:26px; letter-spacing:1px; color:#e8eef8;}
+  body.light #hud .year{color:#3a342a;}
+  #hud .era{font-size:12px; letter-spacing:3px; text-transform:uppercase; opacity:.85;}
+  #kbarWrap{width:230px; height:3px; background:rgba(255,255,255,0.12); border-radius:2px; margin-top:6px;}
+  body.light #kbarWrap{background:rgba(60,50,30,0.15);}
+  #kbar{height:100%; width:0%; border-radius:2px;
+    background:linear-gradient(90deg,#5a8ad0,#e8b84d); transition:width .5s linear;}
+  #hud .klabel{font-size:11px; letter-spacing:1px; opacity:.8;}
+  /* ---- captions ---- */
+  #caption{
+    position:fixed; left:50%; bottom:64px; transform:translateX(-50%);
+    z-index:5; pointer-events:none; text-align:center; width:min(92vw,720px);
+    font-style:italic; font-size:17px; color:#d8e2f0; letter-spacing:.4px;
+    opacity:0; transition:opacity 1.6s; text-shadow:0 1px 10px rgba(0,0,0,0.7);
+  }
+  #caption .capyear{font-style:normal; font-size:12px; letter-spacing:3px; color:#8fa2bc; display:block; margin-bottom:4px;}
+  body.light #caption{color:#4a4234; text-shadow:none;}
+  body.light #caption .capyear{color:#8a7c64;}
+  #caption.show{opacity:1;}
+  #tooltip{
+    position:fixed; pointer-events:none; z-index:8; display:none;
+    font-size:12px; letter-spacing:.5px; color:#cfd8e6;
+    background:rgba(10,14,26,0.7); border:1px solid rgba(255,255,255,0.12);
+    border-radius:8px; padding:4px 10px; backdrop-filter:blur(4px);
+  }
+  body.light #tooltip{color:#4a4234; background:rgba(255,253,246,0.8); border-color:rgba(60,50,30,0.2);}
+</style>
+</head>
+<body>
+<canvas id="space"></canvas>
+<div id="topbar">
+  <span class="title">The Long Ascent</span>
+  <button id="modeBtn" title="Light / dark">🌗</button>
+  <button id="slowBtn" title="Slower">−</button>
+  <button id="speedBtn" title="Pause / resume">1×</button>
+  <button id="fastBtn" title="Faster">+</button>
+  <button id="musicBtn" title="Ambient music">♪</button>
+  <button id="fsBtn" title="Fullscreen">⛶</button>
+</div>
+<div id="hud">
+  <div class="year" id="hudYear">1993</div>
+  <div class="era" id="hudEra">Information Age</div>
+  <div id="hudEnergy">—</div>
+  <div id="hudPop">—</div>
+  <div id="hudFlops">—</div>
+  <div class="klabel" id="hudK">Kardashev 0.70</div>
+  <div id="kbarWrap"><div id="kbar"></div></div>
+  <div class="klabel" id="hudSwarm" style="display:none">Dyson swarm 0%</div>
+</div>
+<div id="caption"><span class="capyear"></span><span class="captext"></span></div>
+<div id="tooltip"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   THE LONG ASCENT — an ambient simulation.
+   One hour: a civilization climbs from steam engines to a Dyson swarm.
+   Everything on screen derives from a single progress value, so the
+   story unfolds identically at any speed.
+   ===================================================================== */
+const IS_TEST = (typeof window!=='undefined') && window.__AS_TEST===true;
+
+// ---------- helpers ----------
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const smooth=t=>t*t*(3-2*t);
+function hash(i,k){ let h=(i*374761393 + (k||0)*668265263)|0; h=Math.imul(h^(h>>>13),1274126177); return ((h^(h>>>16))>>>0)/4294967296; }
+function nowMs(){ return (typeof performance!=='undefined'&&performance.now)? performance.now():Date.now(); }
+
+// ---------- the hour ----------
+const TOTAL_S=3600;
+const K0=0.70, K1=2.05;                 // Kardashev 0.70 (year 1993, ~10 TW) -> 2.05 (the swarm)
+function kAt(p){ p=clamp(p,0,1); return K0+(K1-K0)*(0.2*p+0.8*smooth(p)); }
+function energyAt(p){ return Math.pow(10, 6+10*kAt(p)); }     // watts
+function doublingSecs(p){
+  const e=1e-4, lnRatio=Math.log(energyAt(clamp(p+e,0,1))/energyAt(clamp(p-e,0,1)));
+  const perSec=lnRatio/(2*e*TOTAL_S);
+  return perSec>0? Math.LN2/perSec : Infinity;
+}
+const SUN_W=3.828e26;
+function fmtPower(w){
+  const units=[[1e24,'YW'],[1e21,'ZW'],[1e18,'EW'],[1e15,'PW'],[1e12,'TW'],[1e9,'GW'],[1e6,'MW'],[1e3,'kW']];
+  for(const [v,u] of units) if(w>=v) return (w/v).toFixed(w/v>=100?0:1)+' '+u;
+  return w.toFixed(0)+' W';
+}
+
+// ---------- the story ----------
+const EVENTS=[
+  {p:0.000, year:1993, era:'Information Age', text:'A web of light begins to link the homeworld'},
+  {p:0.045, year:2000, text:'A permanent crew circles in orbit'},
+  {p:0.090, year:2012, text:'A rover hums across red sands'},
+  {p:0.130, year:2026, text:'Constellations of satellites wrap the planet'},
+  {p:0.170, year:2031, era:'Return to the Moon', text:'Boots in lunar dust once more'},
+  {p:0.210, year:2036, text:'A permanent lunar base lights up'},
+  {p:0.260, year:2043, era:'Interplanetary Age', text:'The first crews walk on Mars'},
+  {p:0.310, year:2051, text:'The red planet gains its first lights'},
+  {p:0.360, year:2059, text:'The first child is born off-world'},
+  {p:0.400, year:2068, text:'Mining drones seed the asteroid belt'},
+  {p:0.460, year:2086, era:'Orbital Age', text:'Great habitat cylinders turn slowly above the homeworld'},
+  {p:0.520, year:2104, text:'Cities bloom at the calm Lagrange harbors'},
+  {p:0.570, year:2123, text:'Foundries ring Venus; mirror-works bloom over Mercury'},
+  {p:0.630, year:2152, era:'Outer System Age', text:'Skimmers drink hydrogen from Jupiter’s clouds'},
+  {p:0.670, year:2169, text:'Titan’s refineries light the Saturnian night'},
+  {p:0.700, year:2181, era:'Stellar Engineering', text:'Mercury is unmade — the Dyson swarm begins'},
+  {p:0.760, year:2205, text:'Ten thousand mirrors drink the sun'},
+  {p:0.820, year:2228, text:'The homeworld now draws its power from the swarm'},
+  {p:0.880, year:2252, era:'The Great Veiling', text:'From far away, the sun itself begins to dim'},
+  {p:0.940, year:2276, text:'The ice giants join the lattice'},
+  {p:0.985, year:2296, era:'Kardashev II', text:'A civilization of the star itself'},
+];
+function yearAt(p){
+  p=clamp(p,0,1);
+  let a=EVENTS[0], b=EVENTS[EVENTS.length-1];
+  for(let i=0;i<EVENTS.length;i++){
+    if(EVENTS[i].p<=p) a=EVENTS[i];
+    if(EVENTS[i].p>=p){ b=EVENTS[i]; break; }
+  }
+  if(b.p<=a.p) return b.year;
+  return Math.round(lerp(a.year,b.year,(p-a.p)/(b.p-a.p)));
+}
+// visual milestones
+const P_LEO=0.13, P_MOONBASE=0.21, P_MARS=0.31, P_BELT=0.40,
+      P_HABITAT=0.46, P_LAGRANGE=0.52, P_INNER=0.57, P_OUTER=0.63, P_TITAN=0.67,
+      P_SWARM=0.70, P_ICE=0.94;
+const SWARM_MAX=1600;
+function ramp(p,from,span){ return clamp((p-from)/span,0,1); }
+function satCount(p){ return Math.floor(4+ramp(p,0,0.5)*24); }     // 1993 already has satellites
+function habitatCount(p){ return p<P_HABITAT? 0 : Math.floor(1+ramp(p,P_HABITAT,0.3)*5); }
+function collectorCount(p){ return p<P_INNER? 0 : Math.floor(2+ramp(p,P_INNER,0.15)*14); }   // pre-swarm solar collectors
+function swarmTarget(p){ if(p<P_SWARM) return 0; const f=ramp(p,P_SWARM,1-P_SWARM); return Math.floor(Math.pow(f,1.6)*SWARM_MAX); }
+function mercuryFactor(p){ return 1-0.62*ramp(p,P_SWARM,0.26); }   // Mercury is unmade
+function earthLights(p){ return 0.45+0.55*ramp(p,0,0.25); }        // already half-lit in 1993
+// Earth–Sun Lagrange stations: observatories first, then harbors, then cities
+const LPOINTS=['L1','L2','L3','L4','L5'];
+function lagCount(point,p){
+  if(point==='L1'||point==='L2') return p<0.03? 0 : Math.floor(1+ramp(p,0.03,0.5)*14);
+  if(point==='L4'||point==='L5') return p<P_HABITAT? 0 : Math.floor(Math.pow(ramp(p,P_HABITAT,0.4),1.3)*36);
+  return p<0.60? 0 : Math.floor(ramp(p,0.60,0.3)*12);   // L3, late and lonely
+}
+function lagPos(point,sim){
+  const earth=BODIES[2];
+  const a=bodyAngle(earth,sim), R=earth.orbit;
+  switch(point){
+    case 'L1': return [Math.cos(a)*(R-14), Math.sin(a)*(R-14)];
+    case 'L2': return [Math.cos(a)*(R+14), Math.sin(a)*(R+14)];
+    case 'L3': return [Math.cos(a+Math.PI)*R, Math.sin(a+Math.PI)*R];
+    case 'L4': return [Math.cos(a+Math.PI/3)*R, Math.sin(a+Math.PI/3)*R];
+    default:   return [Math.cos(a-Math.PI/3)*R, Math.sin(a-Math.PI/3)*R];
+  }
+}
+// population & compute
+function popAt(p){ p=clamp(p,0,1); return Math.pow(10, lerp(9.74,13.3, 0.3*p+0.7*smooth(p))); }      // 5.5 B -> ~20 T
+function flopsAt(p){ p=clamp(p,0,1); return Math.pow(10, lerp(13,42, 0.2*p+0.8*smooth(p))); }        // 10 TFLOPS -> 10^42
+const SUP='⁰¹²³⁴⁵⁶⁷⁸⁹';
+function supExp(n){ return String(n).split('').map(c=>SUP[+c]).join(''); }
+function fmtPop(n){
+  if(n>=1e12) return (n/1e12).toFixed(n/1e12>=100?0:1)+' trillion';
+  if(n>=1e9)  return (n/1e9).toFixed(1)+' billion';
+  return (n/1e6).toFixed(0)+' million';
+}
+function fmtFlops(f){
+  const units=[[1e24,'YFLOPS'],[1e21,'ZFLOPS'],[1e18,'EFLOPS'],[1e15,'PFLOPS'],[1e12,'TFLOPS']];
+  if(f<1e27){ for(const [v,u] of units) if(f>=v) return (f/v).toFixed(f/v>=100?0:1)+' '+u; return f.toExponential(1)+' FLOPS'; }
+  const e=Math.floor(Math.log10(f)), man=f/Math.pow(10,e);
+  return man.toFixed(1)+'×10'+supExp(e)+' FLOPS';
+}
+
+// ---------- the system (compressed, painterly orbits) ----------
+const BODIES=[
+  {name:'Mercury', orbit:72,  r:3.4,  period:55,   a0:1.1, kind:'rock',  tone:'#b8a99a', dark:'#7e7268'},
+  {name:'Venus',   orbit:103, r:5.6,  period:90,   a0:3.9, kind:'venus', tone:'#e8cf9a', dark:'#bca06a'},
+  {name:'Earth',   orbit:142, r:6.2,  period:128,  a0:0.4, kind:'earth', tone:'#5a8ad0', dark:'#2c4a7a'},
+  {name:'Mars',    orbit:188, r:4.4,  period:208,  a0:2.6, kind:'mars',  tone:'#d07a4a', dark:'#8a4a2c'},
+  {name:'Jupiter', orbit:292, r:16,   period:430,  a0:5.1, kind:'jove',  tone:'#d8b48a', dark:'#a07a52'},
+  {name:'Saturn',  orbit:356, r:13,   period:620,  a0:1.9, kind:'saturn',tone:'#e0c89a', dark:'#a8906a'},
+  {name:'Uranus',  orbit:412, r:8.6,  period:920,  a0:4.4, kind:'ice',   tone:'#a8d8dd', dark:'#6a9aa2'},
+  {name:'Neptune', orbit:458, r:8.2,  period:1260, a0:0.9, kind:'ice2',  tone:'#5a78c8', dark:'#36508f'},
+];
+const MOONS={
+  Earth:[{name:'Moon', orbit:15, r:1.9, period:14, a0:2.2, tone:'#b9b4ac'}],
+  Jupiter:[
+    {name:'Io',       orbit:22, r:1.5, period:9,  a0:0.5, tone:'#d8c06a'},
+    {name:'Europa',   orbit:27, r:1.4, period:14, a0:2.8, tone:'#cfd4da'},
+    {name:'Ganymede', orbit:32, r:1.9, period:21, a0:4.4, tone:'#a89a88'},
+    {name:'Callisto', orbit:38, r:1.7, period:30, a0:1.6, tone:'#8a8278'},
+  ],
+  Saturn:[{name:'Titan', orbit:26, r:1.8, period:24, a0:3.5, tone:'#d8a85a'}],
+};
+function bodyAngle(b,sim){ return b.a0 + TAU*sim/b.period; }
+function bodyPos(name,sim){
+  const b=BODIES.find(x=>x.name===name);
+  if(b){ const a=bodyAngle(b,sim); return [Math.cos(a)*b.orbit, Math.sin(a)*b.orbit]; }
+  for(const host in MOONS){
+    const m=MOONS[host].find(x=>x.name===name);
+    if(m){ const [hx,hy]=bodyPos(host,sim); const a=bodyAngle(m,sim); return [hx+Math.cos(a)*m.orbit, hy+Math.sin(a)*m.orbit]; }
+  }
+  return [0,0];
+}
+// asteroid belt
+const ASTEROIDS=[];
+for(let i=0;i<150;i++){
+  ASTEROIDS.push({orbit:216+hash(i,1)*44, a0:hash(i,2)*TAU, period:260+hash(i,3)*160, size:0.5+hash(i,4)*1.2, shade:0.4+hash(i,5)*0.5});
+}
+// stars
+const STARS=[];
+for(let i=0;i<340;i++){
+  STARS.push({x:hash(i,7), y:hash(i,8), s:0.4+hash(i,9)*1.4, tw:hash(i,10)*TAU, spd:0.4+hash(i,11)});
+}
+
+// ---------- state ----------
+const S={
+  sim:0, speed:1, dark:true, musicOn:true, audioReady:false,
+  ships:[], dust:[], firedIdx:0, capQueue:[], capUntil:0, capCur:null,
+  lastReal:0, hover:null,
+};
+const SPEEDS=[0,0.5,1,2,5,20];
+let speedIdx=2;
+function p(){ return clamp(S.sim/TOTAL_S,0,1); }
+
+// ---------- events / captions ----------
+function fireCrossedEvents(){
+  while(S.firedIdx<EVENTS.length && EVENTS[S.firedIdx].p<=p()){
+    const ev=EVENTS[S.firedIdx++];
+    S.capQueue.push(ev);
+    if(S.capQueue.length>3) S.capQueue.shift();
+    chime();
+  }
+}
+function setProgress(pp){           // jump in time (used by tests/screens)
+  S.sim=clamp(pp,0,1)*TOTAL_S;
+  S.ships.length=0;
+  fireCrossedEvents();
+}
+function tick(dt){                  // dt = real seconds
+  S.sim+=dt*S.speed;
+  fireCrossedEvents();
+  updateShips(dt);
+}
+
+// ---------- ships (cosmetic couriers) ----------
+function shipTargets(pp){
+  const t=[['Earth-orbit',3]];
+  if(pp>0.17)   t.push(['Moon',2]);
+  if(pp>P_MARS) t.push(['Mars',2.4]);
+  if(pp>P_BELT) t.push(['Belt',1.8]);
+  if(pp>P_LAGRANGE){ t.push(['L4',1]); t.push(['L5',1]); }
+  if(pp>P_INNER){ t.push(['Venus',1.2]); t.push(['Mercury',1]); }
+  if(pp>P_OUTER){ t.push(['Jupiter',1.4]); t.push(['Saturn',1.1]); }
+  if(pp>P_SWARM) t.push(['Swarm',4]);
+  if(pp>P_ICE){ t.push(['Uranus',0.7]); t.push(['Neptune',0.7]); }
+  return t;
+}
+function updateShips(dt){
+  const pp=p(), t=nowMs();
+  // spawn
+  const targets=shipTargets(pp);
+  if(targets.length && S.ships.length<24 && S.speed>0){
+    const rate=0.25+pp*1.1;                      // launches per real second
+    if(Math.random()<dt*rate){
+      const sum=targets.reduce((s,x)=>s+x[1],0);
+      let r=Math.random()*sum, pick=targets[0][0];
+      for(const [n,w] of targets){ if(r<w){pick=n;break;} r-=w; }
+      const fromName = pick==='Swarm'? 'Mercury':'Earth';
+      const [fx,fy]=bodyPos(fromName,S.sim);
+      S.ships.push({from:[fx,fy], target:pick, t0:t, dur:6000+Math.random()*9000,
+                    bow:(Math.random()-0.5)*120, trail:[], belt:Math.floor(Math.random()*ASTEROIDS.length)});
+    }
+  }
+  S.ships=S.ships.filter(sh=>t-sh.t0<sh.dur+400);
+}
+function shipEnd(sh){
+  if(sh.target==='Earth-orbit'){ const [x,y]=bodyPos('Earth',S.sim); return [x+10,y+6]; }
+  if(LPOINTS.includes(sh.target)) return lagPos(sh.target,S.sim);
+  if(sh.target==='Belt'){ const a=ASTEROIDS[sh.belt]; const ang=a.a0+TAU*S.sim/a.period; return [Math.cos(ang)*a.orbit,Math.sin(ang)*a.orbit]; }
+  if(sh.target==='Swarm'){ const a=hash(sh.belt,77)*TAU+S.sim*0.05; return [Math.cos(a)*46,Math.sin(a)*44]; }
+  return bodyPos(sh.target,S.sim);
+}
+function shipPos(sh){
+  const u=clamp((nowMs()-sh.t0)/sh.dur,0,1);
+  const e=smooth(u);
+  const [ex,ey]=shipEnd(sh);
+  const mx=(sh.from[0]+ex)/2, my=(sh.from[1]+ey)/2;
+  const dx=ex-sh.from[0], dy=ey-sh.from[1], len=Math.hypot(dx,dy)||1;
+  const cx=mx-dy/len*sh.bow, cy=my+dx/len*sh.bow;
+  const x=(1-e)*(1-e)*sh.from[0]+2*(1-e)*e*cx+e*e*ex;
+  const y=(1-e)*(1-e)*sh.from[1]+2*(1-e)*e*cy+e*e*ey;
+  return [x,y,u];
+}
+
+// ---------- palettes ----------
+function pal(){
+  return S.dark? {
+    bgTop:'#04050c', bgBot:'#0a0d1a', star:'255,255,255', orbit:'rgba(255,255,255,0.07)',
+    beltRock:'#8a8275', text:'#cfd8e6', shipCore:'#bfe2ff', shipTrail:'126,200,255',
+    glowMul:1, capDim:'rgba(0,0,0,0)',
+  }:{
+    bgTop:'#f4f0e4', bgBot:'#ede6d2', star:'90,80,60', orbit:'rgba(70,60,40,0.10)',
+    beltRock:'#9a8d78', text:'#4a4234', shipCore:'#2a6a9a', shipTrail:'42,106,154',
+    glowMul:0.55, capDim:'rgba(0,0,0,0)',
+  };
+}
+
+// ---------- drawing ----------
+let canvas=null, ctx=null, W=0, H=0, scale=1;
+function resize(){
+  if(!canvas) return;
+  const dpr=window.devicePixelRatio||1;
+  W=window.innerWidth; H=window.innerHeight;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  scale=Math.min(W,H)/2/495;
+}
+function sx(x){ return W/2+x*scale; }
+function sy(y){ return H/2+y*scale; }
+
+function draw(time){
+  if(!ctx) return;
+  const pp=p(), P=pal(), swarmN=swarmTarget(pp), swarmF=swarmN/SWARM_MAX;
+  // background
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,P.bgTop); g.addColorStop(1,P.bgBot);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // milky way whisper (dark only)
+  if(S.dark){
+    const mg=ctx.createLinearGradient(0,H*0.2,W,H*0.8);
+    mg.addColorStop(0,'rgba(120,140,190,0)');
+    mg.addColorStop(0.5,'rgba(140,160,210,0.05)');
+    mg.addColorStop(1,'rgba(120,140,190,0)');
+    ctx.fillStyle=mg; ctx.fillRect(0,0,W,H);
+  }
+  // stars
+  for(const st of STARS){
+    const tw=0.55+0.45*Math.sin(time*0.001*st.spd+st.tw);
+    ctx.fillStyle=`rgba(${P.star},${(S.dark?0.7:0.22)*tw})`;
+    ctx.fillRect(st.x*W, st.y*H, st.s, st.s);
+  }
+  // orbit rings
+  ctx.strokeStyle=P.orbit; ctx.lineWidth=1;
+  for(const b of BODIES){
+    ctx.beginPath(); ctx.arc(W/2,H/2,b.orbit*scale,0,TAU); ctx.stroke();
+  }
+  // sun
+  drawSun(time,pp,swarmF,P);
+  // asteroid belt
+  drawBelt(time,pp,P);
+  // dyson swarm
+  if(swarmN>0) drawSwarm(time,swarmN);
+  // pre-swarm solar collectors
+  const cols=collectorCount(pp);
+  for(let i=0;i<cols;i++){
+    const a=hash(i,21)*TAU+S.sim*0.06*(0.7+hash(i,22)*0.6);
+    const r=(40+hash(i,23)*10)*scale;
+    panel(W/2+Math.cos(a)*r, H/2+Math.sin(a)*r*0.95, 2.4*scale, a, '#e8b84d');
+  }
+  // mercury->sun dust stream during disassembly
+  if(pp>P_SWARM && pp<1){
+    const [mx,my]=bodyPos('Mercury',S.sim);
+    for(let i=0;i<10;i++){
+      const u=((time*0.0001*(1+hash(i,31))+hash(i,32))%1);
+      const x=lerp(mx,Math.cos(hash(i,33)*TAU)*46,u), y=lerp(my,Math.sin(hash(i,33)*TAU)*44,u);
+      ctx.fillStyle=`rgba(216,180,120,${0.5*(1-u)})`;
+      ctx.fillRect(sx(x),sy(y),1.4,1.4);
+    }
+  }
+  // planets & moons & infrastructure
+  for(const b of BODIES) drawBody(b,time,pp,P);
+  // Lagrange-point stations
+  drawLagrange(time,pp,P);
+  // ships
+  drawShips(time,P);
+  // vignette
+  const v=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.35,W/2,H/2,Math.max(W,H)*0.75);
+  v.addColorStop(0,'rgba(0,0,0,0)');
+  v.addColorStop(1,S.dark?'rgba(0,0,2,0.45)':'rgba(120,100,60,0.12)');
+  ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
+}
+function drawSun(time,pp,swarmF,P){
+  const cx=W/2, cy=H/2;
+  const r=26*scale;
+  const veil=1-0.62*swarmF;
+  // glow layers
+  for(const [mul,alpha] of [[7,0.05],[3.6,0.10],[1.9,0.22]]){
+    const gl=ctx.createRadialGradient(cx,cy,r*0.4,cx,cy,r*mul*veil);
+    gl.addColorStop(0,`rgba(255,196,110,${alpha*P.glowMul*veil})`);
+    gl.addColorStop(1,'rgba(255,180,90,0)');
+    ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(cx,cy,r*mul*veil,0,TAU); ctx.fill();
+  }
+  // corona shimmer
+  const pulse=1+Math.sin(time*0.0012)*0.025;
+  const core=ctx.createRadialGradient(cx-r*0.2,cy-r*0.2,r*0.1,cx,cy,r*pulse);
+  core.addColorStop(0,'#fff6dc');
+  core.addColorStop(0.55, swarmF>0.5? '#f0a23c':'#ffd06a');
+  core.addColorStop(1,'#f59a30');
+  ctx.fillStyle=core;
+  ctx.beginPath(); ctx.arc(cx,cy,r*pulse,0,TAU); ctx.fill();
+  // slow prominence arcs
+  ctx.strokeStyle=`rgba(255,210,140,${0.35*P.glowMul})`; ctx.lineWidth=1.2;
+  for(let i=0;i<3;i++){
+    const a=time*0.0002+i*2.1;
+    ctx.beginPath(); ctx.arc(cx,cy,r*1.12,a,a+0.8); ctx.stroke();
+  }
+}
+function drawSwarm(time,n){
+  const cx=W/2, cy=H/2;
+  // guide shells
+  ctx.strokeStyle='rgba(232,184,77,0.10)'; ctx.lineWidth=1;
+  for(const R of [42,52,62]){
+    ctx.beginPath(); ctx.ellipse(cx,cy,R*scale,R*scale*0.94,0,0,TAU); ctx.stroke();
+  }
+  for(let i=0;i<n;i++){
+    const R=(40+hash(i,41)*26)*scale;
+    const w=(0.10+hash(i,42)*0.10)*(40*scale)/R;
+    const a=hash(i,43)*TAU+S.sim*w;
+    const x=cx+Math.cos(a)*R, y=cy+Math.sin(a)*R*0.94;
+    const tw=0.55+0.45*Math.sin(time*0.002+i);
+    ctx.fillStyle=`rgba(${i%3?'232,184,77':'255,214,130'},${0.5+0.4*tw})`;
+    ctx.fillRect(x,y,1.5,1.5);
+  }
+}
+function drawBelt(time,pp,P){
+  const mined=pp>P_BELT;
+  for(let i=0;i<ASTEROIDS.length;i++){
+    const a=ASTEROIDS[i];
+    const ang=a.a0+TAU*S.sim/a.period;
+    const x=sx(Math.cos(ang)*a.orbit), y=sy(Math.sin(ang)*a.orbit);
+    ctx.fillStyle=P.beltRock;
+    ctx.globalAlpha=a.shade*(S.dark?1:0.8);
+    ctx.fillRect(x,y,a.size*scale*1.6,a.size*scale*1.6);
+    ctx.globalAlpha=1;
+    // mining glints
+    if(mined && ((time*0.0004+i*0.618)%1)<0.012){
+      ctx.fillStyle='rgba(255,230,160,0.9)';
+      ctx.fillRect(x-1,y-1,2.6,2.6);
+    }
+  }
+}
+function shade(hex,f){
+  const n=parseInt(hex.slice(1),16);
+  const r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  return `rgb(${Math.round(r*f)},${Math.round(g*f)},${Math.round(b*f)})`;
+}
+function drawBody(b,time,pp,P){
+  const a=bodyAngle(b,S.sim);
+  const x=sx(Math.cos(a)*b.orbit), y=sy(Math.sin(a)*b.orbit);
+  let r=b.r*scale;
+  if(b.name==='Mercury') r*=mercuryFactor(pp);
+  const sunDir=Math.atan2(H/2-y,W/2-x);
+  // body sphere with day-side gradient
+  const grd=ctx.createRadialGradient(x+Math.cos(sunDir)*r*0.45,y+Math.sin(sunDir)*r*0.45,r*0.15,x,y,r);
+  grd.addColorStop(0,b.tone);
+  grd.addColorStop(1,b.dark);
+  ctx.fillStyle=grd;
+  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+  // per-kind detail (clipped)
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.clip();
+  if(b.kind==='jove'){
+    for(let i=-3;i<=3;i++){
+      ctx.fillStyle=i%2? 'rgba(160,118,80,0.45)':'rgba(232,206,170,0.35)';
+      ctx.fillRect(x-r,y+i*r*0.28-r*0.10,r*2,r*0.20);
+    }
+    ctx.fillStyle='rgba(200,90,60,0.75)';
+    const spotA=time*0.00005;
+    ctx.beginPath(); ctx.ellipse(x+Math.cos(spotA)*r*0.4,y+r*0.32,r*0.22,r*0.13,0,0,TAU); ctx.fill();
+  } else if(b.kind==='saturn'||b.kind==='venus'){
+    for(let i=-2;i<=2;i++){
+      ctx.fillStyle=i%2?'rgba(150,120,80,0.25)':'rgba(255,240,210,0.22)';
+      ctx.fillRect(x-r,y+i*r*0.34-r*0.12,r*2,r*0.24);
+    }
+  } else if(b.kind==='earth'){
+    // drifting continents (top-down spin)
+    const spin=time*0.00012;
+    ctx.fillStyle='rgba(120,168,96,0.95)';
+    for(let i=0;i<4;i++){
+      const ba=spin+i*1.7, br=r*(0.30+0.25*hash(i,51));
+      ctx.beginPath();
+      ctx.ellipse(x+Math.cos(ba)*r*0.45,y+Math.sin(ba)*r*0.45,br,br*0.62,ba,0,TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle='rgba(255,255,255,0.30)';
+    for(let i=0;i<3;i++){
+      const ca=-spin*1.6+i*2.1;
+      ctx.beginPath();
+      ctx.ellipse(x+Math.cos(ca)*r*0.5,y+Math.sin(ca)*r*0.5,r*0.34,r*0.16,ca+0.6,0,TAU);
+      ctx.fill();
+    }
+    // city lights on the night side
+    const civ=earthLights(pp);
+    if(civ>0){
+      for(let i=0;i<26;i++){
+        const la=spin+hash(i,52)*TAU, lr=r*(0.2+hash(i,53)*0.72);
+        const lx=Math.cos(la)*lr, ly=Math.sin(la)*lr;
+        const night=(lx*Math.cos(sunDir)+ly*Math.sin(sunDir))<0;
+        if(night && hash(i,54)<civ){
+          ctx.fillStyle=`rgba(255,214,130,${0.85*civ})`;
+          ctx.fillRect(x+lx,y+ly,1.2,1.2);
+        }
+      }
+    }
+  } else if(b.kind==='mars'){
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.beginPath(); ctx.arc(x,y-r*0.7,r*0.26,0,TAU); ctx.fill();
+    ctx.fillStyle='rgba(110,55,30,0.35)';
+    ctx.beginPath(); ctx.ellipse(x-r*0.3,y+r*0.2,r*0.5,r*0.3,0.5,0,TAU); ctx.fill();
+    const civ=ramp(pp,P_MARS,0.25);
+    if(civ>0){
+      for(let i=0;i<8;i++){
+        if(hash(i,56)>civ) continue;
+        const la=hash(i,57)*TAU, lr=r*(0.3+hash(i,58)*0.5);
+        ctx.fillStyle=`rgba(255,214,130,${0.8*civ})`;
+        ctx.fillRect(x+Math.cos(la)*lr,y+Math.sin(la)*lr,1.1,1.1);
+      }
+    }
+  } else if(b.kind==='ice2'){
+    ctx.fillStyle='rgba(255,255,255,0.18)';
+    ctx.beginPath(); ctx.ellipse(x+r*0.3,y-r*0.3,r*0.25,r*0.14,0.5,0,TAU); ctx.fill();
+  } else if(b.kind==='rock'){
+    ctx.fillStyle='rgba(0,0,0,0.18)';
+    for(let i=0;i<4;i++){
+      ctx.beginPath(); ctx.arc(x+(hash(i,59)-0.5)*r*1.3,y+(hash(i,60)-0.5)*r*1.3,r*0.16,0,TAU); ctx.fill();
+    }
+  }
+  ctx.restore();
+  // saturn rings
+  if(b.kind==='saturn'){
+    ctx.strokeStyle='rgba(216,196,150,0.8)'; ctx.lineWidth=2.4*scale;
+    ctx.beginPath(); ctx.ellipse(x,y,r*1.9,r*0.62,-0.45,0,TAU); ctx.stroke();
+    ctx.strokeStyle='rgba(216,196,150,0.35)'; ctx.lineWidth=1.2*scale;
+    ctx.beginPath(); ctx.ellipse(x,y,r*2.25,r*0.74,-0.45,0,TAU); ctx.stroke();
+  }
+  if(b.kind==='ice'){
+    ctx.strokeStyle='rgba(190,220,225,0.35)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.ellipse(x,y,r*1.7,r*0.5,1.2,0,TAU); ctx.stroke();
+  }
+  // moons
+  const moons=MOONS[b.name]||[];
+  for(const m of moons){
+    const ma=bodyAngle(m,S.sim);
+    const mx=x+Math.cos(ma)*m.orbit*scale, my=y+Math.sin(ma)*m.orbit*scale;
+    ctx.fillStyle=m.tone;
+    ctx.beginPath(); ctx.arc(mx,my,Math.max(1,m.r*scale),0,TAU); ctx.fill();
+    if(m.name==='Moon' && pp>P_MOONBASE){
+      ctx.fillStyle='rgba(255,214,130,0.9)';
+      ctx.fillRect(mx+0.5,my-0.5,1.2,1.2);
+    }
+    if(m.name==='Titan' && pp>P_TITAN){
+      ctx.fillStyle='rgba(255,214,130,0.9)'; ctx.fillRect(mx,my,1.2,1.2);
+    }
+    if(b.name==='Jupiter' && pp>P_OUTER && (m.name==='Europa'||m.name==='Ganymede')){
+      ctx.fillStyle='rgba(255,214,130,0.8)'; ctx.fillRect(mx,my,1.1,1.1);
+    }
+  }
+  // infrastructure
+  if(b.name==='Earth'){
+    const sats=satCount(pp);
+    for(let i=0;i<sats;i++){
+      const sa=hash(i,61)*TAU+S.sim*(0.25+hash(i,62)*0.3);
+      const sr=r+ (3+hash(i,63)*5)*scale;
+      ctx.fillStyle=`rgba(${P.shipTrail},0.9)`;
+      ctx.fillRect(x+Math.cos(sa)*sr,y+Math.sin(sa)*sr,1.1,1.1);
+    }
+    if(pp>P_LEO){
+      ctx.strokeStyle=`rgba(${P.shipTrail},0.25)`; ctx.lineWidth=0.8;
+      ctx.beginPath(); ctx.arc(x,y,r+7*scale,0,TAU); ctx.stroke();
+    }
+    const habs=habitatCount(pp);
+    for(let i=0;i<habs;i++){
+      const ha=hash(i,64)*TAU+S.sim*0.08;
+      const hr=r+12*scale;
+      panel(x+Math.cos(ha)*hr,y+Math.sin(ha)*hr,2.6*scale,ha+1.57,'#cfd8e6');
+    }
+  }
+  if(b.name==='Venus' && pp>P_INNER){
+    const va=S.sim*0.1;
+    panel(x+Math.cos(va)*(r+6*scale),y+Math.sin(va)*(r+6*scale),2.2*scale,va,'#e8d8a0');
+  }
+  if((b.name==='Jupiter'||b.name==='Saturn') && pp>P_OUTER){
+    const ja=S.sim*0.07+b.orbit;
+    panel(x+Math.cos(ja)*(r+9*scale),y+Math.sin(ja)*(r+9*scale),2.4*scale,ja,'#cfd8e6');
+  }
+  if((b.name==='Uranus'||b.name==='Neptune') && pp>P_ICE){
+    const ua=S.sim*0.06+b.orbit;
+    panel(x+Math.cos(ua)*(r+7*scale),y+Math.sin(ua)*(r+7*scale),2*scale,ua,'#cfd8e6');
+  }
+}
+function drawLagrange(time,pp,P){
+  for(let li=0;li<LPOINTS.length;li++){
+    const Lp=LPOINTS[li];
+    const n=lagCount(Lp,pp);
+    if(!n) continue;
+    const [lx,ly]=lagPos(Lp,S.sim);
+    const cx=sx(lx), cy=sy(ly);
+    const clump=1.15-0.35*ramp(pp,0.7,0.3);                 // stations draw together over time
+    const spread=(3+Math.min(n,36)*0.16)*clump*scale;
+    if(n>10){
+      const gl=ctx.createRadialGradient(cx,cy,1,cx,cy,spread*2.2);
+      gl.addColorStop(0,`rgba(214,226,255,${0.12*P.glowMul})`);
+      gl.addColorStop(1,'rgba(214,226,255,0)');
+      ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(cx,cy,spread*2.2,0,TAU); ctx.fill();
+    }
+    for(let i=0;i<n;i++){
+      const a=hash(i,80+li*7)*TAU + S.sim*0.12*(0.4+hash(i,81+li*7));
+      const rr=spread*(0.25+hash(i,82+li*7)*0.75);
+      const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr;
+      ctx.fillStyle = i%3? `rgba(${P.shipTrail},0.85)` : 'rgba(232,184,77,0.9)';
+      ctx.fillRect(x,y,1.3,1.3);
+    }
+    if(n>=6) panel(cx,cy,2.2*scale,S.sim*0.05+li,'#cfd8e6');
+  }
+}
+function panel(x,y,s,rot,color){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot);
+  ctx.fillStyle=color;
+  ctx.fillRect(-s,-s*0.4,s*2,s*0.8);
+  ctx.restore();
+}
+function drawShips(time,P){
+  for(const sh of S.ships){
+    const [x,y,u]=shipPos(sh);
+    const px=sx(x), py=sy(y);
+    sh.trail.push([px,py]);
+    if(sh.trail.length>14) sh.trail.shift();
+    for(let i=1;i<sh.trail.length;i++){
+      ctx.strokeStyle=`rgba(${P.shipTrail},${(i/sh.trail.length)*0.4})`;
+      ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(sh.trail[i-1][0],sh.trail[i-1][1]); ctx.lineTo(sh.trail[i][0],sh.trail[i][1]); ctx.stroke();
+    }
+    ctx.fillStyle=P.shipCore;
+    ctx.beginPath(); ctx.arc(px,py,1.4,0,TAU); ctx.fill();
+    if(u>=1){
+      ctx.strokeStyle=`rgba(${P.shipTrail},0.6)`;
+      ctx.beginPath(); ctx.arc(px,py,4,0,TAU); ctx.stroke();
+    }
+  }
+}
+
+// ---------- HUD / captions ----------
+function $(id){ return (typeof document!=='undefined')? document.getElementById(id):null; }
+let lastHud=0;
+function updateHud(time){
+  if(time-lastHud<250) return;
+  lastHud=time;
+  const pp=p();
+  const set=(id,v)=>{ const e=$(id); if(e) e.textContent=v; };
+  set('hudYear', yearAt(pp));
+  let era=EVENTS[0];
+  for(const ev of EVENTS) if(ev.p<=pp && ev.era) era=ev;
+  set('hudEra', era.era);
+  const E=energyAt(pp), dbl=doublingSecs(pp);
+  const dblTxt = !isFinite(dbl)? '' : dbl>=120? ` · doubling every ${(dbl/60).toFixed(1)} min` : ` · doubling every ${Math.round(dbl)} s`;
+  const pct = E>1e23? ` · ${(E/SUN_W*100).toFixed(0)}% of the star` : '';
+  set('hudEnergy', `Energy ${fmtPower(E)}${dblTxt}${pct}`);
+  set('hudPop', `Population ${fmtPop(popAt(pp))}`);
+  set('hudFlops', `Compute ${fmtFlops(flopsAt(pp))}`);
+  set('hudK', `Kardashev ${kAt(pp).toFixed(2)}`);
+  const kb=$('kbar'); if(kb) kb.style.width=(100*(kAt(pp)-K0)/(K1-K0)).toFixed(1)+'%';
+  const sw=$('hudSwarm');
+  if(sw){
+    if(pp>=P_SWARM){ sw.style.display='block'; sw.textContent=`Dyson swarm ${(swarmTarget(pp)/SWARM_MAX*100).toFixed(0)}%`; }
+    else sw.style.display='none';
+  }
+  // captions
+  const cap=$('caption');
+  if(cap){
+    const t=nowMs();
+    if(!S.capCur && S.capQueue.length){
+      S.capCur=S.capQueue.shift(); S.capUntil=t+8000;
+      cap.querySelector('.capyear').textContent=S.capCur.year;
+      cap.querySelector('.captext').textContent=S.capCur.text;
+      cap.classList.add('show');
+    } else if(S.capCur && t>S.capUntil){
+      cap.classList.remove('show');
+      if(t>S.capUntil+1800) S.capCur=null;
+    }
+  }
+}
+
+// ---------- ambient music (generative, WebAudio) ----------
+let actx=null, master=null, padBus=null, delaySend=null, chordTimer=null, sparkTimer=null;
+const CHORDS=[[45,52,57,60,64],[41,48,55,57,60],[43,50,55,59,62],[38,45,53,57,60]];
+let chordIdx=0;
+const midiHz=m=>440*Math.pow(2,(m-69)/12);
+function initAudio(){
+  if(S.audioReady || IS_TEST) return;
+  try{ actx=new AudioContext(); }catch(e){ return; }
+  master=actx.createGain(); master.gain.value=0.9; master.connect(actx.destination);
+  padBus=actx.createGain(); padBus.gain.value=S.musicOn?1:0; padBus.connect(master);
+  // gentle echo for sparkles
+  const dl=actx.createDelay(1.2); dl.delayTime.value=0.42;
+  const fb=actx.createGain(); fb.gain.value=0.34;
+  dl.connect(fb); fb.connect(dl);
+  delaySend=actx.createGain(); delaySend.gain.value=1;
+  delaySend.connect(dl); dl.connect(padBus);
+  // deep drone
+  const dr=actx.createOscillator(); dr.type='sine'; dr.frequency.value=55;
+  const drg=actx.createGain(); drg.gain.value=0.018;
+  dr.connect(drg); drg.connect(padBus); dr.start();
+  const dr2=actx.createOscillator(); dr2.type='sawtooth'; dr2.frequency.value=110;
+  const drf=actx.createBiquadFilter(); drf.type='lowpass'; drf.frequency.value=140;
+  const drg2=actx.createGain(); drg2.gain.value=0.012;
+  dr2.connect(drf); drf.connect(drg2); drg2.connect(padBus); dr2.start();
+  S.audioReady=true;
+  playChord(); chordTimer=setInterval(playChord, 15000);
+  sparkTimer=setInterval(()=>{ if(S.musicOn && Math.random()<0.7) sparkle(); }, 3400);
+}
+function playChord(){
+  if(!actx || !S.musicOn) { chordIdx++; return; }
+  const notes=CHORDS[chordIdx++ % CHORDS.length];
+  const t=actx.currentTime;
+  const cutoff=240+kAt(p())*620;
+  const filt=actx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=cutoff; filt.Q.value=0.4;
+  filt.connect(padBus);
+  for(const m of notes){
+    const o=actx.createOscillator(); o.type='triangle';
+    o.frequency.value=midiHz(m-12)*(1+(Math.random()-0.5)*0.0022);
+    const g=actx.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(0.026,t+4.5);
+    g.gain.setValueAtTime(0.026,t+9);
+    g.gain.linearRampToValueAtTime(0.0001,t+16);
+    o.connect(g); g.connect(filt);
+    o.start(t); o.stop(t+16.5);
+  }
+}
+function sparkle(){
+  if(!actx) return;
+  const pent=[81,84,88,91,93,96];
+  const m=pent[Math.floor(Math.random()*pent.length)];
+  const t=actx.currentTime;
+  const o=actx.createOscillator(); o.type='sine'; o.frequency.value=midiHz(m);
+  const g=actx.createGain();
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.linearRampToValueAtTime(0.022,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+1.6);
+  o.connect(g); g.connect(delaySend);
+  o.start(t); o.stop(t+1.8);
+}
+function chime(){
+  if(!actx || !S.musicOn || IS_TEST) return;
+  const t=actx.currentTime;
+  for(const [f,d,v] of [[1046.5,1.8,0.03],[1568,2.4,0.018]]){
+    const o=actx.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=actx.createGain();
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(v,t+0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    o.connect(g); g.connect(delaySend); o.start(t); o.stop(t+d+0.1);
+  }
+}
+function setMusic(on){
+  S.musicOn=on;
+  const b=$('musicBtn'); if(b) b.textContent=on?'♪':'♪ off';
+  if(padBus && actx){
+    padBus.gain.cancelScheduledValues(actx.currentTime);
+    padBus.gain.linearRampToValueAtTime(on?1:0, actx.currentTime+1.2);
+  }
+}
+
+// ---------- hover tooltip ----------
+function statusOf(name,pp){
+  switch(name){
+    case 'Earth': return pp<P_HABITAT?'the homeworld, reaching upward':'cradle, ringed with habitats';
+    case 'Moon': return pp<0.17?'quiet companion, footprints in dust':pp<P_MOONBASE?'visited once more':'permanent settlement';
+    case 'Mars': return pp<P_MARS?'the red wilderness':'terraforming colony';
+    case 'Venus': return pp<P_INNER?'veiled in cloud':'cloud-cities and foundries';
+    case 'Mercury': return pp<P_INNER?'sun-scorched rock':pp<P_SWARM?'mirror-works':'being unmade into the swarm';
+    case 'Jupiter': return pp<P_OUTER?'king of storms':'hydrogen harvesting';
+    case 'Saturn': return pp<P_TITAN?'ringed and serene':'Titan refineries active';
+    case 'Uranus': case 'Neptune': return pp<P_ICE?'distant and cold':'joined to the lattice';
+    default: return '';
+  }
+}
+function onMove(ev){
+  const pp=p();
+  let best=null,bd=18;
+  const check=(name)=>{
+    const [bx,by]=bodyPos(name,S.sim);
+    const d=Math.hypot(ev.clientX-sx(bx), ev.clientY-sy(by));
+    if(d<bd){ bd=d; best=name; }
+  };
+  for(const b of BODIES) check(b.name);
+  check('Moon'); check('Titan');
+  for(const Lp of LPOINTS){
+    if(lagCount(Lp,pp)>0){
+      const [lx,ly]=lagPos(Lp,S.sim);
+      const d=Math.hypot(ev.clientX-sx(lx), ev.clientY-sy(ly));
+      if(d<bd){ bd=d; best='LP:'+Lp; }
+    }
+  }
+  const tip=$('tooltip');
+  if(!tip) return;
+  if(best){
+    let label;
+    if(best.startsWith('LP:')){
+      const Lp=best.slice(3), n=lagCount(Lp,pp);
+      const st=n<4?'observatory outpost':n<15?'station cluster':'Lagrange harbor city';
+      label=Lp+' point — '+st;
+    } else {
+      const st=statusOf(best,pp);
+      label=best+(st?' — '+st:'');
+    }
+    tip.textContent=label;
+    tip.style.display='block';
+    tip.style.left=Math.min(ev.clientX+14,W-220)+'px';
+    tip.style.top=(ev.clientY+12)+'px';
+  } else tip.style.display='none';
+}
+
+// ---------- boot ----------
+function boot(){
+  canvas=$('space');
+  if(!canvas) return;
+  ctx=canvas.getContext('2d');
+  resize();
+  window.addEventListener('resize',resize);
+  $('modeBtn').addEventListener('click',()=>{
+    S.dark=!S.dark;
+    document.body.classList.toggle('light',!S.dark);
+  });
+  const applySpeed=()=>{
+    S.speed=SPEEDS[speedIdx];
+    $('speedBtn').textContent=S.speed===0?'⏸':S.speed+'×';
+  };
+  let pausedFrom=2;
+  $('slowBtn').addEventListener('click',()=>{ speedIdx=Math.max(0,speedIdx-1); applySpeed(); });
+  $('fastBtn').addEventListener('click',()=>{ speedIdx=Math.min(SPEEDS.length-1,speedIdx+1); applySpeed(); });
+  $('speedBtn').addEventListener('click',()=>{
+    if(speedIdx===0){ speedIdx=pausedFrom; } else { pausedFrom=speedIdx; speedIdx=0; }
+    applySpeed();
+  });
+  $('fsBtn').addEventListener('click',()=>{
+    if(document.fullscreenElement){ document.exitFullscreen(); }
+    else if(document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen(); }
+  });
+  document.addEventListener('fullscreenchange',()=>{
+    $('fsBtn').textContent=document.fullscreenElement?'🗗':'⛶';
+  });
+  $('musicBtn').addEventListener('click',()=>{ initAudio(); setMusic(!S.musicOn); });
+  document.addEventListener('pointerdown',()=>{ initAudio(); if(actx&&actx.state==='suspended') actx.resume(); },{passive:true});
+  canvas.addEventListener('mousemove',onMove);
+  fireCrossedEvents();   // shows the opening caption
+  let last=nowMs();
+  (function loop(t){
+    const real=nowMs();
+    const dt=clamp((real-last)/1000,0,60);
+    last=real;
+    tick(dt);
+    draw(t||0);
+    updateHud(t||0);
+    requestAnimationFrame(loop);
+  })(0);
+}
+
+// ---------- test API ----------
+const API={S, p, setProgress, tick, kAt, energyAt, doublingSecs, yearAt, fmtPower,
+  bodyPos, satCount, habitatCount, collectorCount, swarmTarget, mercuryFactor, earthLights,
+  popAt, flopsAt, fmtPop, fmtFlops, lagCount, lagPos, LPOINTS,
+  EVENTS, BODIES, MOONS, ASTEROIDS, SWARM_MAX, SPEEDS, shipTargets, statusOf,
+  setSpeed(i){ speedIdx=i%SPEEDS.length; S.speed=SPEEDS[speedIdx]; },
+  toggleMode(){ S.dark=!S.dark; if(typeof document!=='undefined'&&document.body&&document.body.classList) document.body.classList.toggle('light',!S.dark); },
+  renderNow(){ if(ctx){ tick(0); draw(999999); updateHud(999999); } },
+};
+if(typeof globalThis!=='undefined') globalThis.ASS=API;
+if(typeof document!=='undefined' && !IS_TEST){
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot);
+  else boot();
+}
+</script>
+</body>
+</html>
