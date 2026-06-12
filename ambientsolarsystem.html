@@ -12,7 +12,8 @@
     background:#05060d; transition:background 1.2s;
   }
   body.light{background:#f2eee2;}
-  canvas#space{position:fixed; inset:0; display:block;}
+  canvas#space{position:fixed; inset:0; display:block; cursor:grab; touch-action:none;}
+  canvas#space.dragging{cursor:grabbing;}
   /* ---- top controls ---- */
   #topbar{
     position:fixed; top:14px; left:50%; transform:translateX(-50%);
@@ -70,6 +71,12 @@
     border-radius:8px; padding:4px 10px; backdrop-filter:blur(4px);
   }
   body.light #tooltip{color:#4a4234; background:rgba(255,253,246,0.8); border-color:rgba(60,50,30,0.2);}
+  @media (max-width:560px){
+    #topbar .title{display:none;}
+    #topbar{padding:6px 10px; gap:6px;}
+    #hud{font-size:12px; left:14px; bottom:14px;}
+    #kbarWrap{width:170px;}
+  }
 </style>
 </head>
 <body>
@@ -259,6 +266,7 @@ const S={
   sim:0, speed:1, dark:true, musicOn:true, audioReady:false,
   ships:[], dust:[], firedIdx:0, capQueue:[], capUntil:0, capCur:null,
   lastReal:0, hover:null,
+  viewX:0, viewY:0, followEarth:false,   // camera: drag to pan; mobile follows Earth
 };
 const SPEEDS=[0,0.5,1,2,5,20];
 let speedIdx=2;
@@ -348,7 +356,7 @@ function pal(){
 }
 
 // ---------- drawing ----------
-let canvas=null, ctx=null, W=0, H=0, scale=1;
+let canvas=null, ctx=null, W=0, H=0, scale=1, camX=0, camY=0;
 function resize(){
   if(!canvas) return;
   const dpr=window.devicePixelRatio||1;
@@ -357,11 +365,21 @@ function resize(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   scale=Math.min(W,H)/2/495;
 }
-function sx(x){ return W/2+x*scale; }
-function sy(y){ return H/2+y*scale; }
+function camCenter(){
+  let cx=S.viewX, cy=S.viewY;
+  if(S.followEarth){ const [ex,ey]=bodyPos('Earth',S.sim); cx+=ex; cy+=ey; }
+  return [cx,cy];
+}
+function pan(dxPx,dyPx){
+  S.viewX=clamp(S.viewX+dxPx/scale,-650,650);
+  S.viewY=clamp(S.viewY+dyPx/scale,-650,650);
+}
+function sx(x){ return W/2+(x-camX)*scale; }
+function sy(y){ return H/2+(y-camY)*scale; }
 
 function draw(time){
   if(!ctx) return;
+  [camX,camY]=camCenter();
   const pp=p(), P=pal(), swarmN=swarmTarget(pp), swarmF=swarmN/SWARM_MAX;
   // background
   const g=ctx.createLinearGradient(0,0,0,H);
@@ -384,7 +402,7 @@ function draw(time){
   // orbit rings
   ctx.strokeStyle=P.orbit; ctx.lineWidth=1;
   for(const b of BODIES){
-    ctx.beginPath(); ctx.arc(W/2,H/2,b.orbit*scale,0,TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(sx(0),sy(0),b.orbit*scale,0,TAU); ctx.stroke();
   }
   // sun
   drawSun(time,pp,swarmF,P);
@@ -397,7 +415,7 @@ function draw(time){
   for(let i=0;i<cols;i++){
     const a=hash(i,21)*TAU+S.sim*0.06*(0.7+hash(i,22)*0.6);
     const r=(40+hash(i,23)*10)*scale;
-    panel(W/2+Math.cos(a)*r, H/2+Math.sin(a)*r*0.95, 2.4*scale, a, '#e8b84d');
+    panel(sx(0)+Math.cos(a)*r, sy(0)+Math.sin(a)*r*0.95, 2.4*scale, a, '#e8b84d');
   }
   // mercury->sun dust stream during disassembly
   if(pp>P_SWARM && pp<1){
@@ -422,7 +440,7 @@ function draw(time){
   ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
 }
 function drawSun(time,pp,swarmF,P){
-  const cx=W/2, cy=H/2;
+  const cx=sx(0), cy=sy(0);
   const r=26*scale;
   const veil=1-0.62*swarmF;
   // glow layers
@@ -448,7 +466,7 @@ function drawSun(time,pp,swarmF,P){
   }
 }
 function drawSwarm(time,n){
-  const cx=W/2, cy=H/2;
+  const cx=sx(0), cy=sy(0);
   // guide shells
   ctx.strokeStyle='rgba(232,184,77,0.10)'; ctx.lineWidth=1;
   for(const R of [42,52,62]){
@@ -664,14 +682,14 @@ function panel(x,y,s,rot,color){
 function drawShips(time,P){
   for(const sh of S.ships){
     const [x,y,u]=shipPos(sh);
-    const px=sx(x), py=sy(y);
-    sh.trail.push([px,py]);
+    sh.trail.push([x,y]);                      // world coords, so panning doesn't smear them
     if(sh.trail.length>14) sh.trail.shift();
     for(let i=1;i<sh.trail.length;i++){
       ctx.strokeStyle=`rgba(${P.shipTrail},${(i/sh.trail.length)*0.4})`;
       ctx.lineWidth=1;
-      ctx.beginPath(); ctx.moveTo(sh.trail[i-1][0],sh.trail[i-1][1]); ctx.lineTo(sh.trail[i][0],sh.trail[i][1]); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sx(sh.trail[i-1][0]),sy(sh.trail[i-1][1])); ctx.lineTo(sx(sh.trail[i][0]),sy(sh.trail[i][1])); ctx.stroke();
     }
+    const px=sx(x), py=sy(y);
     ctx.fillStyle=P.shipCore;
     ctx.beginPath(); ctx.arc(px,py,1.4,0,TAU); ctx.fill();
     if(u>=1){
@@ -884,7 +902,27 @@ function boot(){
   });
   $('musicBtn').addEventListener('click',()=>{ initAudio(); setMusic(!S.musicOn); });
   document.addEventListener('pointerdown',()=>{ initAudio(); if(actx&&actx.state==='suspended') actx.resume(); },{passive:true});
-  canvas.addEventListener('mousemove',onMove);
+  // mobile: keep the homeworld centered as it orbits
+  S.followEarth = (window.matchMedia && matchMedia('(pointer:coarse)').matches)
+                  || Math.min(window.innerWidth,window.innerHeight)<640;
+  // click-and-drag panning (mouse + touch via pointer events)
+  let dragPid=null, dragLast=null;
+  canvas.addEventListener('pointerdown',ev=>{
+    dragPid=ev.pointerId; dragLast=[ev.clientX,ev.clientY];
+    canvas.classList.add('dragging');
+    try{ canvas.setPointerCapture(ev.pointerId); }catch(e){}
+  });
+  canvas.addEventListener('pointermove',ev=>{
+    if(dragPid===ev.pointerId && dragLast){
+      pan(dragLast[0]-ev.clientX, dragLast[1]-ev.clientY);
+      dragLast=[ev.clientX,ev.clientY];
+      const tip=$('tooltip'); if(tip) tip.style.display='none';
+    } else onMove(ev);
+  });
+  const endDrag=ev=>{ if(dragPid===ev.pointerId){ dragPid=null; dragLast=null; canvas.classList.remove('dragging'); } };
+  canvas.addEventListener('pointerup',endDrag);
+  canvas.addEventListener('pointercancel',endDrag);
+  canvas.addEventListener('dblclick',()=>{ S.viewX=0; S.viewY=0; });   // double-click recenters
   fireCrossedEvents();   // shows the opening caption
   let last=nowMs();
   (function loop(t){
@@ -901,7 +939,7 @@ function boot(){
 // ---------- test API ----------
 const API={S, p, setProgress, tick, kAt, energyAt, doublingSecs, yearAt, fmtPower,
   bodyPos, satCount, habitatCount, collectorCount, swarmTarget, mercuryFactor, earthLights,
-  popAt, flopsAt, fmtPop, fmtFlops, lagCount, lagPos, LPOINTS,
+  popAt, flopsAt, fmtPop, fmtFlops, lagCount, lagPos, LPOINTS, pan, camCenter,
   EVENTS, BODIES, MOONS, ASTEROIDS, SWARM_MAX, SPEEDS, shipTargets, statusOf,
   setSpeed(i){ speedIdx=i%SPEEDS.length; S.speed=SPEEDS[speedIdx]; },
   toggleMode(){ S.dark=!S.dark; if(typeof document!=='undefined'&&document.body&&document.body.classList) document.body.classList.toggle('light',!S.dark); },
