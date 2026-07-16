@@ -20,6 +20,16 @@
     box-shadow:0 3px 14px #0001;
   }
   #paws{display:flex; gap:6px;}
+  #levels{display:flex; gap:5px;}
+  .lvl{
+    width:34px; height:34px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+    background:#fffdf7; font-size:17px; cursor:pointer; border:2px solid #e5d9c5;
+    transition:all .25s;
+  }
+  .lvl:hover:not(.locked){transform:translateY(-2px); background:#fdf2dd;}
+  .lvl.active{border-color:#d9a84a; background:#fdf0d0; box-shadow:0 2px 8px #d9a84a44;}
+  .lvl.locked{filter:grayscale(1) opacity(.4); cursor:default;}
+  .lvl.done::after{content:'✓'; position:absolute; margin-top:-26px; margin-left:24px; font-size:10px; color:#7aa86a; font-weight:bold;}
   .paw{
     width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
     background:#eee5d8; font-size:16px; filter:grayscale(1) opacity(.45);
@@ -67,8 +77,9 @@
 </style>
 </head>
 <body>
-<h1>🐾 Cat Finder <small>— nine friends are hiding near Nana Plum's cottage</small></h1>
+<h1>🐾 Cat Finder <small id="subtitle">— nine friends are hiding near Nana Plum's cottage</small></h1>
 <div id="topbar">
+  <div id="levels"></div>
   <div id="paws"></div>
   <span id="progressTxt">0 / 9 friends found</span>
   <button id="hintBtn" title="A little sparkle of whisker-sense">✨ Hint</button>
@@ -134,8 +145,44 @@ const CATS=[
    fact:`Cats can't taste sweetness at all — they're missing part of the gene for sweet receptors. Waffles guards the pie purely out of loyalty, which somehow makes it more noble.`},
 ];
 
-// ---------- hiding spots (the scene is fixed; which cat hides where shuffles) ----------
-const SPOTS=[
+// ---------- guest cats (each adventure has two locals who join the crew) ----------
+const GUESTS={
+  coco:{name:'Coco', title:'The Wave Rider', pattern:'bicolor', base:'#8a6248', dark:'#f2e8d8', eye:'#5a9ad0', collar:'#f0c84a',
+    story:`Coco lives under the lifeguard chair and is the only cat anyone has ever seen surf — belly-down on a boogie board, absolutely thrilled, absolutely soaked. The lifeguards gave her an honorary whistle. She can't blow it, but she wears it with enormous pride.`,
+    fact:`Most cats avoid water, but the Turkish Van is famous for swimming happily — it's nicknamed "the swimming cat." Coco insists she taught them everything they know.`},
+  pearl:{name:'Pearl', title:'The Shell Curator', pattern:'solid', base:'#f2ede4', dark:'#ded5c5', eye:'#6ab0d8', collar:'#e8a0b0',
+    story:`Pearl keeps a museum of seashells arranged by prettiness along the tide line, and she rearranges it every single morning because the sea keeps donating new pieces. If you sit beside her quietly, she will present you with one shell. It will be the third-prettiest. She keeps the top two.`,
+    fact:`Cats sweat only through their paw pads — which is why a nervous cat leaves tiny damp pawprints on the vet's table, and why beach sand feels so interesting underfoot.`},
+  edel:{name:'Edelweiss', title:'The Summit Fluff', pattern:'solid', base:'#f5f2ec', dark:'#e2dcd0', eye:'#8ab060', collar:'#d9534f',
+    story:`Edelweiss lives above the tree line and has never once been cold, because she is roughly 80% fur. Hikers who reach the summit find her already there, looking mildly surprised they took so long. Nobody has ever seen her climb. The marmots believe she simply appears.`,
+    fact:`A cat's righting reflex lets it twist mid-air to land feet-first, and it works from heights as low as about 30 centimeters — a skill Edelweiss files under "obviously."`},
+  strudel:{name:'Strudel', title:'The Hut Keeper', pattern:'tabby', base:'#d99a54', dark:'#b57838', eye:'#8a7a4a', collar:'#7aa86a',
+    story:`Strudel manages the alpine hut: he inspects every boot, naps on every bunk exactly once for quality control, and sits by the stove where the apple strudel cools. The hut keeper says the strudel is safe with him. The hut keeper has never checked the whipped cream. Nobody should check the whipped cream.`,
+    fact:`Cats knead with their paws — "making biscuits" — because kittens knead to get milk flowing. Adult cats keep doing it wherever they feel safest, like stoveside blankets in mountain huts.`},
+  denali:{name:'Denali', title:'The Quiet Watcher', pattern:'solid', base:'#8a929e', dark:'#6f7883', eye:'#d9c04a', collar:'#4a6a8a',
+    story:`Denali has watched over this stretch of river since she was a kitten, and she knows everything: where the moose crosses, when the salmon run, which cloud means snow. She says almost nothing. But if you're about to sit on the wet log, she will look at you until you choose the dry one.`,
+    fact:`When it's cold, cats fluff up their fur to trap a layer of warm air against their skin — the same trick puffy jackets use. Denali is, essentially, wearing a down parka she grew herself.`},
+  sockeye:{name:'Sockeye', title:'The Salmon Scholar', pattern:'tabby', base:'#e08a4a', dark:'#b8662e', eye:'#7fc77a', collar:'#d9534f',
+    story:`Sockeye has spent four summers studying the salmon as they leap the rapids, taking careful mental notes. He has concluded that they are magnificent, that they are extremely bad at being caught, and that this is probably fine. The salmon leap a little higher when he's watching. Everyone likes an audience.`,
+    fact:`A cat's sense of smell is around 14 times stronger than a human's — Sockeye can tell which bend of the river the salmon are passing without opening his eyes.`},
+  feta:{name:'Feta', title:'The Taverna Greeter', pattern:'bicolor', base:'#f2ede4', dark:'#9aa3ad', eye:'#c98a2a', collar:'#5a7a96',
+    story:`Feta has greeted every guest at the taverna for nine years, escorting them to their chairs with the confidence of someone who owns the building. She accepts payment in sardines and chin scratches. The taverna keeper calls her "the manager." He is only partly joking — she did once reject a rowdy seagull's reservation.`,
+    fact:`The Aegean cat of the Greek islands is one of the oldest natural cat breeds in the world — island cats who have greeted fishermen at the docks for thousands of years.`},
+  odie:{name:'Odysseus', title:'The Harbor Legend', pattern:'tabby', base:'#a8977a', dark:'#82705a', eye:'#d9c04a', collar:'#b06a3a',
+    story:`Odysseus — Odie to friends — sailed with the fishing fleet for ten years and knows every island by smell alone. He retired to the harbor wall, where he tells the young cats about the storm of the great October, which grows greater every telling. The fishermen still salute him. The sea, he says, salutes back.`,
+    fact:`Cats have sailed with people for thousands of years as ship's cats, guarding grain from mice — it's one of the ways cats spread to nearly every corner of the world.`},
+  bramble:{name:'Bramble', title:'The Honorary Bear', pattern:'tabby', base:'#9a7a54', dark:'#7a5c3c', eye:'#c98a2a', collar:'#d98a3a',
+    story:`Bramble was raised alongside the bear cubs and is fully convinced she is one. She fishes like a bear (badly), naps like a bear (magnificently), and every autumn she gets very serious about eating berries "for the long sleep." She has never once hibernated. Every spring she claims she did.`,
+    fact:`Cats sleep 12 to 16 hours a day and spend roughly 70% of their lives asleep — so while cats don't truly hibernate, Bramble's "practice" is genuinely world-class.`},
+  huck:{name:'Huckleberry', title:'The Berry Sommelier', pattern:'solid', base:'#4a4038', dark:'#38302a', eye:'#e8b84a', collar:'#7aa86a',
+    story:`Huckleberry can identify seventeen kinds of berry by scent alone, and he rates each bush every morning with one long, thoughtful sniff. The bears wait for his verdict before breakfast. When he makes his funny open-mouthed face at a bush, the bears know: today, that one's the good one.`,
+    fact:`That open-mouthed face cats make is the flehmen response — they're pulling scent over a special organ in the roof of the mouth (the Jacobson's organ) to "taste" a smell.`},
+};
+
+// ---------- levels ----------
+// Each level: a scene painter, nine hiding spots, a gathering place, a roster
+// of nine cats (core crew + two locals), fresh stories, and its own finale.
+const SPOTS_COTTAGE=[
   {id:'oak',     x:189, y:204, r:38, peek:'ears', ps:1.05, hint:'somewhere high in the old oak tree'},
   {id:'chimney', x:828, y:200, r:36, peek:'tail', ps:1.0,  hint:'up where the chimney smoke curls'},
   {id:'window',  x:696, y:299, r:32, peek:'face', ps:1.0,  hint:'watching from inside the cottage'},
@@ -146,29 +193,206 @@ const SPOTS=[
   {id:'mailbox', x:560, y:372, r:30, peek:'face', ps:0.85, hint:'peeking past the mailbox'},
   {id:'can',     x:776, y:457, r:28, peek:'ears', ps:0.62, hint:'hiding behind the watering can'},
 ];
-const BLANKET={x:152, y:543};
 const SEATS=[[72,-12],[100,14],[42,24],[126,-16],[16,-4],[148,22],[64,46],[112,50],[-46,16]];
+const core=names=>names.map(n=>CATS.find(c=>c.name===n));
+
+const LEVELS=[
+{ id:'cottage', emoji:'🏡', name:"Nana Plum's Picnic", sub:'— nine friends are hiding near the cottage',
+  roster:CATS, spots:SPOTS_COTTAGE, gather:{x:152,y:543}, paint:paintCottage,
+  bannerText:'Happy Birthday, Nana Plum! 🎂',
+  intro:`Nine cats are hiding around Nana Plum's cottage — watch for a flick of a tail or the tips of two ears. They seem to be waiting for something...`,
+  finale:{title:'🎂 Surprise!', sub:`So that's why they were hiding...`,
+    text:`The cats weren't lost at all — they were waiting for the signal. Today is <b>Nana Plum's birthday</b>, and not one of her nine friends forgot. As the sun melts into the pond, the kettle sings, the cake is cut (Waffles inspects it, out of loyalty), and nine warm little bodies settle around the blanket like the happiest constellation.`},
+},
+{ id:'beach', emoji:'🏐', name:'Volleyball Cove', sub:'— the crew is hiding somewhere sandy',
+  roster:[...core(['Mochi','Biscuit','Juniper','Captain Pickles','Clementine','Poppy','Waffles']), GUESTS.coco, GUESTS.pearl],
+  spots:[
+    {id:'palm',      x:96,  y:158, r:36, peek:'ears', ps:1.0,  hint:'up in the palm fronds'},
+    {id:'lifeguard', x:856, y:296, r:34, peek:'tail', ps:1.0,  hint:'dangling from the lifeguard chair'},
+    {id:'umbrella',  x:262, y:437, r:36, peek:'back', ps:1.0,  hint:'snoozing in the umbrella shade'},
+    {id:'castle',    x:700, y:474, r:32, peek:'face', ps:0.9,  hint:'peeking over the sandcastle'},
+    {id:'cooler',    x:150, y:497, r:30, peek:'ears', ps:0.9,  hint:'behind the picnic cooler'},
+    {id:'surfboard', x:352, y:428, r:30, peek:'face', ps:0.9,  hint:'beside the surfboard'},
+    {id:'dunegrass', x:928, y:496, r:34, peek:'ears', ps:1.0,  hint:'low in the dune grass'},
+    {id:'boat',      x:812, y:520, r:34, peek:'tail', ps:1.0,  hint:'under the old rowboat'},
+    {id:'balls',     x:600, y:432, r:28, peek:'ears', ps:0.8,  hint:'behind the basket of volleyballs'},
+  ],
+  gather:{x:150,y:548}, paint:paintBeach,
+  bannerText:'Sunset match! Cats 9 — Seagulls 0 🏐',
+  intro:`Nana Plum brought everyone to the seaside — but at match time, the whole team vanished. Look carefully: sand-colored fur hides well on a beach.`,
+  stories:{
+    'Mochi':`Mochi discovered that beach sand is warm like the flowerbed but infinitely diggable, and she has been quietly digging the world's most comfortable nap-bowl all morning. She'd tell you where it is, but then it wouldn't be the quietest spot on the beach anymore.`,
+    'Biscuit':`Biscuit found the one place on the beach with rooftop energy — high up, sun-warmed, excellent supervision angles. He is keeping score of the seagulls' warm-up drills and is unimpressed. His notes say, in their entirety: "no discipline."`,
+    'Juniper':`The sea again, after all these years. Juniper watched the waves for one long hour and then found a lookout, the way she always did aboard ship. She says the ninth wave is always the big one. The kittens counted. She's right unsettlingly often.`,
+    'Captain Pickles':`Captain Pickles marched straight to the water's edge, saluted the entire ocean, and declared it "an acceptably large pond." He has been inspecting the tide pools all morning and has met a crab. Negotiations are ongoing. The crab is winning.`,
+    'Clementine':`Clementine appointed herself safety officer of the volleyball court, escorting every wayward hermit crab out of the play zone with the patience of a saint. Then she found a shadier post. Even matchmakers need a moment's peace — the hermit crabs know where to find her.`,
+    'Poppy':`Poppy met the ocean today. She pounced on a wave, and the wave pounced back, and after some very intense negotiating from a safe distance they have agreed to be friends. She is now guarding her spot and keeping one eye on the sea, in case it tries anything affectionate again.`,
+    'Waffles':`Someone has to guard the picnic, even at the beach — especially at the beach, because his old rival's cousins are everywhere, eyeing the sandwiches. Waffles chose a post with sightlines to the cooler. A gull drifted by and nodded. He nodded back. There is a code.`,
+  },
+  finale:{title:'🏐 The Sunset Match!', sub:`So that's why they were hiding...`,
+    text:`They weren't hiding at all — they were <b>stretching</b>. The moment the ninth cat is found, the sun dips low, the net casts a long golden shadow, and the great Sunset Match begins: cats versus seagulls, best of one, no rules anyone can explain. Nana Plum referees from her beach chair with a lemonade. The cats win, as they do every year, because the seagulls always get distracted by someone's chips.`},
+},
+{ id:'alps', emoji:'⛰️', name:'Switchback Trail', sub:'— friends are hiding along the mountain path',
+  roster:[...core(['Mochi','Biscuit','Juniper','Clementine','Umbra','Poppy','Earl Grey']), GUESTS.edel, GUESTS.strudel],
+  spots:[
+    {id:'pine',      x:140, y:298, r:36, peek:'ears', ps:1.0,  hint:'high in the old pine'},
+    {id:'hutwin',    x:801, y:262, r:30, peek:'face', ps:0.95, hint:'in the window of the alpine hut'},
+    {id:'signpost',  x:392, y:404, r:30, peek:'face', ps:0.9,  hint:'peeking past the trail signpost'},
+    {id:'cairn',     x:622, y:360, r:32, peek:'ears', ps:0.95, hint:'behind the stone cairn'},
+    {id:'boulder',   x:60,  y:455, r:34, peek:'tail', ps:1.0,  hint:'by the boulder at the stream'},
+    {id:'flowers',   x:462, y:468, r:36, peek:'back', ps:1.0,  hint:'dozing in the alpine flowers'},
+    {id:'backpack',  x:548, y:477, r:30, peek:'ears', ps:0.85, hint:'behind the hiker’s backpack'},
+    {id:'bench',     x:714, y:482, r:32, peek:'tail', ps:0.95, hint:'under the log bench'},
+    {id:'spruce',    x:478, y:322, r:34, peek:'ears', ps:0.95, hint:'up the middle spruce'},
+  ],
+  gather:{x:160,y:545}, paint:paintAlps,
+  bannerText:'Summit reached — go Nana go! ⛰️',
+  intro:`Nana Plum is running her first mountain trail race (a gentle one, with tea stops). Her cheering squad has hidden along the switchbacks... find them before she reaches the top!`,
+  stories:{
+    'Mochi':`Mochi came along because someone said mountain air smells like rain on stone, which is nearly the smell of the stormy night she found home. She's picked a spot along the trail and confirmed: it does. She may stay another hour. Or a week.`,
+    'Biscuit':`Biscuit has finally found something taller than the roof, and he is dealing with it the only way he knows how: by climbing it and supervising. From up here he can see Nana's whole race route. When she passes below, he will knead the branch encouragingly. It's what a coach does.`,
+    'Juniper':`Juniper has crossed three seas but never stood above the clouds before. She watched them drift below the peaks like slow white waves and said, quietly, "so the sky has a shore after all." She'll be telling the kittens about this one for years.`,
+    'Clementine':`There are bumblebees up here — mountain bumblebees, extra fluffy — and Clementine has taken it upon herself to learn all of their names before the race ends. She's up to eleven. The twelfth keeps landing on her nose, which she considers a formal introduction.`,
+    'Umbra':`Umbra brought no book, which alarmed everyone, until she explained that mountains are how the earth reads the sky. She has found a perch and is reading the weather: that cloud means wind, that one means snow next week. She is somehow always right about this, too.`,
+    'Poppy':`Poppy heard the mountain echo and it changed her whole life. She squeaked at the cliffs; the cliffs squeaked back; she has been having a shouted conversation with "the other kitten" ever since. Nobody has the heart to explain. The echo doesn't seem to mind.`,
+    'Earl Grey':`There is a mail route up this mountain — one letter a week, carried by a man with excellent boots to the hut at the top. Earl Grey verified this immediately, and has stationed himself along the route as a one-cat inspection checkpoint. Standards don't take holidays.`,
+  },
+  finale:{title:'⛰️ The Summit Party!', sub:`So that's why they were hiding...`,
+    text:`Every switchback, another friend leapt out to cheer — that was the plan all along. Nana Plum jog-walks the last stretch (holding her hat) as nine cats sprint circles around her, and at the finish line the hut keeper brings out hot cocoa and one enormous apple strudel. Strudel the cat inspects it, out of professional duty. Nana finishes dead last in the race and first in every heart on this mountain.`},
+},
+{ id:'alaska', emoji:'🌌', name:'Northern Lights Camp', sub:'— the crew is hiding in the wild north',
+  roster:[...core(['Mochi','Juniper','Captain Pickles','Umbra','Poppy','Earl Grey','Waffles']), GUESTS.denali, GUESTS.sockeye],
+  spots:[
+    {id:'cabinwin',  x:196, y:314, r:30, peek:'face', ps:0.95, hint:'in the cabin window'},
+    {id:'woodpile',  x:314, y:416, r:32, peek:'ears', ps:0.95, hint:'behind the woodpile'},
+    {id:'spruce',    x:404, y:280, r:36, peek:'ears', ps:1.0,  hint:'up the tall spruce'},
+    {id:'canoe',     x:620, y:501, r:34, peek:'tail', ps:1.0,  hint:'under the beached canoe'},
+    {id:'berries',   x:524, y:404, r:32, peek:'ears', ps:0.95, hint:'in the berry bushes'},
+    {id:'rock',      x:880, y:420, r:34, peek:'back', ps:1.0,  hint:'curled on the warm rock'},
+    {id:'tent',      x:716, y:388, r:30, peek:'face', ps:0.9,  hint:'peeking from the tent'},
+    {id:'stump',     x:432, y:477, r:28, peek:'ears', ps:0.85, hint:'behind the old stump'},
+    {id:'reeds',     x:248, y:530, r:34, peek:'tail', ps:1.0,  hint:'in the riverbank reeds'},
+  ],
+  gather:{x:790,y:540}, paint:paintAlaska,
+  bannerText:'The lights came! 🌌',
+  intro:`Deep in the Alaskan wild, Denali the grey cat promised the crew something worth staying up for. They've hidden around camp to wait for dark. Find them all... and watch the sky.`,
+  stories:{
+    'Mochi':`It is very quiet here — quieter than the flowerbed, quieter than anywhere. Mochi found a spot where she can hear the river talking to itself and has decided this is what the inside of a purr sounds like. She is memorizing it to bring home.`,
+    'Juniper':`Juniper knew a ship's cat from Alaska once, who swore the sky here comes alive at night in green and violet. Juniper called it a tall tale for forty years. She has come all this way, and picked her waiting spot, to tell him sorry — properly, to the sky itself.`,
+    'Captain Pickles':`The river guards itself, technically, but Captain Pickles has volunteered for the post anyway. There are fish here the size of small dogs and they LEAP, which the koi never once did. He has saluted so many salmon today that his paw is tired. He regrets nothing.`,
+    'Umbra':`The sun barely sets here in summer, which Umbra finds professionally interesting: a library where the lights never go out. She has taken a post facing north and is waiting for the one book this sky is famous for. She hears it's written in green ink.`,
+    'Poppy':`Poppy saw a moose. Nobody warned her about moose. She has taken shelter in a very sensible spot and is peeking out at it with enormous eyes, torn between terror and the deep, urgent need to boop it. The moose, munching willow, has not noticed the drama. It never does.`,
+    'Earl Grey':`No mail comes here — Earl Grey checked, twice, with mounting concern. Then a bush plane droned over the ridge and dropped a canvas sack by the cabin, and his whole world clicked back into place. Airmail. ACTUAL airmail. He has been at his new post ever since, watching the sky.`,
+    'Waffles':`Waffles heard that bears will simply walk into camp and take your pie. Not crows — BEARS. He has assessed the situation like the professional he is and chosen a defensive position with good sightlines to the food chest. If a bear comes, the plan is diplomacy. There is always a strawberry to split.`,
+  },
+  finale:{title:'🌌 The Sky Dances!', sub:`So that's why they were hiding...`,
+    text:`They were waiting for <b>the northern lights</b> — Denali promised, and Denali is never wrong. As the last cat settles by the campfire, the dark finally comes down like a blanket, and then the sky begins to move: green rivers, violet curtains, silent and enormous. Nine cats and one Nana sit very still and very close together. Juniper says, to someone far away, "you were right, old friend." The fire crackles. Nobody wants to blink.`},
+},
+{ id:'greek', emoji:'🫒', name:'Blue Dome Harbor', sub:'— the crew is hiding in a village by the sea',
+  roster:[...core(['Mochi','Biscuit','Captain Pickles','Clementine','Umbra','Earl Grey','Waffles']), GUESTS.feta, GUESTS.odie],
+  spots:[
+    {id:'amphora',   x:118, y:484, r:32, peek:'ears', ps:0.95, hint:'behind the big clay amphora'},
+    {id:'bluedoor',  x:306, y:430, r:30, peek:'face', ps:0.95, hint:'peeking round the blue door'},
+    {id:'terrace',   x:236, y:242, r:32, peek:'tail', ps:1.0,  hint:'over the edge of the rooftop terrace'},
+    {id:'olive',     x:84,  y:336, r:34, peek:'ears', ps:1.0,  hint:'in the old olive tree'},
+    {id:'bougain',   x:456, y:334, r:34, peek:'back', ps:0.95, hint:'among the bougainvillea blossoms'},
+    {id:'boat',      x:806, y:330, r:32, peek:'face', ps:0.9,  hint:'aboard the little fishing boat'},
+    {id:'steps',     x:522, y:452, r:32, peek:'ears', ps:0.9,  hint:'at the top of the stone steps'},
+    {id:'shutter',   x:404, y:262, r:30, peek:'face', ps:0.9,  hint:'behind the blue shutters'},
+    {id:'taverna',   x:672, y:492, r:32, peek:'tail', ps:0.95, hint:'under a taverna chair'},
+  ],
+  gather:{x:790,y:540}, paint:paintGreek,
+  bannerText:'Opa! To the feast! 🫒',
+  intro:`A white village above a blue, blue sea. Feta the taverna cat is planning something for tonight, and the whole crew is in on it. Find them among the domes and doorways!`,
+  stories:{
+    'Mochi':`Every wall in this village is warm — Mochi checked, thoroughly, wall by wall, which took most of the morning and counts as work. She has found the warmest one and melted onto it like butter on toast. The locals stepped around her. They understand completely.`,
+    'Biscuit':`An entire village of rooftops. Biscuit walked up the first staircase he found and has not touched the ground since — it's all connected, roof to wall to dome, a kingdom of warm white shingles. He has supervised four laundry lines and one napping fisherman. Best rooftops of his career.`,
+    'Captain Pickles':`This is the largest pond Captain Pickles has ever administered, and it is FULL of boats, which he is learning to salute individually. The fishermen salute back — all of them, every time, no explanation needed. He has decided these are the finest people on earth. He may never leave.`,
+    'Clementine':`Clementine found the village kittens within the hour and has organized them into a tour company: this alley for sunbeams, that step for sardine deliveries, the fountain at four when the swallows come down to drink. She's already matched two lonely old cats with two lonely old fishermen. She works fast.`,
+    'Umbra':`The taverna keeper's bookshelf is outdoors, which Umbra initially considered scandalous and now considers genius. Books, sun, and the sound of the sea — she has claimed a station nearby and is sitting on the book the keeper ought to read next. It's the poetry. It's always the poetry.`,
+    'Earl Grey':`The mail here arrives by BOAT, at 9:02, which Earl Grey regards as the single most civilized fact he has ever learned. He has already befriended the ferryman and inspected today's post — one solemn sniff each. Three letters smelled of lemons. He approved them all.`,
+    'Waffles':`They cool pastries on windowsills here — in the open, undefended, like an act of faith. Waffles has appointed himself to the honey-cake watch, and the baker has already started leaving him a corner piece as wages. He can't taste the sweetness. He guards it anyway. That's the job.`,
+  },
+  finale:{title:'🫒 The Name-Day Feast!', sub:`So that's why they were hiding...`,
+    text:`Tonight is Feta's <b>name day</b>, and in this village a name day means everyone you love at one long table. The cats spent all afternoon "hiding" — which is to say, borrowing lanterns, herding musicians, and escorting the honey cakes to safety. As the sun drops into the Aegean, Odysseus's old crew sails in with a crate of sardines, the lanterns come on all at once, and the taverna keeper pushes the tables together. Opa! Even the seagulls behave. Mostly.`},
+},
+{ id:'bears', emoji:'🐻', name:'Honeywood Clearing', sub:'— the crew is hiding among the bears',
+  roster:[...core(['Biscuit','Juniper','Captain Pickles','Clementine','Poppy','Earl Grey','Waffles']), GUESTS.bramble, GUESTS.huck,],
+  spots:[
+    {id:'bigbear',   x:474, y:420, r:34, peek:'ears', ps:1.0,  hint:'right behind the sleeping bear'},
+    {id:'cave',      x:92,  y:352, r:34, peek:'face', ps:1.0,  hint:'in the mouth of the cave'},
+    {id:'hollow',    x:702, y:290, r:32, peek:'face', ps:0.95, hint:'in the honey tree hollow'},
+    {id:'berrypatch',x:836, y:460, r:34, peek:'ears', ps:0.95, hint:'deep in the berry patch'},
+    {id:'log',       x:306, y:492, r:34, peek:'tail', ps:1.0,  hint:'inside the fallen log'},
+    {id:'cub',       x:628, y:462, r:32, peek:'back', ps:0.95, hint:'snuggled beside the bear cub'},
+    {id:'waterfall', x:898, y:350, r:34, peek:'tail', ps:1.0,  hint:'behind the waterfall spray'},
+    {id:'ferns',     x:236, y:456, r:34, peek:'ears', ps:0.95, hint:'down among the ferns'},
+    {id:'beehive',   x:560, y:500, r:28, peek:'ears', ps:0.85, hint:'behind the beehive box'},
+  ],
+  gather:{x:150,y:545}, paint:paintBears,
+  bannerText:'Bears & cats, friends forever 🐻🐾',
+  intro:`Bramble the honorary bear invited the whole crew to meet her family. The bears are easy to spot. The cats... are not. (Don't worry — these bears are the friendly, honey-sharing kind.)`,
+  stories:{
+    'Biscuit':`Biscuit has discovered that a sun-warmed sleeping bear is the greatest rooftop of his entire career — it's warm, it's soft, and it rises and falls like the sea. He is kneading it. The bear doesn't mind; honestly, the bear barely noticed. Biscuit calls it "making bear biscuits" and considers it his finest work.`,
+    'Juniper':`Juniper is trading stories with the oldest bear, who has also seen forty winters and also thinks the young ones nap too little. They sit near each other in comfortable silence, mostly. Once an hour, one of them says something. It is always worth the wait.`,
+    'Captain Pickles':`There is a bear in this clearing who fishes by standing in the stream and simply waiting, and Captain Pickles has never respected anyone more in his life. He has taken up an observation post. He is taking notes. Six years guarding the pond, and finally — FINALLY — a colleague.`,
+    'Clementine':`The bear cub was nervous about meeting nine cats at once, so Clementine arranged introductions one at a time, slowly, the way she once walked a duckling home. The cub has now been formally introduced to everyone and has decided cats are the best small warm things in the forest. Clementine agrees.`,
+    'Poppy':`Poppy and the bear cub are, as of this morning, best friends. They have chased the same butterfly, fallen in the same stream, and shared a nap in a patch of clover. Poppy is now practicing her Big Bear Growl. It is the squeak of a kitten. The cub thinks it's terrifying and wonderful.`,
+    'Earl Grey':`Bears, Earl Grey has learned, leave messages for each other — scratches on bark, scents on stumps, a whole postal service written on the forest itself. He is beside himself. He has spent the day touring the message-trees with mama bear, inspecting each one with a solemn sniff. The forest mail passes inspection.`,
+    'Waffles':`Waffles came prepared to defend the picnic from bears, and instead the bears invited him to share the honey, which has caused a small professional crisis. He has resolved it the only honorable way: he now guards the honey WITH the bears. From whom? Unclear. But the watch has standards to keep.`,
+  },
+  finale:{title:'🍯 The Honey Picnic!', sub:`So that's why they were hiding...`,
+    text:`It was never hide-and-seek — it was <b>introductions</b>. Bramble wanted her two families to meet properly: the cats she was raised with and the bears who raised her. As the last cat is found, mama bear brings the honeycomb, Nana Plum unpacks the berry pies, and the clearing fills with the rumble of one enormous purr — though nobody can tell how much is cats and how much is happy bear. Everyone falls asleep in one big warm pile before sundown. Even Waffles. Especially Waffles.`},
+},
+];
+function LV(){ return LEVELS[S.level]; }
+function SP(){ return LV().spots; }
+function GATHER(){ return LV().gather; }
+const BLANKET=LEVELS[0].gather;   // kept for the cottage painter
 
 // ---------- state ----------
 const S={
   seed:0, rng:Math.random, assign:[], found:[], sprites:[], clicks:0, hintsUsed:0,
   complete:false, bannerT:0, lastCard:null, sparkle:null, petals:[], puffs:[],
   musicOn:true, sfxOn:true, hintReadyAt:0, finaleShown:false,
+  level:0, unlocked:1, beaten:[],
 };
+const START_UNLOCKED=3;   // three adventures open from the start; each win opens another
+function unlockCount(){ return clamp(START_UNLOCKED+S.beaten.length, START_UNLOCKED, LEVELS.length); }
+function loadProgress(){
+  try{
+    S.beaten=JSON.parse(localStorage.getItem('cfBeaten')||'[]');
+  }catch(e){ S.beaten=[]; }
+  S.unlocked=unlockCount();
+}
+function saveProgress(){
+  try{
+    localStorage.setItem('cfBeaten',JSON.stringify(S.beaten));
+  }catch(e){}
+}
 function newGame(seed){
   S.seed = (seed===undefined)? Math.floor(Math.random()*1e6) : seed;
   S.rng = mulberry32(S.seed);
   // shuffle cat -> spot assignment
-  const idx=[...CATS.keys()];
+  const idx=[...LV().roster.keys()];
   for(let i=idx.length-1;i>0;i--){ const j=Math.floor(S.rng()*(i+1)); [idx[i],idx[j]]=[idx[j],idx[i]]; }
   S.assign=idx;                       // assign[spotIndex] = catIndex
-  S.found=SPOTS.map(()=>false);
+  S.found=SP().map(()=>false);
   S.sprites=[]; S.clicks=0; S.hintsUsed=0; S.complete=false; S.bannerT=0;
   S.lastCard=null; S.sparkle=null; S.petals=[]; S.puffs=[]; S.hintReadyAt=0; S.finaleShown=false;
   updateUI();
 }
+function setLevel(i, showIntro){
+  if(i<0||i>=LEVELS.length||i>=S.unlocked) return false;
+  S.level=i;
+  newGame();
+  const sub=$('subtitle'); if(sub) sub.textContent=LV().sub;
+  if(showIntro!==false) levelIntro();
+  return true;
+}
 function foundCount(){ return S.found.filter(Boolean).length; }
-function catAtSpot(i){ return CATS[S.assign[i]]; }
+function catAtSpot(i){ return LV().roster[S.assign[i]]; }
+function storyFor(cat){ return (LV().stories&&LV().stories[cat.name])||cat.story; }
 
 // ---------- finding ----------
 function clickAt(x,y){
@@ -182,20 +406,26 @@ function clickAt(x,y){
     }
   }
   // an unfound hiding spot?
-  for(let i=0;i<SPOTS.length;i++){
+  const spots=SP();
+  for(let i=0;i<spots.length;i++){
     if(S.found[i]) continue;
-    const sp=SPOTS[i];
+    const sp=spots[i];
     if(Math.hypot(x-sp.x, y-sp.y)<=sp.r){
       S.found[i]=true;
       const cat=catAtSpot(i);
       const seat=SEATS[i];
       S.sprites.push({cat, spotIdx:i, phase:'walk', x:sp.x, y:Math.min(sp.y+20,560),
-        tx:BLANKET.x+seat[0], ty:BLANKET.y+seat[1], t0:nowMs(), dur:2600+S.rng()*800});
+        tx:GATHER().x+seat[0], ty:GATHER().y+seat[1], t0:nowMs(), dur:2600+S.rng()*800});
       burstSparkles(sp.x,sp.y);
       sfx('chime'); setTimeout(()=>sfx('meow'), IS_TEST?0:240);
       showCatCard(cat,false);
+      if(foundCount()===spots.length){
+        S.complete=true;
+        if(!S.beaten.includes(LV().id)) S.beaten.push(LV().id);
+        S.unlocked=unlockCount();
+        saveProgress();
+      }
       updateUI();
-      if(foundCount()===SPOTS.length){ S.complete=true; }
       return {type:'found', cat, spot:sp};
     }
   }
@@ -207,14 +437,15 @@ function clickAt(x,y){
 function hint(){
   const t=nowMs();
   if(t<S.hintReadyAt) return null;
-  const unfound=[...SPOTS.keys()].filter(i=>!S.found[i]);
+  const spots=SP();
+  const unfound=[...spots.keys()].filter(i=>!S.found[i]);
   if(!unfound.length) return null;
   const i=unfound[Math.floor(Math.random()*unfound.length)];
-  S.sparkle={x:SPOTS[i].x, y:SPOTS[i].y, until:t+2600, spotIdx:i};
+  S.sparkle={x:spots[i].x, y:spots[i].y, until:t+2600, spotIdx:i};
   S.hintsUsed++; S.hintReadyAt=t+9000;
   sfx('twinkle');
   updateUI();
-  return SPOTS[i];
+  return spots[i];
 }
 function burstSparkles(x,y){
   if(IS_TEST) return;
@@ -362,10 +593,29 @@ function drawPeek(g, spot, c, time){
 
 // ---------- scene drawing ----------
 let canvas=null, ctx=null;
-function progress(){ return foundCount()/SPOTS.length; }
+function progress(){ return foundCount()/SP().length; }
 function draw(time){
   if(!ctx) return;
   const p=progress();
+  LV().paint(time,p);
+  // found cats walking / partying
+  for(const sp of S.sprites) drawSprite(sp,time);
+  // finale banner
+  if(S.complete){ S.bannerT=clamp(S.bannerT+0.012,0,1); banner(S.bannerT,time); }
+  // sparkles (hint)
+  if(S.sparkle){
+    if(nowMs()>S.sparkle.until) S.sparkle=null;
+    else sparkleStars(S.sparkle.x, S.sparkle.y, time);
+  }
+  // petals & puffs
+  drawPetals();
+  drawPuffs(time);
+  // soft vignette
+  const v=ctx.createRadialGradient(VW/2,VH/2,300,VW/2,VH/2,640);
+  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(90,60,30,0.16)');
+  ctx.fillStyle=v; ctx.fillRect(0,0,VW,VH);
+}
+function paintCottage(time,p){
   // sky: morning -> golden hour
   const grd=ctx.createLinearGradient(0,0,0,360);
   grd.addColorStop(0, lerpColor('#7fb9e0','#e8916f',p));
@@ -406,48 +656,32 @@ function draw(time){
   picnic(time,p);
   // big oak (cat may peek from notch)
   oak(time);
-  if(!S.found[0]) drawPeek(ctx, SPOTS[0], catAtSpot(0), time);
+  if(!S.found[0]) drawPeek(ctx, SPOTS_COTTAGE[0], catAtSpot(0), time);
   oakFrontLeaves(time);
   // cottage (window cat behind glass shine)
   cottage(time,p);
   // mailbox + peeking face
-  if(!S.found[7]) drawPeek(ctx, SPOTS[7], catAtSpot(7), time);
+  if(!S.found[7]) drawPeek(ctx, SPOTS_COTTAGE[7], catAtSpot(7), time);
   mailbox(time);
   // flower bed + curled back
-  if(!S.found[5]) drawPeek(ctx, SPOTS[5], catAtSpot(5), time);
+  if(!S.found[5]) drawPeek(ctx, SPOTS_COTTAGE[5], catAtSpot(5), time);
   flowerbed(time);
   // reeds + tail
-  if(!S.found[3]) drawPeek(ctx, SPOTS[3], catAtSpot(3), time);
+  if(!S.found[3]) drawPeek(ctx, SPOTS_COTTAGE[3], catAtSpot(3), time);
   reeds(432,468,time);
   // tall grass + ears
-  if(!S.found[4]) drawPeek(ctx, SPOTS[4], catAtSpot(4), time);
+  if(!S.found[4]) drawPeek(ctx, SPOTS_COTTAGE[4], catAtSpot(4), time);
   tallGrass(520,448,time);
   // bush + ears
-  if(!S.found[6]) drawPeek(ctx, SPOTS[6], catAtSpot(6), time);
+  if(!S.found[6]) drawPeek(ctx, SPOTS_COTTAGE[6], catAtSpot(6), time);
   bush(924,402,time);
   // watering can + kitten ears
-  if(!S.found[8]) drawPeek(ctx, SPOTS[8], catAtSpot(8), time);
+  if(!S.found[8]) drawPeek(ctx, SPOTS_COTTAGE[8], catAtSpot(8), time);
   wateringCan(776,486);
   // chimney tail & window face draw above their structures
-  if(!S.found[1]) drawPeek(ctx, SPOTS[1], catAtSpot(1), time);
+  if(!S.found[1]) drawPeek(ctx, SPOTS_COTTAGE[1], catAtSpot(1), time);
   // butterflies
   butterfly(time, 0); butterfly(time, 1); butterfly(time+9000, 2);
-  // found cats walking / partying
-  for(const sp of S.sprites) drawSprite(sp,time);
-  // birthday banner finale
-  if(S.complete){ S.bannerT=clamp(S.bannerT+0.012,0,1); banner(S.bannerT,time); }
-  // sparkles (hint)
-  if(S.sparkle){
-    if(nowMs()>S.sparkle.until) S.sparkle=null;
-    else sparkleStars(S.sparkle.x, S.sparkle.y, time);
-  }
-  // petals & puffs
-  drawPetals();
-  drawPuffs(time);
-  // soft vignette
-  const v=ctx.createRadialGradient(VW/2,VH/2,300,VW/2,VH/2,640);
-  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(90,60,30,0.16)');
-  ctx.fillStyle=v; ctx.fillRect(0,0,VW,VH);
 }
 function cloud(x,y,s,time){
   ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
@@ -511,18 +745,20 @@ function picnic(time,p){
   // Nana Plum, knitting happily
   nana(x-60,y-8,time,p);
 }
-function nana(x,y,time,p){
+function nana(x,y,time,p,fit){
+  fit=fit||{};
+  const skirtCol=fit.skirt||'#9a86b8', topCol=fit.top||'#c8a2b8';
   ctx.save(); ctx.translate(x,y);
   const rock=Math.sin(time*0.0014)*0.03;
   ctx.rotate(rock);
   // skirt
-  ctx.fillStyle='#9a86b8';
+  ctx.fillStyle=skirtCol;
   ctx.beginPath(); ctx.ellipse(0,22,26,18,0,Math.PI,0); ctx.fill();
   // torso & cardigan
-  ctx.fillStyle='#c8a2b8';
+  ctx.fillStyle=topCol;
   ctx.beginPath(); ctx.ellipse(0,-2,15,17,0,0,Math.PI*2); ctx.fill();
   // arms holding needles
-  ctx.strokeStyle='#c8a2b8'; ctx.lineWidth=8; ctx.lineCap='round';
+  ctx.strokeStyle=topCol; ctx.lineWidth=8; ctx.lineCap='round';
   const knit=Math.sin(time*0.006)*2;
   ctx.beginPath(); ctx.moveTo(-11,2); ctx.lineTo(-16,14+knit); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(11,2); ctx.lineTo(17,14-knit); ctx.stroke();
@@ -538,6 +774,23 @@ function nana(x,y,time,p){
   ctx.fillStyle='#dcdce2';
   ctx.beginPath(); ctx.arc(0,-33,8,Math.PI,0); ctx.fill();
   ctx.beginPath(); ctx.arc(0,-38,4.5,0,Math.PI*2); ctx.fill();
+  // optional headwear
+  if(fit.hat==='sun'){
+    ctx.fillStyle='#f0dfae';
+    ctx.beginPath(); ctx.ellipse(0,-33,19,5.5,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0,-35,10,Math.PI,0); ctx.fill();
+    ctx.strokeStyle='#e88a9a'; ctx.lineWidth=2.4;
+    ctx.beginPath(); ctx.ellipse(0,-34,10,3,0,0,Math.PI); ctx.stroke();
+  } else if(fit.hat==='beanie'){
+    ctx.fillStyle=fit.hatCol||'#d9534f';
+    ctx.beginPath(); ctx.arc(0,-31,11.5,Math.PI,0); ctx.fill();
+    ctx.fillRect(-11.5,-32,23,4);
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,-42,4,0,Math.PI*2); ctx.fill();
+  } else if(fit.hat==='cap'){
+    ctx.fillStyle=fit.hatCol||'#6a9ad0';
+    ctx.beginPath(); ctx.arc(0,-32,10.5,Math.PI,0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(8,-32,9,3,0,0,Math.PI*2); ctx.fill();
+  }
   // glasses + smile + cheeks
   ctx.strokeStyle='#8a7a6a'; ctx.lineWidth=1.4;
   ctx.beginPath(); ctx.arc(-4,-26,3.2,0,Math.PI*2); ctx.stroke();
@@ -617,7 +870,7 @@ function cottage(time,p){
   // window (a cat may live here)
   ctx.fillStyle='#7a9ab8'; ctx.fillRect(679,282,56,56);
   // (peeking cat drawn between glass and frame)
-  if(!S.found[2]) drawPeek(ctx, SPOTS[2], catAtSpot(2), nowMs());
+  if(!S.found[2]) drawPeek(ctx, SPOTS_COTTAGE[2], catAtSpot(2), nowMs());
   ctx.fillStyle='rgba(255,255,255,0.18)';
   ctx.beginPath(); ctx.moveTo(679,338); ctx.lineTo(700,282); ctx.lineTo(716,282); ctx.lineTo(693,338); ctx.closePath(); ctx.fill();
   ctx.strokeStyle='#fff'; ctx.lineWidth=5; ctx.strokeRect(679,282,56,56);
@@ -674,29 +927,32 @@ function reeds(x,y,time){
     if(i%2){ ctx.fillStyle='#8a6a4a'; ctx.beginPath(); ctx.ellipse(rx+sway*1.5,y-h,3,8,0,0,Math.PI*2); ctx.fill(); }
   }
 }
-function tallGrass(x,y,time){
+function tallGrass(x,y,time,c1,c2){
   const sway=Math.sin(time*0.0021)*3;
-  ctx.strokeStyle='#6fae4f'; ctx.lineWidth=3;
+  c1=c1||'#6fae4f'; c2=c2||'#7fbe5f';
   for(let i=0;i<10;i++){
     const gx=x-30+i*7, h=22+((i*13)%18);
-    ctx.strokeStyle=i%2?'#6fae4f':'#7fbe5f';
+    ctx.strokeStyle=i%2?c1:c2; ctx.lineWidth=3;
     ctx.beginPath(); ctx.moveTo(gx,y+10); ctx.quadraticCurveTo(gx+sway,y-h*0.4,gx+sway*1.6,y-h); ctx.stroke();
   }
 }
-function bush(x,y,time){
+function bush(x,y,time,cols){
+  cols=cols||{};
   const br=1+Math.sin(time*0.0014)*0.012;
-  ctx.save(); ctx.translate(x,y); ctx.scale(br,br);
-  ctx.fillStyle='#4f954a';
+  ctx.save(); ctx.translate(x,y); ctx.scale((cols.s||1)*br,(cols.s||1)*br);
+  ctx.fillStyle=cols.a||'#4f954a';
   for(const [cx,cy,r] of [[-22,4,22],[0,-8,26],[22,6,22],[0,10,24]]){
     ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
   }
-  ctx.fillStyle='#5fa54f';
+  ctx.fillStyle=cols.b||'#5fa54f';
   for(const [cx,cy,r] of [[-12,-4,16],[12,-6,15]]){
     ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
   }
-  ctx.fillStyle='#d9486a';
-  for(const [bx,by] of [[-18,-6],[6,-14],[18,0],[-4,6],[12,10]]){
-    ctx.beginPath(); ctx.arc(bx,by,3,0,Math.PI*2); ctx.fill();
+  if(cols.berry!=='none'){
+    ctx.fillStyle=cols.berry||'#d9486a';
+    for(const [bx,by] of [[-18,-6],[6,-14],[18,0],[-4,6],[12,10]]){
+      ctx.beginPath(); ctx.arc(bx,by,3,0,Math.PI*2); ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -729,6 +985,930 @@ function butterfly(time,i){
   ctx.fillStyle='#5a4a3a'; ctx.beginPath(); ctx.ellipse(0,0,1.4,5,0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
+// ---------- shared scene helpers for the new adventures ----------
+function peekI(i,time){ if(!S.found[i]) drawPeek(ctx, SP()[i], catAtSpot(i), time); }
+function skyBand(c1a,c1b,c2a,c2b,p,h){
+  const grd=ctx.createLinearGradient(0,0,0,h);
+  grd.addColorStop(0, lerpColor(c1a,c1b,p));
+  grd.addColorStop(1, lerpColor(c2a,c2b,p));
+  ctx.fillStyle=grd; ctx.fillRect(0,0,VW,h);
+}
+function sunGlow(sx,sy,p){
+  const glow=ctx.createRadialGradient(sx,sy,5,sx,sy,90+p*60);
+  glow.addColorStop(0, lerpColor('#fff6d0','#ffd9a8',p));
+  glow.addColorStop(1,'rgba(255,240,200,0)');
+  ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(sx,sy,90+p*60,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=lerpColor('#fff2b8','#ffca7a',p);
+  ctx.beginPath(); ctx.arc(sx,sy,26,0,Math.PI*2); ctx.fill();
+}
+function pineTree(x,y,s,c1,c2){
+  // y = base of trunk
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  ctx.fillStyle='#7a5a3c'; ctx.fillRect(-5,-18,10,20);
+  ctx.fillStyle=c1||'#3d7a48';
+  for(const [ty,w] of [[-10,44],[-38,36],[-62,27]]){
+    ctx.beginPath(); ctx.moveTo(-w,ty); ctx.lineTo(0,ty-40); ctx.lineTo(w,ty); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle=c2||'#4d8a55';
+  for(const [ty,w] of [[-14,34],[-42,27],[-66,20]]){
+    ctx.beginPath(); ctx.moveTo(-w,ty); ctx.lineTo(0,ty-32); ctx.lineTo(w,ty); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function seagull(x,y,s){
+  ctx.strokeStyle='#5a6a7a'; ctx.lineWidth=2*s; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x-8*s,y); ctx.quadraticCurveTo(x-3*s,y-6*s,x,y);
+  ctx.quadraticCurveTo(x+3*s,y-6*s,x+8*s,y); ctx.stroke();
+}
+function flagLine(x1,y1,x2,y2,n,time){
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo((x1+x2)/2,(y1+y2)/2+14,x2,y2); ctx.stroke();
+  for(let i=1;i<n;i++){
+    const t=i/n, bx=lerp(x1,x2,t), by=lerp(y1,y2,t)+Math.sin(t*Math.PI)*14+3;
+    ctx.fillStyle=['#e86a6a','#f0c84a','#7aa86a','#9a86b8'][i%4];
+    ctx.beginPath(); ctx.moveTo(bx-6,by); ctx.lineTo(bx+6,by); ctx.lineTo(bx,by+11); ctx.closePath(); ctx.fill();
+  }
+}
+
+// ---------- LEVEL 2: Volleyball Cove ----------
+function paintBeach(time,p){
+  skyBand('#7fc0e8','#f0956a','#dff2f8','#ffd9a0',p,320);
+  const sx=lerp(680,500,p), sy=lerp(85,270,p);
+  sunGlow(sx,sy,p);
+  cloud(180+((time*0.005)%1100)-70, 62, 0.9, time);
+  cloud(600+((time*0.004)%1150)-80, 108, 0.6, time);
+  // sea
+  const sea=ctx.createLinearGradient(0,300,0,400);
+  sea.addColorStop(0, lerpColor('#3f8fc7','#c96f52',p*0.55));
+  sea.addColorStop(1, lerpColor('#6ab4d8','#f0a066',p*0.55));
+  ctx.fillStyle=sea; ctx.fillRect(0,300,VW,100);
+  // sun glitter path on water
+  ctx.fillStyle='rgba(255,240,190,0.35)';
+  for(let i=0;i<8;i++){
+    const gy=308+i*11, gw=30-(i*2)+Math.sin(time*0.002+i)*6;
+    ctx.beginPath(); ctx.ellipse(sx+Math.sin(time*0.001+i*2)*8, gy, gw, 2.4, 0,0,Math.PI*2); ctx.fill();
+  }
+  // distant sailboat
+  const bob=Math.sin(time*0.0012)*3;
+  ctx.fillStyle='#f5f2ea';
+  ctx.beginPath(); ctx.moveTo(210,318+bob); ctx.lineTo(210,290+bob); ctx.lineTo(232,314+bob); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#c96a4a';
+  ctx.beginPath(); ctx.moveTo(198,320+bob); ctx.lineTo(244,320+bob); ctx.lineTo(236,329+bob); ctx.lineTo(206,329+bob); ctx.closePath(); ctx.fill();
+  // foam edge + sand
+  const mg=ctx.createLinearGradient(0,395,0,600);
+  mg.addColorStop(0,'#f2dfae'); mg.addColorStop(1,'#e8c98e');
+  ctx.fillStyle=mg; ctx.fillRect(0,392,VW,208);
+  ctx.fillStyle='rgba(255,255,255,0.75)';
+  ctx.beginPath(); ctx.moveTo(0,392);
+  for(let x=0;x<=VW;x+=40) ctx.quadraticCurveTo(x+20,388+Math.sin(time*0.0015+x)*3, x+40,392);
+  ctx.lineTo(VW,400); ctx.lineTo(0,400); ctx.closePath(); ctx.fill();
+  // scattered shells & starfish
+  ctx.fillStyle='#e89a7a'; ctx.beginPath(); ctx.arc(455,560,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0e8d8'; ctx.beginPath(); ctx.arc(680,585,4,Math.PI,0); ctx.fill();
+  star(300,575,7,'#e8a05a');
+  seagull(320+Math.sin(time*0.0008)*60, 90+Math.cos(time*0.001)*14, 1);
+  seagull(760+Math.sin(time*0.0007+2)*50, 140+Math.sin(time*0.0011)*10, 0.7);
+  // volleyball net + animated ball
+  ctx.strokeStyle='#a8845a'; ctx.lineWidth=6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(432,468); ctx.lineTo(432,372); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(598,468); ctx.lineTo(598,372); ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,0.85)'; ctx.lineWidth=1.4;
+  for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(432,376+i*9); ctx.quadraticCurveTo(515,380+i*9,598,376+i*9); ctx.stroke(); }
+  for(let i=1;i<10;i++){ const nx=432+i*16.6; ctx.beginPath(); ctx.moveTo(nx,374+2); ctx.lineTo(nx,412+2); ctx.stroke(); }
+  const bt=(time*0.0013)%2, arc=bt<1?bt:2-bt;
+  const ballX=lerp(452,578,arc), ballY=352-Math.sin(arc*Math.PI)*46;
+  ctx.fillStyle='#f5f2ea'; ctx.beginPath(); ctx.arc(ballX,ballY,9,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#e8b84a'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.arc(ballX,ballY,9,0.3,2.2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(ballX,ballY,9,3.3,5.2); ctx.stroke();
+  // palm tree (spot 0: ears in the fronds)
+  ctx.strokeStyle='#9a7248'; ctx.lineWidth=13; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(122,408); ctx.quadraticCurveTo(112,300,96,196); ctx.stroke();
+  ctx.strokeStyle='#8a6440'; ctx.lineWidth=2;
+  for(let i=0;i<6;i++){ ctx.beginPath(); ctx.moveTo(114-i*2.4,388-i*32); ctx.quadraticCurveTo(108-i*2.4,384-i*32,104-i*2.4,386-i*32); ctx.stroke(); }
+  const fr=Math.sin(time*0.0015)*3;
+  ctx.fillStyle='#4d9a52';
+  for(let k=0;k<6;k++){
+    const a=Math.PI*(0.08+k*0.16), fx=Math.cos(a)*62, fy=-Math.sin(a)*30;
+    ctx.beginPath(); ctx.moveTo(96,190);
+    ctx.quadraticCurveTo(96+fx*0.6, 178+fy+fr, 96+fx, 196+fy*0.4+fr+14);
+    ctx.quadraticCurveTo(96+fx*0.6, 192+fy*0.6+fr, 96,196); ctx.closePath(); ctx.fill();
+  }
+  peekI(0,time);
+  ctx.fillStyle='#6a4a2a';
+  ctx.beginPath(); ctx.arc(88,196,6,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(102,200,6,0,Math.PI*2); ctx.fill();
+  // lifeguard chair (spot 1: tail dangles)
+  ctx.strokeStyle='#d96a5a'; ctx.lineWidth=7; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(832,430); ctx.lineTo(846,318); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(886,430); ctx.lineTo(872,318); ctx.stroke();
+  ctx.strokeStyle='#e8887a'; ctx.lineWidth=4;
+  for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(838-i*1.6,398-i*26); ctx.lineTo(882+i*1.6,398-i*26); ctx.stroke(); }
+  ctx.fillStyle='#d96a5a'; ctx.fillRect(832,306,56,12);
+  ctx.fillStyle='#b85044'; ctx.fillRect(828,290,64,18);
+  peekI(1,time);
+  // big umbrella + snoozing back (spot 2) on a coral towel
+  ctx.fillStyle='#d96a5a';
+  ctx.beginPath(); ctx.moveTo(226,436); ctx.lineTo(304,430); ctx.lineTo(312,458); ctx.lineTo(234,464); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(230,446); ctx.lineTo(308,440); ctx.stroke();
+  peekI(2,time);
+  ctx.strokeStyle='#a8845a'; ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(252,452); ctx.lineTo(240,352); ctx.stroke();
+  for(let k=0;k<6;k++){
+    ctx.fillStyle=k%2?'#e86a8a':'#f5f2ea';
+    const a1=Math.PI+(k/6)*Math.PI, a2=Math.PI+((k+1)/6)*Math.PI;
+    ctx.beginPath(); ctx.moveTo(240,356);
+    ctx.arc(240,356,66,a1,a2); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle='#f0c84a';
+  ctx.beginPath(); ctx.ellipse(292,458,26,7,0.1,0,Math.PI*2); ctx.fill();
+  // surfboard (spot 5: face beside it)
+  peekI(5,time);
+  ctx.save(); ctx.translate(330,455); ctx.rotate(-0.08);
+  ctx.fillStyle='#6ab0d8';
+  ctx.beginPath(); ctx.ellipse(0,-28,13,42,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#f5f2ea'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(0,-62); ctx.lineTo(0,6); ctx.stroke();
+  ctx.restore();
+  // basket of volleyballs at the net post (spot 8)
+  peekI(8,time);
+  ctx.fillStyle='#b08a5a'; ctx.fillRect(578,446,52,26);
+  ctx.strokeStyle='#8a6a42'; ctx.lineWidth=2;
+  for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(578,452+i*7); ctx.lineTo(630,452+i*7); ctx.stroke(); }
+  ctx.fillStyle='#f5f2ea'; ctx.beginPath(); ctx.arc(592,444,8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0e0c0'; ctx.beginPath(); ctx.arc(612,442,8,0,Math.PI*2); ctx.fill();
+  // sandcastle (spot 3: face peeks over)
+  peekI(3,time);
+  ctx.fillStyle='#e0b878';
+  ctx.fillRect(668,492,64,40);
+  ctx.fillRect(658,504,18,28); ctx.fillRect(724,504,18,28);
+  ctx.fillStyle='#d4a868';
+  for(const tx of [668,684,700,716]) ctx.fillRect(tx,486,10,8);
+  ctx.fillRect(654,498,10,8); ctx.fillRect(736,498,10,8);
+  ctx.strokeStyle='#c49858'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(700,532); ctx.moveTo(676,510); ctx.arc(700,510,8,Math.PI,0); ctx.stroke();
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(700,486); ctx.lineTo(700,472); ctx.stroke();
+  ctx.fillStyle='#e86a6a';
+  ctx.beginPath(); ctx.moveTo(700,472); ctx.lineTo(712,476); ctx.lineTo(700,480); ctx.closePath(); ctx.fill();
+  // cooler (spot 4: ears behind, navy beach bag for contrast)
+  ctx.fillStyle='#4a6a8a';
+  ctx.beginPath(); ctx.roundRect? ctx.roundRect(128,478,46,28,9):ctx.rect(128,478,46,28); ctx.fill();
+  ctx.strokeStyle='#3a5878'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(138,480); ctx.quadraticCurveTo(151,470,164,480); ctx.stroke();
+  peekI(4,time);
+  ctx.fillStyle='#6a9ad0'; ctx.fillRect(126,502,50,32);
+  ctx.fillStyle='#f5f2ea'; ctx.fillRect(122,496,58,10);
+  ctx.fillStyle='#5a88b8'; ctx.fillRect(146,510,12,5);
+  // old overturned rowboat (spot 7: tail pokes out at the stern)
+  ctx.fillStyle='rgba(90,60,30,0.22)';
+  ctx.beginPath(); ctx.ellipse(816,540,58,10,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#b87a52';
+  ctx.beginPath(); ctx.ellipse(812,538,50,26,0,Math.PI,0); ctx.fill();
+  ctx.strokeStyle='#96603e'; ctx.lineWidth=2.4;
+  ctx.beginPath(); ctx.ellipse(812,538,50,17,0,Math.PI,0); ctx.stroke();
+  ctx.fillStyle='#96603e'; ctx.fillRect(762,534,100,5);
+  ctx.fillStyle='#8a5636';
+  ctx.beginPath(); ctx.ellipse(812,514,10,4,0,Math.PI,0); ctx.fill();  // keel ridge
+  peekI(7,time);
+  // dune grass (spot 6)
+  peekI(6,time);
+  tallGrass(928,505,time,'#b8b06a','#cabf76');
+  tallGrass(896,528,time,'#b8b06a','#a89e5e');
+  // gathering towel + Nana with lemonade
+  ctx.save(); ctx.translate(150,548);
+  ctx.fillStyle='#7ac0c8';
+  ctx.beginPath(); ctx.moveTo(-95,0); ctx.lineTo(95,-14); ctx.lineTo(135,38); ctx.lineTo(-60,52); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=4;
+  for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(-90,8+i*14); ctx.lineTo(120,-4+i*16); ctx.stroke(); }
+  ctx.fillStyle='#f5f2ea';
+  ctx.beginPath(); ctx.ellipse(58,24,6,7,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0e05a'; ctx.beginPath(); ctx.ellipse(58,22,4.5,4,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  nana(90,540,time,p,{top:'#8ad0c8', skirt:'#f0dfae', hat:'sun'});
+}
+
+// ---------- LEVEL 3: Switchback Trail ----------
+function paintAlps(time,p){
+  skyBand('#86b8e8','#f0a878','#d8ecf8','#ffd9a0',p,600);
+  const sx=lerp(820,640,p), sy=lerp(80,190,p);
+  sunGlow(sx,sy,p);
+  cloud(240+((time*0.005)%1100)-70, 60, 0.85, time);
+  cloud(680+((time*0.0035)%1150)-80, 100, 0.6, time);
+  // great peaks
+  const peaks=[[60,340,-160,120],[350,340,-230,180],[700,340,-190,150],[930,340,-140,110]];
+  for(const [px,py,ph,pw] of peaks){
+    ctx.fillStyle=lerpColor('#8a9ab0','#a08898',p*0.5);
+    ctx.beginPath(); ctx.moveTo(px-pw,py); ctx.lineTo(px,py+ph); ctx.lineTo(px+pw,py); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=lerpColor('#f5f8fc','#ffe8d0',p*0.5);
+    const cy=py+ph, capW=pw*0.32;
+    ctx.beginPath(); ctx.moveTo(px-capW,py+ph*0.68); ctx.lineTo(px,cy); ctx.lineTo(px+capW,py+ph*0.68);
+    ctx.quadraticCurveTo(px+capW*0.4,py+ph*0.6,px,py+ph*0.7);
+    ctx.quadraticCurveTo(px-capW*0.4,py+ph*0.58,px-capW,py+ph*0.68); ctx.closePath(); ctx.fill();
+  }
+  // cable car line + gondola
+  ctx.strokeStyle='rgba(90,80,70,0.55)'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(20,150); ctx.lineTo(340,230); ctx.stroke();
+  const gt=(time*0.00006)%1, gx=lerp(30,330,gt), gy=lerp(152,229,gt);
+  ctx.fillStyle='#d9534f'; ctx.fillRect(gx-7,gy,14,11);
+  ctx.strokeStyle='#5a4a3a'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(gx,gy); ctx.lineTo(gx,gy-4); ctx.stroke();
+  // alpine meadow
+  const mg=ctx.createLinearGradient(0,340,0,600);
+  mg.addColorStop(0, lerpColor('#8cc46e','#a8b862',p*0.5));
+  mg.addColorStop(1, lerpColor('#6aae52','#8aa050',p*0.5));
+  ctx.fillStyle=mg; ctx.fillRect(0,336,VW,264);
+  ctx.fillStyle=lerpColor('#7ab85e','#96aa58',p*0.5);
+  ctx.beginPath(); ctx.moveTo(0,352); ctx.quadraticCurveTo(300,318,560,348); ctx.quadraticCurveTo(760,330,960,350); ctx.lineTo(960,364); ctx.lineTo(0,364); ctx.fill();
+  // switchback trail up to the hut
+  ctx.strokeStyle='#dcc596'; ctx.lineWidth=17; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(240,600); ctx.quadraticCurveTo(420,540,620,520);
+  ctx.quadraticCurveTo(320,500,300,452);
+  ctx.quadraticCurveTo(480,420,680,408);
+  ctx.quadraticCurveTo(760,392,800,352); ctx.stroke();
+  ctx.strokeStyle='rgba(160,130,90,0.5)'; ctx.lineWidth=2;
+  for(const [dx,dy] of [[380,545],[500,527],[420,478],[560,432],[700,404]]){
+    ctx.beginPath(); ctx.ellipse(dx,dy,5,2.4,0.2,0,Math.PI*2); ctx.stroke();
+  }
+  // race flags cheering the way
+  flagLine(250,560,470,532,7,time);
+  flagLine(620,404,800,356,6,time);
+  // mountain stream + boulder (spot 4: tail)
+  ctx.fillStyle=lerpColor('#7fc4dd','#e8b87f',p*0.35);
+  ctx.beginPath(); ctx.moveTo(0,458); ctx.quadraticCurveTo(60,478,90,530);
+  ctx.quadraticCurveTo(112,570,120,600); ctx.lineTo(30,600); ctx.quadraticCurveTo(30,540,0,502); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(40,490+Math.sin(time*0.003)*2); ctx.quadraticCurveTo(70,510,86,548); ctx.stroke();
+  peekI(4,time);
+  ctx.fillStyle='#9aa3ad';
+  ctx.beginPath(); ctx.ellipse(52,484,24,17,0.1,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#8a939d';
+  ctx.beginPath(); ctx.ellipse(66,486,11,9,0,Math.PI,0); ctx.fill();
+  // old pine (spot 0: ears)
+  pineTree(140,420,1.5,'#35704a','#457f52');
+  peekI(0,time);
+  ctx.fillStyle='#457f52';
+  ctx.beginPath(); ctx.moveTo(102,332); ctx.lineTo(140,296); ctx.lineTo(178,332); ctx.closePath(); ctx.fill();
+  // middle spruce (spot 8: ears)
+  pineTree(478,436,1.3,'#3d7a48','#4d8a55');
+  peekI(8,time);
+  ctx.fillStyle='#4d8a55';
+  ctx.beginPath(); ctx.moveTo(448,356); ctx.lineTo(478,326); ctx.lineTo(508,356); ctx.closePath(); ctx.fill();
+  // alpine hut (spot 1: face in the window)
+  ctx.fillStyle='#b08858'; ctx.fillRect(732,262,150,86);
+  ctx.strokeStyle='#96703e'; ctx.lineWidth=2;
+  for(let i=1;i<5;i++){ ctx.beginPath(); ctx.moveTo(732,262+i*17); ctx.lineTo(882,262+i*17); ctx.stroke(); }
+  ctx.fillStyle='#7a5a3c';
+  ctx.beginPath(); ctx.moveTo(716,266); ctx.lineTo(807,208); ctx.lineTo(898,266); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#8a6a48'; ctx.fillRect(716,262,182,8);
+  ctx.fillStyle='#5a7a96'; ctx.fillRect(779,252,44,44);
+  peekI(1,time);
+  ctx.strokeStyle='#f5f2ea'; ctx.lineWidth=4; ctx.strokeRect(779,252,44,44);
+  ctx.beginPath(); ctx.moveTo(801,252); ctx.lineTo(801,296); ctx.stroke();
+  ctx.fillStyle='#a85a4a'; ctx.fillRect(770,296,62,7);
+  for(let i=0;i<4;i++){ ctx.fillStyle=['#e86a8a','#f0c84a','#e88a5a'][i%3]; ctx.beginPath(); ctx.arc(778+i*15,294,3.4,0,Math.PI*2); ctx.fill(); }
+  ctx.fillStyle='#6a4a30'; ctx.fillRect(842,306,26,42);
+  // hut door + cocoa sign
+  ctx.fillStyle='#f5f0e0'; ctx.fillRect(736,300,34,22);
+  ctx.fillStyle='#8a5a3a'; ctx.font='10px Georgia'; ctx.textAlign='center';
+  ctx.fillText('☕', 753, 315);
+  // signpost (spot 2: face peeks past)
+  peekI(2,time);
+  ctx.fillStyle='#8a6a4a'; ctx.fillRect(372,368,7,52);
+  ctx.fillStyle='#c8a068';
+  ctx.beginPath(); ctx.moveTo(379,372); ctx.lineTo(432,372); ctx.lineTo(442,380); ctx.lineTo(432,388); ctx.lineTo(379,388); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(372,394); ctx.lineTo(322,394); ctx.lineTo(312,402); ctx.lineTo(322,410); ctx.lineTo(372,410); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#5a4430'; ctx.font='9px Georgia';
+  ctx.fillText('GIPFEL ⛰', 408, 383); ctx.fillText('⛺ TAL', 344, 405);
+  // stone cairn (spot 3: ears)
+  peekI(3,time);
+  ctx.fillStyle='#9aa3ad';
+  for(const [cx,cy,rw,rh] of [[622,404,20,10],[622,390,16,8],[622,378,12,7],[622,368,8,6]]){
+    ctx.beginPath(); ctx.ellipse(cx,cy,rw,rh,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#828b95'; ctx.lineWidth=1; ctx.stroke();
+  }
+  // wildflower patch (spot 5: snoozing back)
+  peekI(5,time);
+  const swf=Math.sin(time*0.0019)*1.6;
+  for(let i=0;i<9;i++){
+    const x=418+i*12, y=486;
+    ctx.strokeStyle='#5fa54f'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x,y); ctx.quadraticCurveTo(x+swf,y-10,x+swf,y-16); ctx.stroke();
+    ctx.fillStyle=['#f5f2ea','#6a9ad0','#f0c84a','#e86a8a'][i%4];
+    for(let k=0;k<5;k++){ const a=k/5*Math.PI*2; ctx.beginPath(); ctx.arc(x+swf+Math.cos(a)*4,y-18+Math.sin(a)*4,2.8,0,Math.PI*2); ctx.fill(); }
+    ctx.fillStyle='#f5e08a'; ctx.beginPath(); ctx.arc(x+swf,y-18,2.4,0,Math.PI*2); ctx.fill();
+  }
+  // hiker's backpack (spot 6: ears)
+  peekI(6,time);
+  ctx.fillStyle='#d9534f';
+  ctx.beginPath(); ctx.roundRect? ctx.roundRect(528,486,40,34,8):ctx.rect(528,486,40,34); ctx.fill();
+  ctx.fillStyle='#b8433f';
+  ctx.beginPath(); ctx.roundRect? ctx.roundRect(536,502,24,18,5):ctx.rect(536,502,24,18); ctx.fill();
+  ctx.strokeStyle='#8a2f2c'; ctx.lineWidth=2.4;
+  ctx.beginPath(); ctx.moveTo(534,486); ctx.quadraticCurveTo(548,478,562,486); ctx.stroke();
+  // log bench (spot 7: tail beneath)
+  ctx.fillStyle='#a87c52'; ctx.fillRect(682,462,62,9);
+  ctx.fillStyle='#8a6242'; ctx.fillRect(688,471,8,18); ctx.fillRect(728,471,8,18);
+  peekI(7,time);
+  // marmot cameo on a rock
+  ctx.fillStyle='#b09468';
+  ctx.beginPath(); ctx.ellipse(902,468,9,12,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(902,454,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#3a3028'; ctx.beginPath(); ctx.arc(900,453,1.1,0,Math.PI*2); ctx.fill();
+  // picnic rug at the finish + Nana in her race kit
+  ctx.save(); ctx.translate(160,545);
+  ctx.fillStyle='#e8a06a';
+  ctx.beginPath(); ctx.moveTo(-95,0); ctx.lineTo(95,-14); ctx.lineTo(135,38); ctx.lineTo(-60,52); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=3;
+  for(let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(-90,8+i*14); ctx.lineTo(120,-4+i*16); ctx.stroke(); }
+  ctx.fillStyle='#8a6a4a';
+  ctx.beginPath(); ctx.ellipse(52,20,7,10,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f5f2ea'; ctx.beginPath(); ctx.ellipse(52,12,7,3,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  nana(96,536,time,p,{top:'#e86a6a', skirt:'#6a9ad0', hat:'cap', hatCol:'#f0c84a'});
+}
+
+// ---------- LEVEL 4: Northern Lights Camp ----------
+function paintAlaska(time,p){
+  // day fades to aurora night as friends are found
+  skyBand('#a8cce0','#101c38','#d8e8f0','#26365c',p,600);
+  // stars
+  if(p>0.35){
+    const sa=clamp((p-0.35)/0.4,0,1);
+    ctx.globalAlpha=sa;
+    for(let i=0;i<40;i++){
+      const sx=(i*211)%VW, sy=((i*127)%260)+10;
+      const tw=0.5+Math.sin(time*0.003+i)*0.5;
+      ctx.fillStyle=`rgba(255,255,240,${0.4+tw*0.5})`;
+      ctx.fillRect(sx,sy,2,2);
+    }
+    ctx.globalAlpha=1;
+  }
+  // the aurora, arriving with the dark
+  const aa=clamp((p-0.5)/0.5,0,1);
+  if(aa>0){
+    for(let band=0;band<3;band++){
+      ctx.beginPath();
+      const baseY=70+band*36;
+      ctx.moveTo(-20,baseY);
+      for(let x=-20;x<=VW+20;x+=24){
+        const y=baseY+Math.sin(x*0.008+time*0.0006+band*2)*34+Math.sin(x*0.02-time*0.0004)*10;
+        ctx.lineTo(x,y);
+      }
+      for(let x=VW+20;x>=-20;x-=24){
+        const y=baseY+Math.sin(x*0.008+time*0.0006+band*2)*34+Math.sin(x*0.02-time*0.0004)*10;
+        ctx.lineTo(x,y+70+band*10);
+      }
+      ctx.closePath();
+      const ag=ctx.createLinearGradient(0,baseY-40,0,baseY+120);
+      const col=band===1? '150,120,235':'110,232,160';
+      ag.addColorStop(0,`rgba(${col},0)`);
+      ag.addColorStop(0.5,`rgba(${col},${0.22*aa})`);
+      ag.addColorStop(1,`rgba(${col},0)`);
+      ctx.fillStyle=ag; ctx.fill();
+    }
+  }
+  // sun low on the horizon early on
+  if(p<0.6){
+    ctx.globalAlpha=1-p/0.6;
+    sunGlow(lerp(180,120,p), lerp(180,260,p), 0.7);
+    ctx.globalAlpha=1;
+  }
+  // distant snowy range
+  ctx.fillStyle=lerpColor('#c8d4e0','#3c4a6a',p);
+  for(const [px,pw,ph] of [[120,190,90],[400,240,120],[720,210,100],[930,160,80]]){
+    ctx.beginPath(); ctx.moveTo(px-pw,300); ctx.lineTo(px,300-ph); ctx.lineTo(px+pw,300); ctx.closePath(); ctx.fill();
+  }
+  // spruce treeline silhouette
+  ctx.fillStyle=lerpColor('#3d6a48','#16283a',p);
+  for(let x=0;x<VW;x+=26){
+    const h=36+((x*7)%30);
+    ctx.beginPath(); ctx.moveTo(x-14,312); ctx.lineTo(x,312-h); ctx.lineTo(x+14,312); ctx.closePath(); ctx.fill();
+  }
+  // tundra ground with snow patches
+  const mg=ctx.createLinearGradient(0,310,0,600);
+  mg.addColorStop(0, lerpColor('#8aae72','#3c5248',p));
+  mg.addColorStop(1, lerpColor('#6a9258','#2c4038',p));
+  ctx.fillStyle=mg; ctx.fillRect(0,308,VW,292);
+  ctx.fillStyle=lerpColor('#eef2f5','#aab8c8',p);
+  for(const [sx2,sy2,sw,sh] of [[90,420,50,12],[560,368,44,10],[770,470,60,13],[350,560,70,14],[935,540,48,11]]){
+    ctx.beginPath(); ctx.ellipse(sx2,sy2,sw,sh,0,0,Math.PI*2); ctx.fill();
+  }
+  // river in the corner, salmon leaping
+  ctx.fillStyle=lerpColor('#6aa8c8','#1e3450',p);
+  ctx.beginPath(); ctx.moveTo(0,600); ctx.lineTo(0,492); ctx.quadraticCurveTo(140,500,220,528);
+  ctx.quadraticCurveTo(320,562,370,600); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.35)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(30,530+Math.sin(time*0.002)*3); ctx.quadraticCurveTo(140,532,240,566); ctx.stroke();
+  const st=(time*0.0011)%2;
+  if(st<1){
+    const fx=lerp(60,150,st), fy=558-Math.sin(st*Math.PI)*40;
+    ctx.save(); ctx.translate(fx,fy); ctx.rotate(lerp(-0.9,0.9,st));
+    ctx.fillStyle='#d96a5a';
+    ctx.beginPath(); ctx.ellipse(0,0,11,4.5,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(9,0); ctx.lineTo(15,-4); ctx.lineTo(15,4); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // moose across the river (Poppy is watching it)
+  ctx.fillStyle=lerpColor('#5a4636','#2e2620',p);
+  ctx.beginPath(); ctx.ellipse(80,392,26,14,0,0,Math.PI*2); ctx.fill();
+  for(const lx of [-16,-6,8,18]) ctx.fillRect(80+lx-2,392,4,26);
+  ctx.beginPath(); ctx.ellipse(106,376,9,7,0.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(114,380,6,4,0.4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=lerpColor('#5a4636','#2e2620',p); ctx.lineWidth=2.4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(102,370); ctx.quadraticCurveTo(96,358,86,356); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(102,370); ctx.quadraticCurveTo(104,356,98,350); ctx.stroke();
+  // log cabin (spot 0: face in window)
+  ctx.fillStyle='#8a6242';
+  ctx.fillRect(112,268,168,110);
+  ctx.strokeStyle='#6e4c32'; ctx.lineWidth=3;
+  for(let i=1;i<6;i++){ ctx.beginPath(); ctx.moveTo(112,268+i*18); ctx.lineTo(280,268+i*18); ctx.stroke(); }
+  ctx.fillStyle='#5e4028';
+  ctx.beginPath(); ctx.moveTo(98,272); ctx.lineTo(196,214); ctx.lineTo(294,272); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=lerpColor('#e8eef2','#b8c4d0',p);
+  ctx.fillRect(150,222,10,26);   // snowy chimney pipe
+  ctx.fillStyle='#f0b060';
+  ctx.fillRect(174,300,44,44);
+  ctx.globalAlpha=0.9;
+  ctx.fillStyle=p>0.4?'#ffd98a':'#8aa8c0';
+  ctx.fillRect(178,304,36,36);
+  ctx.globalAlpha=1;
+  peekI(0,time);
+  ctx.strokeStyle='#e8dcc8'; ctx.lineWidth=4; ctx.strokeRect(176,302,40,40);
+  ctx.beginPath(); ctx.moveTo(196,302); ctx.lineTo(196,342); ctx.stroke();
+  ctx.fillStyle='#5e4028'; ctx.fillRect(238,318,30,60);
+  // woodpile (spot 1: ears)
+  peekI(1,time);
+  ctx.fillStyle='#a87c52';
+  for(const [wx,wy] of [[296,452],[316,452],[336,452],[306,440],[326,440],[316,428]]){
+    ctx.beginPath(); ctx.arc(wx,wy,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c8a068'; ctx.beginPath(); ctx.arc(wx,wy,6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#a87c52';
+  }
+  // tall spruce (spot 2: ears in a shadowed notch)
+  pineTree(404,410,1.7,lerpColor('#2e6040','#1c3830',p),lerpColor('#3d7a48','#28483a',p));
+  ctx.fillStyle=lerpColor('#1e4430','#0e2018',p);
+  ctx.beginPath(); ctx.ellipse(404,288,17,14,0,0,Math.PI*2); ctx.fill();
+  peekI(2,time);
+  // berry bushes (spot 4)
+  peekI(4,time);
+  bush(524,438,time,{a:lerpColor('#4f7a4a','#2c4838',p), b:lerpColor('#5f8a55','#38543f',p), berry:'#6a4ac0', s:0.9});
+  // beached canoe, upside-down (spot 3: tail behind the hull)
+  peekI(3,time);
+  ctx.fillStyle='#b85c34';
+  ctx.beginPath(); ctx.ellipse(620,516,56,16,0,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#8a4224'; ctx.fillRect(564,514,112,5);
+  ctx.fillStyle='#9a4e2c';
+  ctx.beginPath(); ctx.ellipse(620,500,12,4,0,Math.PI,0); ctx.fill();
+  // paddle
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(680,516); ctx.lineTo(706,542); ctx.stroke();
+  ctx.fillStyle='#8a6a4a'; ctx.beginPath(); ctx.ellipse(710,546,7,4,0.8,0,Math.PI*2); ctx.fill();
+  // warm rock (spot 5: cat curled ON it)
+  ctx.fillStyle=lerpColor('#9aa3ad','#5a6473',p);
+  ctx.beginPath(); ctx.ellipse(880,448,42,24,0,Math.PI,0); ctx.fill();
+  ctx.fillStyle=lerpColor('#8a939d','#4c5563',p);
+  ctx.beginPath(); ctx.ellipse(898,448,18,12,0,Math.PI,0); ctx.fill();
+  peekI(5,time);
+  // tent (spot 6: face in the flap)
+  ctx.fillStyle='#e8a05a';
+  ctx.beginPath(); ctx.moveTo(668,432); ctx.lineTo(716,368); ctx.lineTo(764,432); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#c8823e';
+  ctx.beginPath(); ctx.moveTo(694,432); ctx.lineTo(716,368); ctx.lineTo(738,432); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#4a3828';
+  ctx.beginPath(); ctx.moveTo(702,432); ctx.lineTo(716,384); ctx.lineTo(730,432); ctx.closePath(); ctx.fill();
+  peekI(6,time);
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(716,368); ctx.lineTo(716,358); ctx.stroke();
+  // old stump (spot 7: ears)
+  peekI(7,time);
+  ctx.fillStyle='#8a6242';
+  ctx.fillRect(418,492,28,22);
+  ctx.fillStyle='#c8a068';
+  ctx.beginPath(); ctx.ellipse(432,492,14,6,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#a87c52'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.ellipse(432,492,9,3.6,0,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(432,492,4,1.8,0,0,Math.PI*2); ctx.stroke();
+  // riverbank reeds (spot 8: tail)
+  peekI(8,time);
+  reeds(248,540,time);
+  // campfire gathering + Nana in her parka
+  const fl=Math.sin(time*0.02)*0.2+Math.sin(time*0.007)*0.3;
+  ctx.fillStyle='#8a6242';
+  ctx.save(); ctx.translate(790,556);
+  ctx.rotate(0.5); ctx.fillRect(-22,-4,44,8); ctx.rotate(-1.0); ctx.fillRect(-22,-4,44,8);
+  ctx.restore();
+  const fg=ctx.createRadialGradient(790,540,3,790,540,46+fl*8);
+  fg.addColorStop(0,'rgba(255,200,110,0.55)'); fg.addColorStop(1,'rgba(255,180,90,0)');
+  ctx.fillStyle=fg; ctx.beginPath(); ctx.arc(790,540,46+fl*8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0a04a';
+  ctx.beginPath(); ctx.moveTo(776,552); ctx.quadraticCurveTo(782,528+fl*6,790,518+fl*8);
+  ctx.quadraticCurveTo(798,528+fl*6,804,552); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#f8d070';
+  ctx.beginPath(); ctx.moveTo(782,552); ctx.quadraticCurveTo(786,536+fl*5,790,530+fl*6);
+  ctx.quadraticCurveTo(794,536+fl*5,798,552); ctx.closePath(); ctx.fill();
+  nana(722,536,time,p,{top:'#d9884a', skirt:'#8a6a4a', hat:'beanie', hatCol:'#d9534f'});
+}
+
+// ---------- LEVEL 5: Blue Dome Harbor ----------
+function paintGreek(time,p){
+  skyBand('#6fb4e8','#f09068','#c8e8f8','#ffd9a0',p,320);
+  const sx=lerp(790,700,p), sy=lerp(75,270,p);
+  sunGlow(sx,sy,p);
+  cloud(300+((time*0.004)%1100)-70, 55, 0.7, time);
+  // the Aegean
+  const sea=ctx.createLinearGradient(0,296,0,470);
+  sea.addColorStop(0, lerpColor('#2a6ac8','#c05a6a',p*0.5));
+  sea.addColorStop(1, lerpColor('#3f8fd8','#e88a5a',p*0.5));
+  ctx.fillStyle=sea; ctx.fillRect(0,296,VW,178);
+  // islands on the horizon
+  ctx.fillStyle=lerpColor('#7a92b8','#9a7a90',p*0.6);
+  ctx.beginPath(); ctx.ellipse(700,300,90,14,0,Math.PI,0); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(880,302,60,10,0,Math.PI,0); ctx.fill();
+  // sea sparkle
+  ctx.fillStyle='rgba(255,255,255,0.4)';
+  for(let i=0;i<14;i++){
+    const gx=560+((i*67)%380), gy=316+((i*41)%120);
+    const tw=Math.sin(time*0.004+i*2)*0.5+0.5;
+    ctx.globalAlpha=0.25+tw*0.3;
+    ctx.fillRect(gx,gy,7,1.6);
+  }
+  ctx.globalAlpha=1;
+  // ferry in the distance (the 9:02 mail boat)
+  const fb=Math.sin(time*0.0011)*2;
+  ctx.fillStyle='#f5f2ea'; ctx.fillRect(140,310+fb,52,10);
+  ctx.fillStyle='#5a7a96'; ctx.fillRect(150,302+fb,28,8);
+  // quay / village ground
+  const qg=ctx.createLinearGradient(0,460,0,600);
+  qg.addColorStop(0,'#e8ddc4'); qg.addColorStop(1,'#d4c4a4');
+  ctx.fillStyle=qg; ctx.fillRect(0,458,VW,142);
+  ctx.strokeStyle='rgba(150,130,100,0.35)'; ctx.lineWidth=1.4;
+  for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(0,486+i*26); ctx.lineTo(VW,480+i*26); ctx.stroke(); }
+  // village houses (white, stacked)
+  // -- rose house with rooftop terrace (spot 2: tail over the edge)
+  ctx.fillStyle='#e8b09a'; ctx.fillRect(168,258,140,204);
+  ctx.fillStyle='#4a6ac8';
+  ctx.beginPath(); ctx.arc(238,258,42,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#f7f4ec'; ctx.fillRect(160,252,156,10);
+  peekI(2,time);
+  ctx.strokeStyle='#4a6ac8'; ctx.lineWidth=3;
+  for(let i=0;i<7;i++){ ctx.beginPath(); ctx.moveTo(166+i*24,252); ctx.lineTo(166+i*24,240); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(160,240); ctx.lineTo(316,240); ctx.stroke();
+  // -- house behind with the blue shutter window (spot 7)
+  ctx.fillStyle='#f2eee2'; ctx.fillRect(340,214,150,248);
+  ctx.fillStyle='#4a6ac8';
+  ctx.beginPath(); ctx.arc(415,214,36,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#7a9ab8'; ctx.fillRect(386,244,38,38);
+  peekI(7,time);
+  ctx.strokeStyle='#f5f2ea'; ctx.lineWidth=4; ctx.strokeRect(386,244,38,38);
+  ctx.fillStyle='#4a6ac8'; ctx.fillRect(376,244,9,38); ctx.fillRect(425,244,9,38);
+  // -- the blue door, ajar (spot 1: face in the gap)
+  ctx.fillStyle='#3a3028';
+  ctx.beginPath(); ctx.moveTo(276,462); ctx.lineTo(276,412) ; ctx.arc(296,412,20,Math.PI,0); ctx.lineTo(316,462); ctx.closePath(); ctx.fill();
+  peekI(1,time);
+  ctx.fillStyle='#4a6ac8';
+  ctx.beginPath(); ctx.moveTo(276,462); ctx.lineTo(276,412); ctx.arc(286,412,10,Math.PI,0); ctx.lineTo(296,462); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#f0c84a'; ctx.beginPath(); ctx.arc(291,438,2.4,0,Math.PI*2); ctx.fill();
+  // -- bougainvillea spilling down the wall (spot 4: back nestled among blossoms)
+  ctx.fillStyle='#d94a8a';
+  for(const [bx,by,br2] of [[452,330,20],[432,348,16],[470,346,17],[448,362,15],[486,330,13]]){
+    for(let k=0;k<6;k++){
+      const a=k/6*Math.PI*2+bx;
+      ctx.beginPath(); ctx.arc(bx+Math.cos(a)*br2*0.5,by+Math.sin(a)*br2*0.5,br2*0.42,0,Math.PI*2); ctx.fill();
+    }
+  }
+  peekI(4,time);
+  ctx.fillStyle='#d94a8a';
+  for(const [bx,by,br2] of [[466,314,14],[438,318,13]]){
+    for(let k=0;k<6;k++){
+      const a=k/6*Math.PI*2+bx;
+      ctx.beginPath(); ctx.arc(bx+Math.cos(a)*br2*0.5,by+Math.sin(a)*br2*0.5,br2*0.42,0,Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.fillStyle='#e86aa0';
+  for(const [bx,by] of [[440,352],[476,326],[452,316]]){
+    ctx.beginPath(); ctx.arc(bx,by,6,0,Math.PI*2); ctx.fill();
+  }
+  // stone steps (spot 6: ears behind the step wall)
+  peekI(6,time);
+  ctx.fillStyle='#e8ddc4';
+  for(let i=0;i<5;i++) ctx.fillRect(496,458+i*17,74+i*12,17);
+  ctx.strokeStyle='rgba(150,130,100,0.5)'; ctx.lineWidth=1.4;
+  for(let i=0;i<5;i++){ ctx.beginPath(); ctx.moveTo(496,458+i*17); ctx.lineTo(570+i*12,458+i*17); ctx.stroke(); }
+  // old olive tree (spot 3: ears)
+  ctx.strokeStyle='#8a7658'; ctx.lineWidth=10; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(84,462); ctx.quadraticCurveTo(70,420,78,394); ctx.stroke();
+  ctx.lineWidth=6;
+  ctx.beginPath(); ctx.moveTo(78,400); ctx.quadraticCurveTo(56,382,48,370); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(78,400); ctx.quadraticCurveTo(100,380,108,372); ctx.stroke();
+  ctx.fillStyle='#8aa87a';
+  for(const [cx,cy,r] of [[48,360,24],[86,344,30],[118,364,22],[70,378,20]]){
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  }
+  peekI(3,time);
+  ctx.fillStyle='#9ab88a';
+  for(const [cx,cy,r] of [[64,352,16],[100,352,17]]){
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  }
+  // big amphora (spot 0: ears behind)
+  peekI(0,time);
+  ctx.fillStyle='#c8845a';
+  ctx.beginPath(); ctx.moveTo(100,504); ctx.quadraticCurveTo(88,528,102,548);
+  ctx.lineTo(134,548); ctx.quadraticCurveTo(148,528,136,504);
+  ctx.quadraticCurveTo(130,498,132,492); ctx.lineTo(104,492); ctx.quadraticCurveTo(106,498,100,504); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#b06e46'; ctx.fillRect(100,490,36,7);
+  ctx.strokeStyle='#a86040'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.ellipse(118,520,16,8,0,0.2,Math.PI-0.2); ctx.stroke();
+  // geranium pot beside it
+  ctx.fillStyle='#b85044'; ctx.fillRect(154,528,22,18);
+  ctx.fillStyle='#d9486a';
+  for(const [gx,gy] of [[158,522],[166,518],[174,523]]){ ctx.beginPath(); ctx.arc(gx,gy,5,0,Math.PI*2); ctx.fill(); }
+  // fishing boat on the water (spot 5: face aboard)
+  const boatBob=Math.sin(time*0.0013)*3;
+  ctx.save(); ctx.translate(0,boatBob);
+  ctx.fillStyle='#f5f2ea';
+  ctx.beginPath(); ctx.moveTo(758,344); ctx.quadraticCurveTo(806,332,854,344);
+  ctx.quadraticCurveTo(842,366,806,366); ctx.quadraticCurveTo(770,366,758,344); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#4a6ac8';
+  ctx.beginPath(); ctx.moveTo(758,344); ctx.quadraticCurveTo(806,334,854,344);
+  ctx.quadraticCurveTo(806,342,758,344); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  peekI(5,time);
+  ctx.save(); ctx.translate(0,boatBob);
+  ctx.fillStyle='#f5f2ea';
+  ctx.beginPath(); ctx.moveTo(756,346); ctx.quadraticCurveTo(806,338,856,346);
+  ctx.quadraticCurveTo(806,352,756,346); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(806,336); ctx.lineTo(806,306); ctx.stroke();
+  ctx.fillStyle='#e86a6a';
+  ctx.beginPath(); ctx.moveTo(806,306); ctx.lineTo(824,312); ctx.lineTo(806,318); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  // taverna on the quay (spot 8: tail under a chair)
+  ctx.fillStyle='#f7f4ec'; ctx.fillRect(620,414,220,66);
+  ctx.fillStyle='#4a6ac8';
+  for(let i=0;i<6;i++){
+    ctx.beginPath(); ctx.moveTo(614+i*39,414); ctx.lineTo(653+i*39,414); ctx.lineTo(646+i*39,432); ctx.lineTo(621+i*39,432); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle='#5a4a3a'; ctx.font='italic 13px Georgia'; ctx.textAlign='center';
+  ctx.fillText('ΤΑΒΕΡΝΑ', 730, 452);
+  // lantern string, lit at dusk
+  ctx.strokeStyle='rgba(90,80,70,0.6)'; ctx.lineWidth=1.4;
+  ctx.beginPath(); ctx.moveTo(620,466); ctx.quadraticCurveTo(730,482,840,466); ctx.stroke();
+  for(let i=0;i<6;i++){
+    const lt=i/5, lx=lerp(626,834,lt), ly=466+Math.sin(lt*Math.PI)*12+4;
+    ctx.fillStyle=p>0.5? '#ffe9a0':'#cfc4ae';
+    ctx.beginPath(); ctx.arc(lx,ly,4.5,0,Math.PI*2); ctx.fill();
+    if(p>0.5){
+      const lg=ctx.createRadialGradient(lx,ly,1,lx,ly,13);
+      lg.addColorStop(0,'rgba(255,230,150,0.5)'); lg.addColorStop(1,'rgba(255,230,150,0)');
+      ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(lx,ly,13,0,Math.PI*2); ctx.fill();
+    }
+  }
+  // taverna table & chairs
+  ctx.fillStyle='#f5f2ea';
+  ctx.beginPath(); ctx.ellipse(700,498,34,12,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#e8e2d2'; ctx.fillRect(696,498,8,26);
+  ctx.fillStyle='#4a6ac8';
+  ctx.fillRect(646,486,20,5); ctx.fillRect(648,491,4,22); ctx.fillRect(660,491,4,22);
+  ctx.fillRect(744,486,20,5); ctx.fillRect(746,491,4,22); ctx.fillRect(758,491,4,22);
+  peekI(8,time);
+  // sardine plate on the table
+  ctx.fillStyle='#8aa6b8'; ctx.beginPath(); ctx.ellipse(700,494,12,4.5,0,0,Math.PI*2); ctx.fill();
+  // gathering spot: the long feast table area + Nana
+  nana(880,532,time,p,{top:'#f5f2ea', skirt:'#5a7a96', hat:'sun'});
+}
+
+// ---------- LEVEL 6: Honeywood Clearing ----------
+function bearShape(x,y,s,pose,time,tone){
+  const bodyC=tone||'#8a6242', darkC=lerpColor(bodyC,'#000000',0.18), muzzC='#c8a878';
+  ctx.save(); ctx.translate(x,y); ctx.scale(s,s);
+  if(pose==='sleep'){
+    const br=1+Math.sin(time*0.0011)*0.02;
+    ctx.scale(1,br);
+    ctx.fillStyle=bodyC;
+    ctx.beginPath(); ctx.ellipse(0,0,62,36,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-56,2,24,0,Math.PI*2); ctx.fill();  // head
+    ctx.fillStyle=darkC;
+    ctx.beginPath(); ctx.arc(-66,-16,8,0,Math.PI*2); ctx.fill(); // ear
+    ctx.beginPath(); ctx.arc(-46,-18,8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=muzzC;
+    ctx.beginPath(); ctx.ellipse(-70,10,13,9,0.2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3a3028';
+    ctx.beginPath(); ctx.ellipse(-78,8,4,3,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#3a3028'; ctx.lineWidth=1.8;
+    ctx.beginPath(); ctx.arc(-60,0,3.5,0.1*Math.PI,0.9*Math.PI); ctx.stroke(); // closed eye
+    // zzz
+    const zt=(time*0.0008)%1;
+    ctx.globalAlpha=1-zt;
+    ctx.fillStyle='#5a4a3a'; ctx.font='bold 12px Georgia';
+    ctx.fillText('z', -56-zt*10, -34-zt*18);
+    ctx.font='bold 9px Georgia'; ctx.fillText('z', -46-zt*6, -42-zt*22);
+    ctx.globalAlpha=1;
+    // paws tucked
+    ctx.fillStyle=darkC;
+    ctx.beginPath(); ctx.ellipse(-30,28,12,7,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(20,30,13,7,0,0,Math.PI*2); ctx.fill();
+  } else if(pose==='cub'){
+    const wig=Math.sin(time*0.004)*0.06;
+    ctx.rotate(wig*0.4);
+    ctx.fillStyle=bodyC;
+    ctx.beginPath(); ctx.ellipse(0,6,20,17,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(2,-16,13,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=darkC;
+    ctx.beginPath(); ctx.arc(-7,-26,5.5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(11,-26,5.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=muzzC;
+    ctx.beginPath(); ctx.ellipse(4,-11,7,5.5,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3a3028';
+    ctx.beginPath(); ctx.ellipse(4,-13,2.6,2,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-2,-18,1.8,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(9,-18,1.8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=darkC;
+    ctx.beginPath(); ctx.ellipse(-10,21,7,4,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(10,21,7,4,0,0,Math.PI*2); ctx.fill();
+  } else { // standing mama, fishing in the stream
+    ctx.fillStyle=bodyC;
+    ctx.beginPath(); ctx.ellipse(0,0,30,42,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-4,-48,19,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=darkC;
+    ctx.beginPath(); ctx.arc(-16,-62,7,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-62,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=muzzC;
+    ctx.beginPath(); ctx.ellipse(-12,-42,10,7,0.15,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#3a3028';
+    ctx.beginPath(); ctx.ellipse(-19,-44,3.4,2.6,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-9,-52,2.2,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(2,-52,2.2,0,Math.PI*2); ctx.fill();
+    // arms forward (patient fishing pose)
+    ctx.fillStyle=bodyC;
+    const dip=Math.sin(time*0.0016)*3;
+    ctx.beginPath(); ctx.ellipse(-24,-10+dip*0.3,9,22,0.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=darkC;
+    ctx.beginPath(); ctx.ellipse(-34,8+dip*0.4,8,5,0.3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-12,40,10,5,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(12,40,10,5,0,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+function paintBears(time,p){
+  skyBand('#9ac8b8','#f0a878','#d8ecd8','#ffd9a0',p,600);
+  const sx=lerp(140,340,p), sy=lerp(90,240,p);
+  sunGlow(sx,sy,p);
+  // deep forest backdrop
+  ctx.fillStyle=lerpColor('#4a7a52','#5c7a4a',p*0.5);
+  for(let x=-10;x<VW+20;x+=44){
+    const h=90+((x*13)%60);
+    ctx.beginPath(); ctx.moveTo(x-30,330); ctx.lineTo(x,330-h); ctx.lineTo(x+30,330); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle=lerpColor('#5c8a5e','#6e8a54',p*0.5);
+  for(let x=14;x<VW+20;x+=52){
+    const h=64+((x*7)%40);
+    ctx.beginPath(); ctx.moveTo(x-26,336); ctx.lineTo(x,336-h); ctx.lineTo(x+26,336); ctx.closePath(); ctx.fill();
+  }
+  // clearing floor
+  const mg=ctx.createLinearGradient(0,330,0,600);
+  mg.addColorStop(0, lerpColor('#8cc46e','#a8b862',p*0.5));
+  mg.addColorStop(1, lerpColor('#6aae52','#8aa050',p*0.5));
+  ctx.fillStyle=mg; ctx.fillRect(0,328,VW,272);
+  // clover patches
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  for(const [cx,cy] of [[420,560],[300,580],[540,575],[700,565]]){
+    ctx.beginPath(); ctx.arc(cx,cy,2.4,0,Math.PI*2); ctx.fill();
+  }
+  // waterfall + pool (spot 6: tail on the rocks)
+  ctx.fillStyle=lerpColor('#8a939d','#7a8a80',p*0.4);
+  ctx.beginPath(); ctx.moveTo(848,330); ctx.lineTo(864,250); ctx.lineTo(960,240); ctx.lineTo(960,430); ctx.lineTo(852,420); ctx.closePath(); ctx.fill();
+  const wf=(time*0.004)%20;
+  ctx.fillStyle='rgba(240,250,255,0.85)';
+  ctx.fillRect(884,254,30,166);
+  ctx.fillStyle='rgba(190,220,240,0.7)';
+  for(let i=0;i<8;i++) ctx.fillRect(888+((i*9)%22), 254+((i*47+wf*8)%160), 4, 14);
+  ctx.fillStyle=lerpColor('#7fc4dd','#e8b87f',p*0.3);
+  ctx.beginPath(); ctx.ellipse(886,430,72,22,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1.6;
+  for(let i=0;i<2;i++){
+    const ph=(time*0.001+i*0.5)%1;
+    ctx.globalAlpha=0.5*(1-ph);
+    ctx.beginPath(); ctx.ellipse(898,428,14+ph*46,(14+ph*46)*0.3,0,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  peekI(6,time);
+  ctx.fillStyle=lerpColor('#9aa3ad','#8a9488',p*0.3);
+  ctx.beginPath(); ctx.ellipse(898,404,26,14,0.1,Math.PI,0); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(862,414,16,10,-0.1,Math.PI,0); ctx.fill();
+  // mama bear fishing at the pool
+  bearShape(806,392,0.9,'stand',time,'#7a5a3e');
+  // the cave (spot 1: face in the dark)
+  ctx.fillStyle=lerpColor('#6a8a58','#7a8a50',p*0.4);
+  ctx.beginPath(); ctx.moveTo(0,420); ctx.quadraticCurveTo(30,300,110,296);
+  ctx.quadraticCurveTo(180,296,196,420); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#2c241c';
+  ctx.beginPath(); ctx.ellipse(92,382,52,52,0,Math.PI,0); ctx.fill();
+  peekI(1,time);
+  ctx.fillStyle=lerpColor('#6a8a58','#7a8a50',p*0.4);
+  ctx.beginPath(); ctx.moveTo(28,382); ctx.quadraticCurveTo(40,330,92,326);
+  ctx.lineTo(92,318); ctx.quadraticCurveTo(32,322,20,382); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(90,110,70,0.8)';
+  ctx.beginPath(); ctx.ellipse(50,388,14,20,0.4,0,Math.PI*2); ctx.fill(); // hanging moss
+  // honey tree (spot 2: face in the hollow) + hive + bees
+  ctx.fillStyle='#8a6a4a';
+  ctx.beginPath();
+  ctx.moveTo(664,420); ctx.quadraticCurveTo(676,330,668,240);
+  ctx.lineTo(736,240); ctx.quadraticCurveTo(730,330,742,420); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='#7a5a3c'; ctx.lineWidth=2.4;
+  ctx.beginPath(); ctx.moveTo(690,410); ctx.quadraticCurveTo(696,340,692,290); ctx.stroke();
+  ctx.fillStyle='#5fa54f';
+  for(const [cx,cy,r] of [[660,214,42],[706,186,50],[754,214,40],[706,238,38]]){
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='#74b85f';
+  for(const [cx,cy,r] of [[684,204,28],[730,204,28]]){
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='#3a2c1e';
+  ctx.beginPath(); ctx.ellipse(702,296,22,26,0,0,Math.PI*2); ctx.fill();
+  peekI(2,time);
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=6;
+  ctx.beginPath(); ctx.ellipse(702,296,22,26,0,0,Math.PI*2); ctx.stroke();
+  // honey drip
+  ctx.fillStyle='#f0b04a';
+  ctx.beginPath(); ctx.ellipse(716,322,4,7,0,0,Math.PI*2); ctx.fill();
+  // hanging hive + circling bees
+  ctx.strokeStyle='#8a6a4a'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(752,242); ctx.lineTo(752,258); ctx.stroke();
+  ctx.fillStyle='#e8b84a';
+  for(const [hy,hr] of [[266,12],[276,10],[284,7]]){
+    ctx.beginPath(); ctx.ellipse(752,hy,hr,7,0,0,Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle='#3a3028'; ctx.beginPath(); ctx.arc(752,278,3,0,Math.PI*2); ctx.fill();
+  for(let i=0;i<3;i++){
+    const a=time*0.004+i*2.1, bx=752+Math.cos(a)*(24+i*6), by=272+Math.sin(a)*14;
+    ctx.fillStyle='#f0c84a'; ctx.beginPath(); ctx.ellipse(bx,by,3,2,0.3,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#3a3028'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(bx-2,by); ctx.lineTo(bx+2,by); ctx.stroke();
+  }
+  // the big sleeping bear (spot 0: ears right behind him)
+  peekI(0,time);
+  bearShape(486,468,1.15,'sleep',time,'#8a6242');
+  // bear cub (spot 5: cat snuggled at his side)
+  peekI(5,time);
+  bearShape(652,470,1,'cub',time,'#9a7250');
+  // fallen log (spot 4: tail from the hollow end)
+  ctx.fillStyle='#8a6242';
+  ctx.beginPath(); ctx.roundRect? ctx.roundRect(296,496,120,30,14):ctx.rect(296,496,120,30); ctx.fill();
+  ctx.fillStyle='#5e4028';
+  ctx.beginPath(); ctx.ellipse(298,511,9,15,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#3a2c1e';
+  ctx.beginPath(); ctx.ellipse(298,511,5.5,10,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#7a5436'; ctx.lineWidth=1.6;
+  ctx.beginPath(); ctx.moveTo(320,502); ctx.lineTo(400,502); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(330,518); ctx.lineTo(408,518); ctx.stroke();
+  // mushrooms on the log
+  ctx.fillStyle='#d96a5a';
+  ctx.beginPath(); ctx.arc(370,494,6,Math.PI,0); ctx.fill();
+  ctx.fillStyle='#f5f2ea'; ctx.fillRect(368,494,4,6);
+  peekI(4,time);
+  // ferns (spot 7: ears among the fronds)
+  peekI(7,time);
+  const fsw=Math.sin(time*0.0018)*3;
+  ctx.strokeStyle='#4f8a3f'; ctx.lineWidth=2;
+  for(let i=0;i<7;i++){
+    const fx=210+i*9, fh=30+((i*11)%16);
+    ctx.beginPath(); ctx.moveTo(fx,480); ctx.quadraticCurveTo(fx+fsw,480-fh*0.6,fx+fsw*1.5,480-fh); ctx.stroke();
+    for(let k=1;k<4;k++){
+      const t=k/4, lx=lerp(fx,fx+fsw*1.5,t), ly=lerp(480,480-fh,t);
+      ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx-7+fsw*0.4,ly-4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx+7+fsw*0.4,ly-5); ctx.stroke();
+    }
+  }
+  // berry patch (spot 3: ears deep in it)
+  peekI(3,time);
+  bush(816,494,time,{berry:'#6a4ac0', s:0.9});
+  bush(866,502,time,{a:'#457a40', berry:'#d9486a', s:0.75});
+  // beehive box (spot 8: ears behind)
+  peekI(8,time);
+  ctx.fillStyle='#f0e8d0';
+  ctx.fillRect(538,516,44,26);
+  ctx.fillStyle='#e0d4b8'; ctx.fillRect(534,510,52,9);
+  ctx.fillStyle='#c8b890'; ctx.fillRect(534,538,52,7);
+  ctx.fillStyle='#3a3028'; ctx.fillRect(554,532,12,5);
+  // honey picnic gathering + Nana
+  ctx.save(); ctx.translate(150,545);
+  ctx.fillStyle='#e8c86a';
+  ctx.beginPath(); ctx.moveTo(-95,0); ctx.lineTo(95,-14); ctx.lineTo(135,38); ctx.lineTo(-60,52); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.65)'; ctx.lineWidth=3;
+  for(let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(-80+i*38,-5+i); ctx.lineTo(-45+i*38,48); ctx.stroke(); }
+  // honey pot + berry pie
+  ctx.fillStyle='#c8845a';
+  ctx.beginPath(); ctx.moveTo(40,4); ctx.quadraticCurveTo(34,18,44,24); ctx.lineTo(62,24); ctx.quadraticCurveTo(72,18,66,4); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#f0b04a'; ctx.beginPath(); ctx.ellipse(53,6,13,4,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#e8b87a'; ctx.beginPath(); ctx.ellipse(96,22,16,7,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#8a4a9a'; ctx.beginPath(); ctx.ellipse(96,20,11,4.5,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+  nana(88,538,time,p,{top:'#c8a2b8', skirt:'#7aa86a'});
+  butterfly(time,0); butterfly(time+5000,1);
+}
 function drawSprite(sp,time){
   if(sp.phase==='walk'){
     const t=clamp((nowMs()-sp.t0)/sp.dur,0,1);
@@ -738,7 +1918,7 @@ function drawSprite(sp,time){
     if(t>=1){ sp.phase='party'; sp.x=sp.tx; sp.y=sp.ty; }
     drawCatFull(ctx, sp.cat, sp.x, sp.y, 1, sp.tx>sp.x?1:-1, time);
   } else {
-    const facing = sp.x>BLANKET.x-60? -1:1;   // gaze toward Nana
+    const facing = sp.x>GATHER().x-60? -1:1;   // gaze toward Nana
     drawCatFull(ctx, sp.cat, sp.x, sp.y, 1, facing, time);
     if(S.complete && Math.sin(time*0.001+sp.x)>0.93) heart(sp.x, sp.y-38, 3.4, '#e87a9a');
   }
@@ -760,7 +1940,7 @@ function banner(t,time){
   ctx.beginPath(); ctx.roundRect? ctx.roundRect(sx-170,sy-24,340,48,12):ctx.rect(sx-170,sy-24,340,48);
   ctx.fill(); ctx.stroke();
   ctx.fillStyle='#b06a3a'; ctx.font='bold 21px Georgia'; ctx.textAlign='center';
-  ctx.fillText('Happy Birthday, Nana Plum! 🎂', sx, sy+7);
+  ctx.fillText(LV().bannerText, sx, sy+7);
 }
 function sparkleStars(x,y,time){
   for(let i=0;i<5;i++){
@@ -903,10 +2083,23 @@ function sfx(kind){
 function $(id){ return (typeof document!=='undefined')? document.getElementById(id):null; }
 function updateUI(){
   if(typeof document==='undefined') return;
+  const lvlBox=$('levels');
+  if(lvlBox && typeof document.createElement==='function'){
+    lvlBox.innerHTML='';
+    LEVELS.forEach((L,i)=>{
+      const d=document.createElement('div');
+      const locked=i>=S.unlocked;
+      d.className='lvl'+(i===S.level?' active':'')+(locked?' locked':'')+(S.beaten.includes(L.id)?' done':'');
+      d.textContent=L.emoji;
+      d.title=locked? '??? — finish another adventure to unlock this one' : L.name;
+      if(!locked) d.onclick=()=>{ ensureAudio(); if(i!==S.level) setLevel(i); };
+      lvlBox.appendChild(d);
+    });
+  }
   const pawBox=$('paws');
   if(pawBox && typeof document.createElement==='function'){
     pawBox.innerHTML='';
-    SPOTS.forEach((sp,i)=>{
+    SP().forEach((sp,i)=>{
       const d=document.createElement('div');
       d.className='paw'+(S.found[i]?' found':'');
       d.textContent='🐾';
@@ -920,7 +2113,7 @@ function updateUI(){
     });
   }
   const pt=$('progressTxt');
-  if(pt) pt.textContent = S.complete? '🎉 everyone is here!' : `${foundCount()} / ${SPOTS.length} friends found`;
+  if(pt) pt.textContent = S.complete? '🎉 everyone is here!' : `${foundCount()} / ${SP().length} friends found`;
   const hb=$('hintBtn');
   if(hb){
     const left=Math.ceil((S.hintReadyAt-nowMs())/1000);
@@ -930,14 +2123,14 @@ function updateUI(){
 }
 function showCatCard(cat, revisit){
   const o=$('overlay'); if(!o){ S.lastCard=cat.name; return; }
-  const all=foundCount()===SPOTS.length;
+  const all=foundCount()===SP().length;
   $('card').innerHTML=`
     <div id="portraitWrap"><canvas id="portrait" width="150" height="150"></canvas></div>
     <h2>${cat.name}</h2>
     <div class="title">${cat.title}</div>
-    <p>${cat.story}</p>
+    <p>${storyFor(cat)}</p>
     <div class="fact"><b>A true cat fact:</b> ${cat.fact}</div>
-    <button onclick="CF.closeCard()">${all && !revisit? 'To the party! 🎉' : revisit? 'Back to the meadow 🐾' : 'Keep looking 🐾'}</button>`;
+    <button onclick="CF.closeCard()">${all && !revisit? 'To the party! 🎉' : revisit? 'Back to the search 🐾' : 'Keep looking 🐾'}</button>`;
   o.classList.add('show');
   S.lastCard=cat.name;
   const pc=$('portrait');
@@ -961,28 +2154,47 @@ function closeCard(){
 function showFinale(){
   if(!S.complete) return;
   const o=$('overlay'); if(!o) return;
+  const L=LV();
+  const allDone=LEVELS.every(l=>S.beaten.includes(l.id));
+  const ni=LEVELS.findIndex((l,i)=>i!==S.level && i<S.unlocked && !S.beaten.includes(l.id));
+  const nextBtn = ni<0? '' : `<button onclick="CF.next(${ni})">Next adventure — ${LEVELS[ni].emoji} ${LEVELS[ni].name} ➜</button>`;
+  const crown = allDone? `<p style="text-align:center;">👑 <b>You've finished every adventure!</b> The whole atlas of friends has been found — all the locals, all the stories, all the naps. The cats are very proud of you. (They're planning more trips. They won't say where.)</p>` : '';
   $('card').innerHTML=`
-    <h2>🎂 Surprise!</h2>
-    <div class="title">So that's why they were hiding...</div>
-    <p>The cats weren't lost at all — they were waiting for the signal. Today is <b>Nana Plum's birthday</b>, and not one of her nine friends forgot. As the sun melts into the pond, the kettle sings, the cake is cut (Waffles inspects it, out of loyalty), and nine warm little bodies settle around the blanket like the happiest constellation.</p>
+    <h2>${L.finale.title}</h2>
+    <div class="title">${L.finale.sub}</div>
+    <p>${L.finale.text}</p>
     <p style="text-align:center; font-style:italic; color:#9a7a5a;">You found every friend in ${S.clicks} click${S.clicks===1?'':'s'}${S.hintsUsed? ` with ${S.hintsUsed} sparkle${S.hintsUsed===1?'':'s'} of help`:''}. 🐾</p>
-    <button onclick="CF.stay()">Stay at the picnic 🌅</button>
+    ${crown}
+    ${nextBtn}
+    <button onclick="CF.stay()">Stay a while 🌅</button>
     <button onclick="CF.again()">Play again — new hiding spots 🔄</button>`;
+  o.classList.add('show');
+}
+function levelIntro(){
+  const o=$('overlay'); if(!o) return;
+  const L=LV();
+  $('card').innerHTML=`
+    <h2>${L.emoji} ${L.name}</h2>
+    <div class="title">adventure ${S.level+1} of ${LEVELS.length}</div>
+    <p>${L.intro}</p>
+    <button onclick="CF.closeCard()">Start looking 🐱</button>`;
   o.classList.add('show');
 }
 const CF={
   closeCard,
   stay(){ const o=$('overlay'); if(o) o.classList.remove('show'); },
   again(){ const o=$('overlay'); if(o) o.classList.remove('show'); newGame(); },
+  next(i){ const o=$('overlay'); if(o) o.classList.remove('show'); setLevel(i===undefined? S.level+1 : i); },
   intro(){
     const o=$('overlay'); if(!o) return;
     $('card').innerHTML=`
       <h2>🐾 Cat Finder</h2>
       <div class="title">a very gentle hidden-cat game</div>
       <ul class="rules">
-        <li><b>Nine cats</b> are hiding around Nana Plum's cottage — watch for a flick of a tail, the tips of two ears, a pair of eyes in a window.</li>
+        <li><b>Nine cats</b> are hiding in every scene — watch for a flick of a tail, the tips of two ears, a pair of eyes in a window.</li>
         <li><b>Click a cat</b> to meet them: every cat has a name, a story, and a true cat fact to share.</li>
-        <li>Found cats trot over to the picnic blanket. They seem to be... waiting for something?</li>
+        <li>Found cats trot over to the gathering spot. They always seem to be... waiting for something?</li>
+        <li>There are ${LEVELS.length} adventures, from the cottage meadow to the far north — the first three are open right away, and every adventure you finish unlocks another. New places mean new local cats to meet.</li>
         <li>Stuck? The <b>✨ Hint</b> button gives a little sparkle of whisker-sense.</li>
         <li>No timer. No score. Just sunshine. ☀️</li>
       </ul>
@@ -1018,13 +2230,16 @@ function boot(){
   $('sfxBtn').addEventListener('click', ()=>{ ensureAudio(); S.sfxOn=!S.sfxOn; $('sfxBtn').textContent=S.sfxOn?'🔊':'🔇'; });
   document.addEventListener('keydown', ev=>{ if(ev.key==='Escape') CF.stay(); });
   setInterval(updateUI, 600);     // keeps the hint cooldown label fresh
-  newGame();
+  loadProgress();
+  setLevel(0,false);
   CF.intro();
   (function loop(t){ draw(t||0); requestAnimationFrame(loop); })(0);
 }
 
 // expose for tests + onclick
-const API={S, newGame, clickAt, hint, foundCount, CATS, SPOTS, catAtSpot, drawCatFull, closeCard, showCatCard, BLANKET};
+const API={S, newGame, clickAt, hint, foundCount, CATS, GUESTS, LEVELS, SPOTS:SPOTS_COTTAGE, SP, setLevel, loadProgress,
+  catAtSpot, storyFor, drawCatFull, closeCard, showCatCard, BLANKET, GATHER,
+  _setCtx(c){ ctx=c; }, draw};
 if(typeof globalThis!=='undefined'){ globalThis.CFG=API; globalThis.CF=CF; }
 if(typeof document!=='undefined' && !IS_TEST){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);

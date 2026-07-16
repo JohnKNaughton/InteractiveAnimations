@@ -15,7 +15,9 @@
       "Read(//c/Users/jknau/AppData/Roaming/SlayTheSpire2/steam/76561198018706944/profile1/saves/**)",
       "Bash(Get-Content \"C:\\\\Users\\\\jknau\\\\AppData\\\\Roaming\\\\SlayTheSpire2\\\\steam\\\\76561198018706944\\\\profile1\\\\saves\\\\history\\\\1780314777.run\")",
       "Bash(ConvertFrom-Json)",
-      "Bash(ConvertTo-Json -Depth 2)"
+      "Bash(ConvertTo-Json -Depth 2)",
+      "PowerShell(node \"C:\\\\Users\\\\jknau\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-jknau-OneDrive-Desktop-InteractiveAnimations\\\\c1b96c7a-3051-4ddf-86ac-9e962679205e\\\\scratchpad\\\\cf_smoke.js\")",
+      "PowerShell($cands = @\\(\"$env:ProgramFiles\\\\nodejs\\\\node.exe\", \"${env:ProgramFiles\\(x86\\)}\\\\nodejs\\\\node.exe\", \"$env:LOCALAPPDATA\\\\Programs\\\\node\\\\node.exe\", \"$env:APPDATA\\\\npm\\\\node.exe\"\\); foreach\\($c in $cands\\){ if\\(Test-Path $c\\){ Write-Output \"FOUND: $c\" } }; foreach\\($n in @\\('node','bun','deno'\\)\\){ try{ $p=\\(Get-Command $n -ErrorAction Stop\\).Source; Write-Output \"CMD: $n -> $p\" }catch{} })"
     ]
   }
 }
