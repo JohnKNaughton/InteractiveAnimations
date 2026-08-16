@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playoff Series Wins — The NBA 75th Anniversary Team, and Fifteen Who Missed It</title>
+<style>
+  /* ------------------------------------------------------------------
+     Two-colour letterpress on newsprint: ink-blue rules and marks,
+     orange reserved for championships. Serif throughout.
+     ------------------------------------------------------------------ */
+
+  :root {
+    color-scheme: light;
+    --page:           #ebe3d4;
+    --surface-1:      #f7f2e7;
+    --text-primary:   #17150f;
+    --text-secondary: #57503f;
+    --text-muted:     #7a7261;
+    --grid:           #ddd4bf;
+    --axis:           #c4b99f;
+    --border:         #cfc4a9;
+    --hover:          rgba(30,60,92,0.07);
+
+    /* depth of a postseason run: 1st series won -> 4th */
+    --run-1: #8fa8bf;
+    --run-2: #67879f;
+    --run-3: #3d6183;
+    --run-4: #1e3c5c;
+    /* the one colour that means "champion" */
+    --title:  #c04a2b;
+    --deemph: #cfc5ad;
+    /* the two kinds of nothing */
+    --exit-r1: #c2b79c;   /* made the playoffs, lost in round one */
+    --missed:  #4a4438;   /* did not make the playoffs */
+
+    --cat-1: #2a78d6;
+    --cat-2: #eb6834;
+    --cat-3: #1baf7a;
+    --cat-4: #eda100;
+    --cat-5: #e87ba4;
+    --cat-6: #008300;
+    --cat-7: #4a3aa7;
+    --cat-8: #e34948;
+
+    --serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino,
+             "Book Antiqua", "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:           #121009;
+      --surface-1:      #1d1a15;
+      --text-primary:   #f6f1e4;
+      --text-secondary: #b8b0a0;
+      --text-muted:     #97907f;
+      --grid:           #332e24;
+      --axis:           #453f31;
+      --border:         #3b3529;
+      --hover:          rgba(156,188,217,0.09);
+
+      --run-1: #31567a;
+      --run-2: #41698f;
+      --run-3: #6190b6;
+      --run-4: #9cbcd9;
+      --title:  #d86244;
+      --deemph: #3a352a;
+      /* inverted for the dark surface: "missed" stays the marked state */
+      --exit-r1: #3f3a2e;
+      --missed:  #857d6a;
+
+      --cat-1: #3987e5;
+      --cat-2: #d95926;
+      --cat-3: #199e70;
+      --cat-4: #c98500;
+      --cat-5: #d55181;
+      --cat-6: #008300;
+      --cat-7: #9085e9;
+      --cat-8: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:           #121009;
+    --surface-1:      #1d1a15;
+    --text-primary:   #f6f1e4;
+    --text-secondary: #b8b0a0;
+    --text-muted:     #97907f;
+    --grid:           #332e24;
+    --axis:           #453f31;
+    --border:         #3b3529;
+    --hover:          rgba(156,188,217,0.09);
+
+    --run-1: #31567a;
+    --run-2: #41698f;
+    --run-3: #6190b6;
+    --run-4: #9cbcd9;
+    --title:  #d86244;
+    --deemph: #3a352a;
+    /* inverted for the dark surface: "missed" stays the marked state */
+    --exit-r1: #3f3a2e;
+    --missed:  #857d6a;
+
+    --cat-1: #3987e5;
+    --cat-2: #d95926;
+    --cat-3: #199e70;
+    --cat-4: #c98500;
+    --cat-5: #d55181;
+    --cat-6: #008300;
+    --cat-7: #9085e9;
+    --cat-8: #e66767;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+    padding: 28px 22px 72px;
+  }
+
+  .wrap { max-width: 1020px; margin: 0 auto; }
+
+  /* ---------- controls ---------- */
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 22px;
+    margin: 22px 0 0;
+  }
+  .ctl { display: flex; flex-direction: column; gap: 4px; }
+  .ctl > label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--text-muted);
+  }
+  select, input[type="search"], button.tgl {
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--text-primary);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--axis);
+    border-radius: 0;
+    padding: 5px 2px;
+    min-height: 30px;
+  }
+  select { padding-right: 18px; }
+  input[type="search"] { width: 180px; }
+  input[type="search"]::placeholder { color: var(--text-muted); font-style: italic; }
+  button.tgl { cursor: pointer; border-bottom-style: dotted; }
+  button.tgl[aria-pressed="true"] {
+    border-bottom: 2px solid var(--title);
+    color: var(--title);
+  }
+  select:focus-visible, input:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--title);
+    outline-offset: 3px;
+  }
+
+  /* ---------- sections ---------- */
+
+  section { margin-top: 46px; }
+  section:first-of-type { margin-top: 0; }
+  h2 {
+    font-size: 1.45rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    margin-bottom: 5px;
+  }
+  .section-note {
+    color: var(--text-secondary);
+    font-size: 14.5px;
+    margin-bottom: 20px;
+    max-width: 66ch;
+  }
+
+  .chart-card {
+    border-top: 2px solid var(--text-primary);
+    border-bottom: 2px solid var(--text-primary);
+    padding: 0 0 6px;
+    overflow-x: auto;
+  }
+
+  .axis-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--page);
+    border-bottom: 1px solid var(--axis);
+    padding-top: 9px;
+  }
+
+  .rowgrid { min-width: max-content; }
+
+  .prow {
+    display: grid;
+    grid-template-columns: var(--name-w) var(--tot-w) max-content;
+    align-items: center;
+    column-gap: 0;
+    padding: 0 4px;
+  }
+  .prow.body { cursor: pointer; }
+  .prow.body + .prow.body { border-top: 1px solid var(--grid); }
+  .prow.body:hover { background: var(--hover); }
+  .prow.body.sel { background: var(--hover); }
+
+  .rank {
+    color: var(--text-muted);
+    font-size: 12px;
+    width: 26px;
+    display: inline-block;
+  }
+  .pname {
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 10px;
+  }
+  .prow.body.sel .pname { font-weight: 700; }
+  .pname .dagger {
+    color: var(--title);
+    margin-left: 3px;
+    font-size: 13px;
+  }
+  .pname .cue {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 999px;
+    margin-left: 7px;
+    vertical-align: 1px;
+  }
+  .ptot {
+    font-size: 15px;
+    color: var(--text-secondary);
+    text-align: right;
+    padding-right: 16px;
+  }
+  .ptot b { color: var(--text-primary); font-weight: 700; }
+  .ptot .rings { color: var(--title); }
+
+  .hdr-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.13em;
+    color: var(--text-muted);
+  }
+  .hdr-label.r { text-align: right; padding-right: 16px; }
+
+  svg { display: block; }
+  svg text { font-family: var(--serif); }
+
+  .empty-note {
+    padding: 26px 4px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ---------- tooltip ---------- */
+
+  #tip {
+    position: fixed;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .09s;
+    background: var(--surface-1);
+    border: 1px solid var(--text-primary);
+    box-shadow: 3px 3px 0 rgba(30,60,92,0.16);
+    padding: 10px 13px;
+    max-width: 268px;
+    font-size: 13.5px;
+    line-height: 1.45;
+  }
+  #tip .t-val { font-size: 17px; }
+  #tip .t-sub { color: var(--text-secondary); }
+  #tip .t-res { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--grid); }
+  #tip .t-res .key {
+    display: inline-block;
+    width: 14px; height: 4px;
+    vertical-align: middle;
+    margin-right: 7px;
+  }
+
+  /* ---------- comparison ---------- */
+
+  .cmp-wrap {
+    border-top: 2px solid var(--text-primary);
+    border-bottom: 2px solid var(--text-primary);
+    padding: 18px 0;
+    overflow-x: auto;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 14px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--serif);
+    font-size: 14px;
+    padding: 3px 10px 4px;
+    border: 1px solid var(--grid);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .chip .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--deemph); }
+  .chip[aria-pressed="true"] { color: var(--text-primary); border-color: var(--text-secondary); }
+  .cmp-hint { font-size: 13.5px; color: var(--text-muted); margin-bottom: 14px; font-style: italic; }
+
+  /* ---------- table ---------- */
+
+  .tablewrap { overflow-x: auto; border-top: 2px solid var(--text-primary); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  caption {
+    text-align: left; color: var(--text-secondary);
+    padding: 10px 0; font-size: 13.5px; font-style: italic;
+  }
+  th, td { padding: 7px 14px 7px 0; border-bottom: 1px solid var(--grid); text-align: left; white-space: nowrap; }
+  thead th { border-bottom: 1px solid var(--axis); }
+  th {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.11em;
+    color: var(--text-muted); font-weight: 400;
+  }
+  td.num, th.num { text-align: right; }
+  td.teams { white-space: normal; color: var(--text-secondary); min-width: 210px; }
+  tbody tr:hover { background: var(--hover); }
+
+  /* ---------- footer ---------- */
+
+  footer.method {
+    margin-top: 52px;
+    padding-top: 20px;
+    border-top: 2px solid var(--text-primary);
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    max-width: 74ch;
+    columns: 2;
+    column-gap: 34px;
+  }
+  footer.method p { margin-bottom: 11px; break-inside: avoid; }
+  footer.method strong { color: var(--text-primary); font-weight: 700; }
+
+  .sr {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  @media (max-width: 760px) {
+    body { padding: 22px 16px 56px; }
+    footer.method { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section aria-labelledby="h-ranked">
+    <h2 id="h-ranked">NBA Career Skylines - Playoff Series Wins Visualized</h2>
+    <p class="section-note" id="rankNote"></p>
+    <div class="chart-card">
+      <div class="axis-head" id="axisHead"></div>
+      <div class="rowgrid" id="rows"></div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="rosterSel">Roster</label>
+        <select id="rosterSel">
+          <option value="all">All 100 players</option>
+          <option value="official">Official 76 only</option>
+        </select>
+      </div>
+      <div class="ctl">
+        <label for="sortSel">Order</label>
+        <select id="sortSel">
+          <option value="total">Series won (most first)</option>
+          <option value="titles">Championships</option>
+          <option value="rate">Series won per season</option>
+          <option value="debut">Debut season</option>
+          <option value="name">Name (A–Z)</option>
+        </select>
+      </div>
+      <div class="ctl">
+        <label for="alignSel">Timeline</label>
+        <select id="alignSel">
+          <option value="calendar">Calendar seasons (1949–2026)</option>
+          <option value="career">Aligned by career year</option>
+        </select>
+      </div>
+      <div class="ctl">
+        <label for="q">Find a player</label>
+        <input type="search" id="q" placeholder="e.g. Duncan" autocomplete="off">
+      </div>
+      <div class="ctl">
+        <label for="tblBtn">Data</label>
+        <button class="tgl" id="tblBtn" aria-pressed="false">Show table</button>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-cmp">
+    <h2 id="h-cmp">Stacked head to head</h2>
+    <p class="section-note">
+      The same careers laid on top of one another, counted from each player's first season:
+      cumulative series won against career year. Click any name above, or a chip below, to
+      add or drop a line (up to eight).
+    </p>
+    <div class="cmp-wrap">
+      <div class="chips" id="chips"></div>
+      <p class="cmp-hint" id="cmpHint"></p>
+      <div id="cmpChart"></div>
+    </div>
+  </section>
+
+  <section id="tableSec" aria-labelledby="h-tbl" hidden>
+    <h2 id="h-tbl">Table view</h2>
+    <div class="tablewrap">
+      <table id="tbl">
+        <caption>Every value in the charts above, in full.</caption>
+        <thead>
+          <tr>
+            <th class="num">#</th>
+            <th>Player</th>
+            <th class="num">Series won</th>
+            <th class="num">Titles</th>
+            <th class="num">Finals</th>
+            <th class="num">Seasons</th>
+            <th class="num">Playoff yrs</th>
+            <th>Career</th>
+            <th>Teams</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="method">
+    <p>
+      <strong>Who.</strong> The NBA 75th Anniversary Team, announced in October 2021 — 76 players
+      rather than 75, because a tie in the voting was left unbroken.
+    </p>
+    <p>
+      <strong>† The twenty-four additions.</strong> Everyone carrying a dagger was left off
+      that team, and they are here for three different reasons. Most are the perennially
+      argued omissions: Dwight Howard, Tracy McGrady, Chris Webber, Vince Carter, Alex
+      English, Bernard King, Sidney Moncrief, Dennis Johnson, Bob Lanier, Manu Ginóbili,
+      Tony Parker, Pau Gasol, Ben Wallace, Draymond Green, Chauncey Billups and Grant Hill.
+      Four built their case largely after the 2021 voting closed — Nikola Jokić, Jayson
+      Tatum, Luka Dončić and Joel Embiid. The rest are here because a chart about playoff
+      series is incomplete without them: Robert Horry and Tom Heinsohn, who between them
+      own fifteen championships, plus Klay Thompson and Jimmy Butler.
+    </p>
+    <p>
+      Who belongs on such a list is an argument, not a fact. The dagger keeps the official
+      team recoverable, and the roster control drops all twenty-four if you want the
+      seventy-six exactly as voted.
+    </p>
+    <p>
+      <strong>What counts.</strong> A playoff series won by the team a player was on that
+      season. Seasons are labelled by the year the playoffs were played, so 1996–97 appears
+      as 1997. Nothing here is entered per player: each player's stack for a season is read
+      off that season's bracket via the team he finished the year with, so two teammates can
+      never disagree about a season.
+    </p>
+    <p>
+      <strong>Credit follows the roster, not the minutes.</strong> A player on a title team
+      gets the run whether he starred in it, came off the bench, or watched it injured — so
+      Patrick Ewing keeps New York's 1999 Finals run and Elgin Baylor's 1972 title, won after
+      he retired nine games into the season, is not counted, because he was not on the
+      playoff roster. Mid-season trades are credited to the team a player finished on.
+      ABA seasons are excluded; the league's own record books do the same.
+    </p>
+    <p>
+      <strong>Why the towers are shorter before 1984.</strong> The bracket has not always been
+      four rounds. Through 1983 the best teams often had first-round byes, so a title could be
+      won in two or three series — Minneapolis won the 1954 championship in two. The
+      orange cap marks the title regardless of how many rounds it took, and the faint
+      rule at 1984 in each row marks where the format settled.
+    </p>
+  </footer>
+
+</div>
+
+<div id="tip" role="tooltip" aria-hidden="true"></div>
+
+<script>
+(function () {
+"use strict";
+
+/* ==========================================================================
+   1. DATA
+   Two small tables plus each player's team stints. Everything a player's row
+   shows is derived by crossing his team-year against the bracket below.
+   ========================================================================== */
+
+var TEAMS = {
+  MPL:"Minneapolis Lakers", LAL:"Los Angeles Lakers", WSC:"Washington Capitols",
+  NYK:"New York Knicks", ROC:"Rochester Royals", SYR:"Syracuse Nationals",
+  AND:"Anderson Packers", FTW:"Fort Wayne Pistons", INO:"Indianapolis Olympians",
+  BOS:"Boston Celtics", PHW:"Philadelphia Warriors", SFW:"San Francisco Warriors",
+  GSW:"Golden State Warriors", STL:"St. Louis Hawks", ATL:"Atlanta Hawks",
+  DET:"Detroit Pistons", CIN:"Cincinnati Royals", KCK:"Kansas City Kings",
+  SAC:"Sacramento Kings", PHI:"Philadelphia 76ers", WSB:"Washington Bullets / Wizards",
+  MIL:"Milwaukee Bucks", CHI:"Chicago Bulls", PHO:"Phoenix Suns",
+  POR:"Portland Trail Blazers", SEA:"Seattle SuperSonics", OKC:"Oklahoma City Thunder",
+  HOU:"Houston Rockets", SDR:"San Diego Rockets", BUF:"Buffalo Braves",
+  SDC:"San Diego Clippers", LAC:"Los Angeles Clippers", SAS:"San Antonio Spurs",
+  DEN:"Denver Nuggets", UTA:"Utah Jazz", NOJ:"New Orleans Jazz", NYN:"New York Nets",
+  NJN:"New Jersey Nets", BRK:"Brooklyn Nets", CLE:"Cleveland Cavaliers",
+  DAL:"Dallas Mavericks", MIA:"Miami Heat", ORL:"Orlando Magic",
+  MIN:"Minnesota Timberwolves", TOR:"Toronto Raptors", MEM:"Memphis Grizzlies",
+  CHH:"Charlotte Hornets", CHA:"Charlotte Bobcats", NOH:"New Orleans Hornets",
+  NOP:"New Orleans Pelicans", IND:"Indiana Pacers"
+};
+
+/* Teams that won at least one playoff series, and how many. An absent team is 0.
+   1949-1983 brackets vary in size (byes were common); 1984 onward is always
+   eight teams with the signature 4-3-2-2-1-1-1-1. */
+var SERIES_RAW = {
+1949:"MPL3 WSC2 NYK1 ROC1",
+1950:"MPL4 SYR2 AND2 NYK1 FTW1 INO1",
+1951:"ROC3 NYK2 SYR1 MPL1",
+1952:"MPL3 NYK2 SYR1 ROC1",
+1953:"MPL3 NYK2 BOS1 FTW1",
+1954:"MPL2 SYR1 BOS1 ROC1",
+1955:"SYR2 BOS1 FTW1 MPL1",
+1956:"PHW2 FTW1 SYR1 STL1",
+1957:"BOS2 STL1 SYR1 MPL1",
+1958:"STL2 BOS1 PHW1 DET1",
+1959:"BOS2 MPL2 SYR1",
+1960:"BOS2 STL2 PHW1 MPL1",
+1961:"BOS2 STL1 SYR1 LAL1",
+1962:"BOS2 LAL2 PHW1 DET1",
+1963:"BOS2 LAL1 CIN1 STL1",
+1964:"BOS2 SFW1 CIN1 STL1",
+1965:"BOS2 LAL1 PHI1 WSB1",
+1966:"BOS3 LAL1 STL1",
+1967:"PHI3 SFW2 BOS1 STL1",
+1968:"BOS3 LAL2 PHI1 SFW1",
+1969:"BOS3 LAL2 NYK1 ATL1",
+1970:"NYK3 LAL2 MIL1 ATL1",
+1971:"MIL3 WSB2 NYK1 LAL1",
+1972:"LAL3 NYK2 BOS1 MIL1",
+1973:"NYK3 LAL2 BOS1 GSW1",
+1974:"BOS3 MIL2 NYK1 CHI1",
+1975:"GSW3 WSB2 BOS1 CHI1 HOU1 SEA1",
+1976:"BOS3 PHO2 CLE1 GSW1 BUF1 DET1",
+1977:"POR4 PHI2 HOU1 LAL1 GSW1 BOS1 WSB1",
+1978:"WSB4 SEA3 PHI1 DEN1 NYK1 MIL1",
+1979:"SEA3 WSB2 PHO2 SAS1 PHI1 ATL1 LAL1",
+1980:"LAL3 PHI3 SEA2 BOS1 PHO1 HOU1",
+1981:"HOU3 BOS2 KCK2 PHI2 CHI1",
+1982:"LAL3 PHI3 BOS1 SAS1 SEA1 PHO1 WSB1",
+1983:"PHI3 LAL2 MIL1 SAS1 BOS1 NYK1 POR1 DEN1",
+1984:"BOS4 LAL3 MIL2 PHO2 NYK1 NJN1 DAL1 UTA1",
+1985:"LAL4 BOS3 DEN2 PHI2 POR1 UTA1 DET1 MIL1",
+1986:"BOS4 HOU3 MIL2 LAL2 ATL1 PHI1 DEN1 DAL1",
+1987:"LAL4 BOS3 SEA2 DET2 GSW1 HOU1 MIL1 ATL1",
+1988:"LAL4 DET3 DAL2 BOS2 UTA1 DEN1 ATL1 CHI1",
+1989:"DET4 LAL3 CHI2 PHO2 MIL1 NYK1 SEA1 GSW1",
+1990:"DET4 POR3 CHI2 PHO2 NYK1 PHI1 SAS1 LAL1",
+1991:"CHI4 LAL3 DET2 POR2 PHI1 BOS1 GSW1 UTA1",
+1992:"CHI4 POR3 CLE2 UTA2 NYK1 BOS1 SEA1 PHO1",
+1993:"CHI4 PHO3 NYK2 SEA2 CLE1 CHH1 SAS1 HOU1",
+1994:"HOU4 NYK3 IND2 UTA2 CHI1 ATL1 PHO1 DEN1",
+1995:"HOU4 ORL3 IND2 SAS2 CHI1 NYK1 PHO1 LAL1",
+1996:"CHI4 SEA3 ORL2 UTA2 NYK1 ATL1 HOU1 SAS1",
+1997:"CHI4 UTA3 MIA2 HOU2 ATL1 NYK1 LAL1 SEA1",
+1998:"CHI4 UTA3 IND2 LAL2 CHH1 NYK1 SEA1 SAS1",
+1999:"SAS4 NYK3 POR2 IND2 LAL1 UTA1 ATL1 PHI1",
+2000:"LAL4 IND3 POR2 NYK2 PHO1 UTA1 MIA1 PHI1",
+2001:"LAL4 PHI3 SAS2 MIL2 SAC1 DAL1 TOR1 CHH1",
+2002:"LAL4 NJN3 SAC2 BOS2 SAS1 DAL1 DET1 CHH1",
+2003:"SAS4 NJN3 DAL2 DET2 LAL1 SAC1 PHI1 BOS1",
+2004:"DET4 LAL3 IND2 MIN2 NJN1 MIA1 SAS1 SAC1",
+2005:"SAS4 DET3 PHO2 MIA2 SEA1 DAL1 IND1 WSB1",
+2006:"MIA4 DAL3 DET2 PHO2 NJN1 CLE1 SAS1 LAC1",
+2007:"SAS4 CLE3 UTA2 DET2 PHO1 GSW1 NJN1 CHI1",
+2008:"BOS4 LAL3 DET2 SAS2 CLE1 ORL1 UTA1 NOH1",
+2009:"LAL4 ORL3 DEN2 CLE2 HOU1 DAL1 BOS1 ATL1",
+2010:"LAL4 BOS3 PHO2 ORL2 UTA1 SAS1 CLE1 ATL1",
+2011:"DAL4 MIA3 OKC2 CHI2 LAL1 MEM1 BOS1 ATL1",
+2012:"MIA4 OKC3 BOS2 SAS2 IND1 PHI1 LAL1 LAC1",
+2013:"MIA4 SAS3 IND2 MEM2 CHI1 NYK1 GSW1 OKC1",
+2014:"SAS4 MIA3 OKC2 IND2 POR1 LAC1 BRK1 WSB1",
+2015:"GSW4 CLE3 HOU2 ATL2 MEM1 LAC1 CHI1 WSB1",
+2016:"CLE4 GSW3 OKC2 TOR2 POR1 SAS1 ATL1 MIA1",
+2017:"GSW4 CLE3 SAS2 BOS2 UTA1 HOU1 TOR1 WSB1",
+2018:"GSW4 CLE3 HOU2 BOS2 NOP1 UTA1 TOR1 PHI1",
+2019:"TOR4 GSW3 MIL2 POR2 PHI1 BOS1 HOU1 DEN1",
+2020:"LAL4 MIA3 DEN2 BOS2 HOU1 LAC1 MIL1 TOR1",
+2021:"MIL4 PHO3 ATL2 LAC2 BRK1 PHI1 DEN1 UTA1",
+2022:"GSW4 BOS3 DAL2 MIA2 MEM1 PHO1 MIL1 PHI1",
+2023:"DEN4 MIA3 LAL2 BOS2 PHO1 GSW1 NYK1 PHI1",
+2024:"BOS4 DAL3 IND2 MIN2 CLE1 NYK1 OKC1 DEN1",
+2025:"OKC4 IND3 MIN2 NYK2 DEN1 GSW1 BOS1 CLE1",
+2026:"NYK4 SAS3 OKC2 CLE2 DET1 PHI1 MIN1 LAL1"
+};
+
+/* Teams that MADE the playoffs and won no series. Together with SERIES_RAW above
+   this gives the full playoff field, which is what separates "lost in the first
+   round" from "missed the playoffs entirely" — SERIES alone cannot tell them
+   apart, since both show as zero. From 1984 the field is always sixteen, so
+   these lists always complete SERIES to exactly 16 teams (the verifier checks it).
+   Defunct pre-1954 franchises nobody on the list ever played for are omitted. */
+var FIRSTROUND_RAW = {
+1949:"PHW",
+1950:"PHW WSC ROC",
+1951:"PHW BOS FTW INO",
+1952:"BOS PHW INO FTW",
+1953:"SYR INO ROC",
+1954:"NYK FTW",
+1955:"NYK ROC",
+1956:"BOS MPL",
+1957:"PHW FTW",
+1958:"SYR CIN",
+1959:"NYK DET STL",
+1960:"SYR DET",
+1961:"PHW DET",
+1962:"SYR CIN",
+1963:"SYR DET",
+1964:"PHI LAL",
+1965:"CIN STL",
+1966:"CIN PHI WSB",
+1967:"CIN NYK LAL CHI",
+1968:"DET NYK CHI STL",
+1969:"WSB PHI SFW SDR",
+1970:"WSB PHI CHI PHO",
+1971:"PHI ATL SFW CHI",
+1972:"WSB ATL CHI GSW",
+1973:"WSB ATL CHI MIL",
+1974:"BUF WSB DET LAL",
+1975:"BUF NYK KCK DET",
+1976:"PHI WSB SEA MIL",
+1977:"SAS CLE DEN DET CHI",
+1978:"SAS CLE ATL POR LAL PHO",
+1979:"HOU NJN KCK DEN POR",
+1980:"ATL SAS WSB MIL KCK POR",
+1981:"MIL NYK IND PHO SAS LAL POR",
+1982:"MIL ATL NJN HOU DEN",
+1983:"NJN ATL PHO SEA",
+1984:"WSB DET ATL PHI KCK POR DEN SEA",
+1985:"CLE WSB CHI NJN PHO SAS HOU DAL",
+1986:"CHI DET NJN WSB SAS SAC POR UTA",
+1987:"CHI WSB IND PHI DEN UTA DAL POR",
+1988:"NYK WSB MIL CLE SAS POR HOU SEA",
+1989:"BOS PHI CLE ATL POR HOU UTA DEN",
+1990:"IND BOS MIL CLE HOU UTA DEN DAL",
+1991:"NYK ATL IND MIL SEA HOU SAS PHO",
+1992:"MIA DET NJN IND LAL LAC GSW SAS",
+1993:"IND ATL NJN BOS LAL UTA LAC POR",
+1994:"MIA NJN CLE ORL SEA POR SAS GSW",
+1995:"BOS ATL CLE CHH DEN UTA POR SEA",
+1996:"MIA DET CLE IND SAC POR PHO LAL",
+1997:"WSB ORL CHH DET LAC PHO MIN POR",
+1998:"NJN CLE MIA ATL HOU MIN POR PHO",
+1999:"MIA DET MIL ORL MIN PHO HOU SAC",
+2000:"MIL TOR DET CHH SAC MIN SEA SAS",
+2001:"IND ORL MIA NYK POR MIN PHO UTA",
+2002:"IND TOR PHI ORL UTA SEA POR MIN",
+2003:"ORL MIL IND NOH PHO UTA POR MIN",
+2004:"BOS NYK MIL NOH DEN DAL MEM HOU",
+2005:"NJN PHI BOS CHI MEM DEN SAC HOU",
+2006:"MIL CHI IND WSB SAC LAL DEN MEM",
+2007:"ORL WSB TOR MIA DAL LAL DEN HOU",
+2008:"ATL PHI TOR WSB DEN DAL PHO HOU",
+2009:"DET CHI PHI MIA UTA NOH POR SAS",
+2010:"CHI CHA MIL MIA OKC POR DAL DEN",
+2011:"IND PHI NYK ORL SAS NOH POR DEN",
+2012:"CHI NYK ORL ATL UTA DAL DEN MEM",
+2013:"MIL BOS ATL BRK HOU LAL DEN LAC",
+2014:"ATL CHA TOR CHI DAL MEM GSW HOU",
+2015:"BRK BOS MIL TOR NOP DAL SAS POR",
+2016:"DET IND CHA BOS HOU MEM DAL LAC",
+2017:"CHI IND MIL ATL POR MEM OKC LAC",
+2018:"WSB MIL MIA IND MIN SAS POR OKC",
+2019:"DET ORL BRK IND LAC SAS OKC UTA",
+2020:"ORL BRK PHI IND POR DAL UTA OKC",
+2021:"WSB BOS MIA NYK MEM LAL POR DAL",
+2022:"ATL BRK CHI TOR NOP MIN DEN UTA",
+2023:"MIL ATL BRK CLE MIN MEM SAC LAC",
+2024:"MIA PHI MIL ORL NOP LAL PHO LAC",
+2025:"MIA ORL DET MIL MEM HOU LAL LAC",
+2026:"ORL BOS ATL TOR PHO POR DEN HOU"
+};
+
+/* champion, runner-up */
+var FINALS = {
+1949:["MPL","WSC"],1950:["MPL","SYR"],1951:["ROC","NYK"],1952:["MPL","NYK"],
+1953:["MPL","NYK"],1954:["MPL","SYR"],1955:["SYR","FTW"],1956:["PHW","FTW"],
+1957:["BOS","STL"],1958:["STL","BOS"],1959:["BOS","MPL"],1960:["BOS","STL"],
+1961:["BOS","STL"],1962:["BOS","LAL"],1963:["BOS","LAL"],1964:["BOS","SFW"],
+1965:["BOS","LAL"],1966:["BOS","LAL"],1967:["PHI","SFW"],1968:["BOS","LAL"],
+1969:["BOS","LAL"],1970:["NYK","LAL"],1971:["MIL","WSB"],1972:["LAL","NYK"],
+1973:["NYK","LAL"],1974:["BOS","MIL"],1975:["GSW","WSB"],1976:["BOS","PHO"],
+1977:["POR","PHI"],1978:["WSB","SEA"],1979:["SEA","WSB"],1980:["LAL","PHI"],
+1981:["BOS","HOU"],1982:["LAL","PHI"],1983:["PHI","LAL"],1984:["BOS","LAL"],
+1985:["LAL","BOS"],1986:["BOS","HOU"],1987:["LAL","BOS"],1988:["LAL","DET"],
+1989:["DET","LAL"],1990:["DET","POR"],1991:["CHI","LAL"],1992:["CHI","POR"],
+1993:["CHI","PHO"],1994:["HOU","NYK"],1995:["HOU","ORL"],1996:["CHI","SEA"],
+1997:["CHI","UTA"],1998:["CHI","UTA"],1999:["SAS","NYK"],2000:["LAL","IND"],
+2001:["LAL","PHI"],2002:["LAL","NJN"],2003:["SAS","NJN"],2004:["DET","LAL"],
+2005:["SAS","DET"],2006:["MIA","DAL"],2007:["SAS","CLE"],2008:["BOS","LAL"],
+2009:["LAL","ORL"],2010:["LAL","BOS"],2011:["DAL","MIA"],2012:["MIA","OKC"],
+2013:["MIA","SAS"],2014:["SAS","MIA"],2015:["GSW","CLE"],2016:["CLE","GSW"],
+2017:["GSW","CLE"],2018:["GSW","CLE"],2019:["TOR","GSW"],2020:["LAL","MIA"],
+2021:["MIL","PHO"],2022:["GSW","BOS"],2023:["DEN","MIA"],2024:["BOS","DAL"],
+2025:["OKC","IND"],2026:["NYK","SAS"]
+};
+
+/* name | stints, each TEAM:firstSeason-lastSeason (playoff-year labelling).
+   A mid-season trade is recorded as the team the player finished the year on. */
+var PLAYERS_RAW = [
+["Kareem Abdul-Jabbar","MIL:1970-1975 LAL:1976-1989"],
+["Ray Allen","MIL:1997-2002 SEA:2003-2007 BOS:2008-2012 MIA:2013-2014"],
+["Giannis Antetokounmpo","MIL:2014-2026"],
+["Carmelo Anthony","DEN:2004-2010 NYK:2011-2017 OKC:2018-2018 HOU:2019-2019 POR:2020-2021 LAL:2022-2022"],
+["Nate Archibald","CIN:1971-1972 KCK:1973-1976 NYN:1977-1977 BUF:1978-1978 BOS:1979-1983 MIL:1984-1984"],
+["Paul Arizin","PHW:1951-1952 PHW:1955-1962"],
+["Charles Barkley","PHI:1985-1992 PHO:1993-1996 HOU:1997-2000"],
+["Rick Barry","SFW:1966-1967 GSW:1973-1978 HOU:1979-1980"],
+["Elgin Baylor","MPL:1959-1960 LAL:1961-1971"],
+["Dave Bing","DET:1967-1975 WSB:1976-1977 BOS:1978-1978"],
+["Larry Bird","BOS:1980-1992"],
+["Kobe Bryant","LAL:1997-2016"],
+["Wilt Chamberlain","PHW:1960-1962 SFW:1963-1964 PHI:1965-1968 LAL:1969-1973"],
+["Bob Cousy","BOS:1951-1963"],
+["Dave Cowens","BOS:1971-1980 MIL:1983-1983"],
+["Billy Cunningham","PHI:1966-1972 PHI:1975-1976"],
+["Stephen Curry","GSW:2010-2026"],
+["Anthony Davis","NOP:2013-2019 LAL:2020-2024 DAL:2025-2026"],
+["Dave DeBusschere","DET:1963-1968 NYK:1969-1974"],
+["Clyde Drexler","POR:1984-1994 HOU:1995-1998"],
+["Tim Duncan","SAS:1998-2016"],
+["Kevin Durant","SEA:2008-2008 OKC:2009-2016 GSW:2017-2019 BRK:2020-2022 PHO:2023-2025 HOU:2026-2026"],
+["Julius Erving","PHI:1977-1987"],
+["Patrick Ewing","NYK:1986-2000 SEA:2001-2001 ORL:2002-2002"],
+["Walt Frazier","NYK:1968-1977 CLE:1978-1980"],
+["Kevin Garnett","MIN:1996-2007 BOS:2008-2013 BRK:2014-2015 MIN:2016-2016"],
+["George Gervin","SAS:1977-1985 CHI:1986-1986"],
+["Hal Greer","SYR:1959-1963 PHI:1964-1973"],
+["James Harden","OKC:2010-2012 HOU:2013-2020 BRK:2021-2021 PHI:2022-2023 LAC:2024-2026"],
+["John Havlicek","BOS:1963-1978"],
+["Elvin Hayes","SDR:1969-1971 HOU:1972-1972 WSB:1973-1981 HOU:1982-1984"],
+["Allen Iverson","PHI:1997-2006 DEN:2007-2008 DET:2009-2009 PHI:2010-2010"],
+["LeBron James","CLE:2004-2010 MIA:2011-2014 CLE:2015-2018 LAL:2019-2026"],
+["Magic Johnson","LAL:1980-1991 LAL:1996-1996"],
+["Sam Jones","BOS:1958-1969"],
+["Michael Jordan","CHI:1985-1993 CHI:1995-1998 WSB:2002-2003"],
+["Jason Kidd","DAL:1995-1996 PHO:1997-2001 NJN:2002-2007 DAL:2008-2012 NYK:2013-2013"],
+["Kawhi Leonard","SAS:2012-2018 TOR:2019-2019 LAC:2020-2026"],
+["Damian Lillard","POR:2013-2023 MIL:2024-2025 POR:2026-2026"],
+["Jerry Lucas","CIN:1964-1969 SFW:1970-1971 NYK:1972-1974"],
+["Karl Malone","UTA:1986-2003 LAL:2004-2004"],
+["Moses Malone","HOU:1977-1982 PHI:1983-1986 WSB:1987-1988 ATL:1989-1991 MIL:1992-1993 PHI:1994-1994 SAS:1995-1995"],
+["Pete Maravich","ATL:1971-1974 NOJ:1975-1979 BOS:1980-1980"],
+["Bob McAdoo","BUF:1973-1976 NYK:1977-1978 BOS:1979-1979 DET:1980-1980 NJN:1981-1981 LAL:1982-1985 PHI:1986-1986"],
+["Kevin McHale","BOS:1981-1993"],
+["George Mikan","MPL:1949-1954 MPL:1956-1956"],
+["Reggie Miller","IND:1988-2005"],
+["Earl Monroe","WSB:1968-1971 NYK:1972-1980"],
+["Steve Nash","PHO:1997-1998 DAL:1999-2004 PHO:2005-2012 LAL:2013-2015"],
+["Dirk Nowitzki","DAL:1999-2019"],
+["Shaquille O'Neal","ORL:1993-1996 LAL:1997-2004 MIA:2005-2007 PHO:2008-2009 CLE:2010-2010 BOS:2011-2011"],
+["Hakeem Olajuwon","HOU:1985-2001 TOR:2002-2002"],
+["Robert Parish","GSW:1977-1980 BOS:1981-1994 CHH:1995-1996 CHI:1997-1997"],
+["Chris Paul","NOH:2006-2011 LAC:2012-2017 HOU:2018-2019 OKC:2020-2020 PHO:2021-2023 GSW:2024-2024 SAS:2025-2025 LAC:2026-2026"],
+["Gary Payton","SEA:1991-2002 MIL:2003-2003 LAL:2004-2004 BOS:2005-2005 MIA:2006-2007"],
+["Bob Pettit","STL:1955-1965"],
+["Paul Pierce","BOS:1999-2013 BRK:2014-2014 WSB:2015-2015 LAC:2016-2017"],
+["Scottie Pippen","CHI:1988-1998 HOU:1999-1999 POR:2000-2003 CHI:2004-2004"],
+["Willis Reed","NYK:1965-1974"],
+["Oscar Robertson","CIN:1961-1970 MIL:1971-1974"],
+["David Robinson","SAS:1990-2003"],
+["Dennis Rodman","DET:1987-1993 SAS:1994-1995 CHI:1996-1998 LAL:1999-1999 DAL:2000-2000"],
+["Bill Russell","BOS:1957-1969"],
+["Dolph Schayes","SYR:1950-1963 PHI:1964-1964"],
+["Bill Sharman","BOS:1952-1961"],
+["John Stockton","UTA:1985-2003"],
+["Isiah Thomas","DET:1982-1994"],
+["Nate Thurmond","SFW:1964-1971 GSW:1972-1974 CHI:1975-1975 CLE:1976-1977"],
+["Wes Unseld","WSB:1969-1981"],
+["Dwyane Wade","MIA:2004-2016 CHI:2017-2017 MIA:2018-2019"],
+["Bill Walton","POR:1975-1978 SDC:1980-1984 LAC:1985-1985 BOS:1986-1987"],
+["Jerry West","LAL:1961-1974"],
+["Russell Westbrook","OKC:2009-2019 HOU:2020-2020 WSB:2021-2021 LAL:2022-2022 LAC:2023-2024 DEN:2025-2025 SAC:2026-2026"],
+["Lenny Wilkens","STL:1961-1968 SEA:1969-1972 CLE:1973-1974 POR:1975-1975"],
+["Dominique Wilkins","ATL:1983-1993 LAC:1994-1994 BOS:1995-1995 SAS:1997-1997 ORL:1999-1999"],
+["James Worthy","LAL:1983-1994"]
+];
+
+/* Twenty-four who were left off the official team: the perennially cited snubs,
+   players whose case was built after the 2021 voting closed, and a few whose
+   postseason record is the whole point of a chart like this one.
+   Marked with a dagger everywhere they appear; never silently mixed in. */
+var EXTRA_RAW = [
+["Nikola Jokić","DEN:2016-2026"],
+["Dwight Howard","ORL:2005-2012 LAL:2013-2013 HOU:2014-2016 ATL:2017-2017 CHA:2018-2018 WSB:2019-2019 LAL:2020-2020 PHI:2021-2021 LAL:2022-2022"],
+["Tracy McGrady","TOR:1998-2000 ORL:2001-2004 HOU:2005-2009 NYK:2010-2010 DET:2011-2011 ATL:2012-2012 SAS:2013-2013"],
+["Chris Webber","GSW:1994-1994 WSB:1995-1998 SAC:1999-2004 PHI:2005-2006 DET:2007-2007 GSW:2008-2008"],
+["Vince Carter","TOR:1999-2004 NJN:2005-2009 ORL:2010-2010 PHO:2011-2011 DAL:2012-2014 MEM:2015-2017 SAC:2018-2018 ATL:2019-2020"],
+["Alex English","MIL:1977-1978 IND:1979-1979 DEN:1980-1990 DAL:1991-1991"],
+["Bernard King","NJN:1978-1979 UTA:1980-1980 GSW:1981-1982 NYK:1983-1987 WSB:1988-1992 NJN:1993-1993"],
+["Sidney Moncrief","MIL:1980-1989 ATL:1991-1991"],
+["Dennis Johnson","SEA:1977-1980 PHO:1981-1983 BOS:1984-1990"],
+["Bob Lanier","DET:1971-1979 MIL:1980-1984"],
+["Manu Ginóbili","SAS:2003-2018"],
+["Tony Parker","SAS:2002-2018 CHA:2019-2019"],
+["Pau Gasol","MEM:2002-2007 LAL:2008-2014 CHI:2015-2016 SAS:2017-2018 MIL:2019-2019"],
+["Ben Wallace","WSB:1997-1999 ORL:2000-2000 DET:2001-2006 CHI:2007-2007 CLE:2008-2009 DET:2010-2012"],
+["Draymond Green","GSW:2013-2026"],
+["Robert Horry","HOU:1993-1996 LAL:1997-2003 SAS:2004-2008"],
+["Tom Heinsohn","BOS:1957-1965"],
+["Klay Thompson","GSW:2012-2024 DAL:2025-2026"],
+["Jayson Tatum","BOS:2018-2026"],
+["Chauncey Billups","TOR:1998-1998 DEN:1999-2000 ORL:2001-2001 MIN:2002-2002 DET:2003-2008 DEN:2009-2010 NYK:2011-2011 LAC:2012-2013 DET:2014-2014"],
+["Jimmy Butler","CHI:2012-2017 MIN:2018-2018 PHI:2019-2019 MIA:2020-2024 GSW:2025-2026"],
+["Luka Dončić","DAL:2019-2024 LAL:2025-2026"],
+["Joel Embiid","PHI:2017-2026"],
+["Grant Hill","DET:1995-2000 ORL:2001-2007 PHO:2008-2012 LAC:2013-2013"]
+];
+
+/* ==========================================================================
+   2. DERIVE
+   ========================================================================== */
+
+var YEAR_MIN = 1949, YEAR_MAX = 2026;
+
+var SERIES = {};
+Object.keys(SERIES_RAW).forEach(function (y) {
+  var m = {};
+  SERIES_RAW[y].split(/\s+/).forEach(function (tok) {
+    if (!tok) return;
+    m[tok.slice(0, 3)] = +tok.slice(3);
+  });
+  SERIES[+y] = m;
+});
+
+function seriesWon(team, year) {
+  var m = SERIES[year];
+  return (m && m[team]) || 0;
+}
+
+/* teams that reached the playoffs but won nothing */
+var FIRSTROUND = {};
+Object.keys(FIRSTROUND_RAW).forEach(function (y) {
+  var s = {};
+  FIRSTROUND_RAW[y].split(/\s+/).forEach(function (t) { if (t) s[t] = 1; });
+  FIRSTROUND[+y] = s;
+});
+
+/* did the team play in that postseason at all? */
+function madePlayoffs(team, year) {
+  if (seriesWon(team, year) > 0) return true;
+  var s = FIRSTROUND[year];
+  return !!(s && s[team]);
+}
+
+var ALL_RAW = PLAYERS_RAW.map(function (r) { return [r[0], r[1], false]; })
+       .concat(EXTRA_RAW.map(function (r) { return [r[0], r[1], true]; }));
+
+var players = ALL_RAW.map(function (row, i) {
+  var stints = row[1].split(/\s+/).map(function (s) {
+    var parts = s.split(":");
+    var span = parts[1].split("-");
+    return { team: parts[0], from: +span[0], to: +span[1] };
+  });
+
+  var byYear = {};          // year -> { team, won, champ, finals }
+  var total = 0, titles = 0, finalsApps = 0, seasons = 0, playoffYears = 0;
+  var teamOrder = [];
+
+  stints.forEach(function (st) {
+    if (teamOrder.indexOf(st.team) === -1) teamOrder.push(st.team);
+    for (var y = st.from; y <= st.to; y++) {
+      if (byYear[y]) continue;                 // first stint listed wins a tie
+      var won = seriesWon(st.team, y);
+      var fin = FINALS[y] || [];
+      var isChamp = fin[0] === st.team;
+      var inFinals = isChamp || fin[1] === st.team;
+      byYear[y] = {
+        team: st.team, won: won, champ: isChamp, finals: inFinals,
+        made: madePlayoffs(st.team, y)
+      };
+      seasons++;
+      total += won;
+      if (won > 0) playoffYears++;
+      if (isChamp) titles++;
+      if (inFinals) finalsApps++;
+    }
+  });
+
+  var years = Object.keys(byYear).map(Number).sort(function (a, b) { return a - b; });
+
+  return {
+    id: i,
+    name: row[0],
+    snub: row[2],
+    last: row[0].split(" ").slice(1).join(" ") || row[0],
+    byYear: byYear,
+    years: years,
+    first: years[0],
+    lastYear: years[years.length - 1],
+    total: total,
+    titles: titles,
+    finalsApps: finalsApps,
+    seasons: seasons,
+    playoffYears: playoffYears,
+    teamOrder: teamOrder,
+    rate: seasons ? total / seasons : 0
+  };
+});
+
+var maxCareer = 0;
+players.forEach(function (p) {
+  var len = p.lastYear - p.first + 1;
+  if (len > maxCareer) maxCareer = len;
+});
+
+/* ==========================================================================
+   3. LAYOUT CONSTANTS
+   ========================================================================== */
+
+var BLOCK_H = 6, BLOCK_GAP = 2, MAX_STACK = 4;
+var PLOT_H = MAX_STACK * BLOCK_H + (MAX_STACK - 1) * BLOCK_GAP;   // 30
+var ROW_H = PLOT_H + 12;                                          // 42
+var COL_W = { calendar: 8, career: 26 };
+var BAR_W = { calendar: 6, career: 12 };
+var NAME_W = 256, TOT_W = 96;
+
+var RUN_FILL = ["var(--run-1)", "var(--run-2)", "var(--run-3)", "var(--run-4)"];
+
+var SVGNS = "http://www.w3.org/2000/svg";
+function el(tag, attrs) {
+  var n = document.createElementNS(SVGNS, tag);
+  for (var k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+
+var state = {
+  sort: "total",
+  align: "calendar",
+  roster: "all",     // "all" | "official"
+  query: "",
+  selected: []       // player ids, in the order added
+};
+
+/* The players currently in play — everything else reads through this. */
+function roster() {
+  return state.roster === "official"
+    ? players.filter(function (p) { return !p.snub; })
+    : players;
+}
+
+/* Hue slots follow the entity: a player keeps his hue while he stays selected. */
+var hueOf = {};
+function claimHue(id) {
+  if (hueOf[id]) return hueOf[id];
+  var used = {};
+  state.selected.forEach(function (s) { if (hueOf[s]) used[hueOf[s]] = 1; });
+  for (var n = 1; n <= 8; n++) if (!used[n]) { hueOf[id] = n; return n; }
+  return 1;
+}
+function releaseHue(id) { delete hueOf[id]; }
+
+/* ==========================================================================
+   4. RANKED SKYLINES
+   ========================================================================== */
+
+var rowsEl = document.getElementById("rows");
+var axisEl = document.getElementById("axisHead");
+
+function sortedPlayers() {
+  var list = roster().slice();
+  var cmp = {
+    total:  function (a, b) { return b.total - a.total || b.titles - a.titles || a.name.localeCompare(b.name); },
+    titles: function (a, b) { return b.titles - a.titles || b.total - a.total || a.name.localeCompare(b.name); },
+    rate:   function (a, b) { return b.rate - a.rate || b.total - a.total || a.name.localeCompare(b.name); },
+    debut:  function (a, b) { return a.first - b.first || b.total - a.total || a.name.localeCompare(b.name); },
+    name:   function (a, b) { return a.last.localeCompare(b.last) || a.name.localeCompare(b.name); }
+  }[state.sort];
+  list.sort(cmp);
+  return list;
+}
+
+function plotWidth() {
+  return state.align === "calendar"
+    ? (YEAR_MAX - YEAR_MIN + 1) * COL_W.calendar
+    : maxCareer * COL_W.career;
+}
+
+function xFor(p, year) {
+  return state.align === "calendar"
+    ? (year - YEAR_MIN) * COL_W.calendar
+    : (year - p.first) * COL_W.career;
+}
+
+function buildAxis() {
+  axisEl.textContent = "";
+  var w = plotWidth();
+  var head = document.createElement("div");
+  head.className = "prow";
+  head.style.setProperty("--name-w", NAME_W + "px");
+  head.style.setProperty("--tot-w", TOT_W + "px");
+
+  var a = document.createElement("div");
+  a.className = "hdr-label";
+  a.textContent = "Player";
+  var b = document.createElement("div");
+  b.className = "hdr-label r";
+  b.textContent = "Series";
+  head.appendChild(a);
+  head.appendChild(b);
+
+  var svg = el("svg", { width: w, height: 26, role: "presentation" });
+  var ticks = [];
+  if (state.align === "calendar") {
+    for (var y = 1950; y <= YEAR_MAX; y += 10) ticks.push([ (y - YEAR_MIN) * COL_W.calendar, String(y) ]);
+  } else {
+    for (var c = 1; c <= maxCareer; c += 5) ticks.push([ (c - 1) * COL_W.career, String(c) ]);
+  }
+  ticks.forEach(function (t) {
+    // a centred label near the left edge would have its first digit cropped
+    var atEdge = t[0] < 20;
+    var tx = el("text", {
+      x: atEdge ? 0 : t[0], y: 16, "font-size": 12, fill: "var(--text-muted)",
+      "text-anchor": atEdge ? "start" : "middle"
+    });
+    tx.textContent = t[1];
+    svg.appendChild(tx);
+  });
+  var holder = document.createElement("div");
+  holder.appendChild(svg);
+  head.appendChild(holder);
+  axisEl.appendChild(head);
+}
+
+/* x positions of the axis rules, matching the tick labels in the header */
+function gridStops() {
+  var stops = [];
+  if (state.align === "calendar") {
+    for (var y = 1950; y <= YEAR_MAX; y += 10) stops.push((y - YEAR_MIN) * COL_W.calendar);
+  } else {
+    for (var c = 6; c <= maxCareer; c += 5) stops.push((c - 1) * COL_W.career);
+  }
+  return stops;
+}
+
+/* 1984 is where the bracket settled into four rounds — before it, byes meant a
+   title could be won in two or three series, so the towers are genuinely shorter. */
+function bracketRuleX() {
+  return state.align === "calendar" ? (1984 - YEAR_MIN) * COL_W.calendar : null;
+}
+
+function rowSvg(p) {
+  var w = plotWidth(), barW = BAR_W[state.align];
+  var svg = el("svg", { width: w, height: ROW_H, role: "presentation" });
+
+  // decade rules first, so a tower can be dated at a glance
+  gridStops().forEach(function (gx) {
+    svg.appendChild(el("rect", {
+      x: gx, y: 2, width: 1, height: ROW_H - 8, fill: "var(--grid)"
+    }));
+  });
+  var brx = bracketRuleX();
+  if (brx !== null) {
+    svg.appendChild(el("rect", {
+      x: brx, y: 2, width: 1, height: ROW_H - 8, fill: "var(--axis)"
+    }));
+  }
+
+  // baseline
+  svg.appendChild(el("rect", {
+    x: 0, y: ROW_H - 6, width: w, height: 1, fill: "var(--axis)", opacity: 0.55
+  }));
+
+  p.years.forEach(function (y) {
+    var d = p.byYear[y];
+    var x = xFor(p, y);
+    if (x < 0 || x > w) return;
+    var base = ROW_H - 6;
+
+    if (d.won === 0) {
+      // Two different kinds of nothing: a first-round exit still made the field,
+      // so it gets the taller grey tick; missing the playoffs gets the dark one.
+      var h = d.made ? 3 : 2;
+      svg.appendChild(el("rect", {
+        x: x, y: base - h, width: barW, height: h,
+        fill: d.made ? "var(--exit-r1)" : "var(--missed)"
+      }));
+      return;
+    }
+
+    for (var k = 0; k < d.won; k++) {
+      var top = base - (k + 1) * BLOCK_H - k * BLOCK_GAP;
+      var isCap = d.champ && k === d.won - 1;
+      var fill = isCap ? "var(--title)" : RUN_FILL[Math.min(k, 3)];
+      var r = el("rect", {
+        x: x, y: top, width: barW, height: BLOCK_H,
+        fill: fill, rx: k === d.won - 1 ? 2 : 0
+      });
+      svg.appendChild(r);
+    }
+  });
+
+  // hit targets: one per season the player was in the league
+  p.years.forEach(function (y) {
+    var x = xFor(p, y);
+    if (x < 0 || x > w) return;
+    var hit = el("rect", {
+      x: Math.max(0, x - 2), y: 0, width: barW + 4, height: ROW_H,
+      fill: "transparent", "pointer-events": "all"
+    });
+    hit.dataset.pid = p.id;
+    hit.dataset.year = y;
+    svg.appendChild(hit);
+  });
+
+  return svg;
+}
+
+function matches(p) {
+  if (!state.query) return true;
+  return p.name.toLowerCase().indexOf(state.query) !== -1;
+}
+
+function renderRows() {
+  var list = sortedPlayers();
+  var shown = list.filter(matches);
+  rowsEl.textContent = "";
+
+  var note = document.getElementById("rankNote");
+  note.textContent = state.align === "calendar"
+    ? "The NBA top 76 players all time (plus 24 more) ranked by how many playoff series the player won in their career. I always considered a playoff series win to be the true mark of a star versus a regular season player. Seasons run left to right from 1949 to 2026, so eras line up: the Celtics' unbroken orange band through the sixties, the Bulls' two three-peats in the nineties, etc."
+    : "Every career starts at the left edge, so the shapes can be compared directly — how fast a player started, how long he kept winning.";
+
+  if (!shown.length) {
+    var e = document.createElement("p");
+    e.className = "empty-note";
+    e.textContent = "No player matches “" + state.query + "”.";
+    rowsEl.appendChild(e);
+    return;
+  }
+
+  shown.forEach(function (p) {
+    var rank = list.indexOf(p) + 1;
+
+    var row = document.createElement("div");
+    row.className = "prow body" + (state.selected.indexOf(p.id) !== -1 ? " sel" : "");
+    row.style.setProperty("--name-w", NAME_W + "px");
+    row.style.setProperty("--tot-w", TOT_W + "px");
+    row.tabIndex = 0;
+    row.setAttribute("role", "button");
+    row.setAttribute("aria-pressed", state.selected.indexOf(p.id) !== -1 ? "true" : "false");
+    row.setAttribute("aria-label",
+      p.name + ", " + p.total + " playoff series won, " + p.titles + " championships. Toggle comparison line.");
+
+    var nameCell = document.createElement("div");
+    nameCell.className = "pname";
+    var rk = document.createElement("span");
+    rk.className = "rank";
+    rk.textContent = rank;
+    nameCell.appendChild(rk);
+    nameCell.appendChild(document.createTextNode(p.name));
+    if (p.snub) {
+      var dag = document.createElement("span");
+      dag.className = "dagger";
+      dag.textContent = "†";
+      dag.title = "Not selected to the 75th Anniversary Team";
+      nameCell.appendChild(dag);
+    }
+    // a selected player carries his comparison-line colour here too
+    if (hueOf[p.id]) {
+      var cue = document.createElement("span");
+      cue.className = "cue";
+      cue.style.background = "var(--cat-" + hueOf[p.id] + ")";
+      nameCell.appendChild(cue);
+    }
+
+    var totCell = document.createElement("div");
+    totCell.className = "ptot";
+    var strong = document.createElement("b");
+    strong.textContent = p.total;
+    totCell.appendChild(strong);
+    if (p.titles) {
+      var rings = document.createElement("span");
+      rings.className = "rings";
+      rings.textContent = " · " + p.titles + "×";
+      totCell.appendChild(rings);
+    }
+
+    var plot = document.createElement("div");
+    plot.appendChild(rowSvg(p));
+
+    row.appendChild(nameCell);
+    row.appendChild(totCell);
+    row.appendChild(plot);
+
+    row.addEventListener("click", function () { toggleSelect(p.id); });
+    row.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggleSelect(p.id); }
+    });
+
+    rowsEl.appendChild(row);
+  });
+}
+
+/* ==========================================================================
+   5. TOOLTIP
+   ========================================================================== */
+
+var tip = document.getElementById("tip");
+
+/* From 1984 the bracket is fixed at four rounds, so the number of series won
+   names the exact exit. Before that, byes make the count ambiguous, and a team
+   with none may have missed the playoffs entirely — so stay vague on purpose. */
+var MODERN_EXIT = {
+  1: "Lost in the conference semi-finals",
+  2: "Lost in the conference finals",
+  3: "Lost in the Finals"
+};
+
+function resultLine(p, y) {
+  var d = p.byYear[y];
+  var fin = FINALS[y] || [];
+  if (d.champ) return "Won the championship";
+  if (fin[1] === d.team) return "Lost in the Finals";
+  if (d.won === 0) return d.made ? "Lost in the first round" : "Missed the playoffs";
+  if (y >= 1984 && MODERN_EXIT[d.won]) return MODERN_EXIT[d.won];
+  return "Eliminated after " + d.won + (d.won === 1 ? " series" : " series");
+}
+
+function showTip(pid, year, cx, cy) {
+  var p = players[+pid];
+  var d = p.byYear[+year];
+  if (!d) return;
+
+  tip.textContent = "";
+
+  var v = document.createElement("div");
+  v.className = "t-val";
+  v.textContent = d.won + (d.won === 1 ? " series won" : " series won");
+
+  var s = document.createElement("div");
+  s.className = "t-sub";
+  s.textContent = p.name + " · " + year;
+
+  var t = document.createElement("div");
+  t.className = "t-sub";
+  t.textContent = TEAMS[d.team] || d.team;
+
+  var r = document.createElement("div");
+  r.className = "t-res";
+  var key = document.createElement("span");
+  key.className = "key";
+  key.style.background = d.champ ? "var(--title)"
+    : d.won ? RUN_FILL[Math.min(d.won - 1, 3)]
+    : d.made ? "var(--exit-r1)" : "var(--missed)";
+  r.appendChild(key);
+  r.appendChild(document.createTextNode(resultLine(p, +year)));
+
+  tip.appendChild(v);
+  tip.appendChild(s);
+  tip.appendChild(t);
+  tip.appendChild(r);
+
+  tip.style.opacity = "1";
+  tip.setAttribute("aria-hidden", "false");
+
+  var rect = tip.getBoundingClientRect();
+  var left = cx + 14, top = cy - rect.height - 12;
+  if (left + rect.width > window.innerWidth - 8) left = cx - rect.width - 14;
+  if (top < 8) top = cy + 18;
+  tip.style.left = left + "px";
+  tip.style.top = top + "px";
+}
+
+function hideTip() {
+  tip.style.opacity = "0";
+  tip.setAttribute("aria-hidden", "true");
+}
+
+rowsEl.addEventListener("pointermove", function (ev) {
+  var t = ev.target;
+  if (t && t.dataset && t.dataset.pid !== undefined) {
+    showTip(t.dataset.pid, t.dataset.year, ev.clientX, ev.clientY);
+  } else {
+    hideTip();
+  }
+});
+rowsEl.addEventListener("pointerleave", hideTip);
+
+/* ==========================================================================
+   6. COMPARISON — cumulative series won by career year
+   ========================================================================== */
+
+var chipsEl = document.getElementById("chips");
+var cmpEl = document.getElementById("cmpChart");
+var hintEl = document.getElementById("cmpHint");
+
+function cumulative(p) {
+  var out = [], run = 0;
+  for (var y = p.first; y <= p.lastYear; y++) {
+    var d = p.byYear[y];
+    run += d ? d.won : 0;
+    out.push({ careerYear: y - p.first + 1, value: run, year: y });
+  }
+  return out;
+}
+
+function toggleSelect(id) {
+  var i = state.selected.indexOf(id);
+  if (i !== -1) {
+    state.selected.splice(i, 1);
+    releaseHue(id);
+  } else {
+    if (state.selected.length >= 8) return;
+    state.selected.push(id);
+    claimHue(id);
+  }
+  renderRows();
+  renderChips();
+  renderCompare();
+}
+
+function renderChips() {
+  chipsEl.textContent = "";
+  var pool = roster().slice().sort(function (a, b) { return b.total - a.total; }).slice(0, 12);
+  state.selected.forEach(function (id) {
+    if (pool.indexOf(players[id]) === -1) pool.push(players[id]);
+  });
+
+  pool.forEach(function (p) {
+    var on = state.selected.indexOf(p.id) !== -1;
+    var btn = document.createElement("button");
+    btn.className = "chip";
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    var dot = document.createElement("span");
+    dot.className = "dot";
+    if (on) dot.style.background = "var(--cat-" + hueOf[p.id] + ")";
+    btn.appendChild(dot);
+    btn.appendChild(document.createTextNode(p.name + (p.snub ? " †" : "")));
+    btn.addEventListener("click", function () { toggleSelect(p.id); });
+    chipsEl.appendChild(btn);
+  });
+
+  hintEl.textContent = state.selected.length >= 8
+    ? "Eight lines is the limit — drop one to add another."
+    : state.selected.length + " of 8 lines selected.";
+}
+
+function renderCompare() {
+  cmpEl.textContent = "";
+
+  var W = 660, H = 340, M = { t: 14, r: 132, b: 34, l: 44 };
+  var iw = W - M.l - M.r, ih = H - M.t - M.b;
+
+  var pool = roster();
+  var maxY = 0;
+  pool.forEach(function (p) { if (p.total > maxY) maxY = p.total; });
+  maxY = Math.ceil(maxY / 10) * 10;
+
+  var sx = function (c) { return M.l + (c - 1) / (maxCareer - 1) * iw; };
+  var sy = function (v) { return M.t + ih - (v / maxY) * ih; };
+
+  var svg = el("svg", {
+    width: W, height: H, viewBox: "0 0 " + W + " " + H,
+    role: "img", "aria-label":
+      "Cumulative playoff series won against career year, all 76 players, with the selected players highlighted."
+  });
+
+  // gridlines + y ticks
+  for (var v = 0; v <= maxY; v += 10) {
+    svg.appendChild(el("line", {
+      x1: M.l, x2: M.l + iw, y1: sy(v), y2: sy(v),
+      stroke: "var(--grid)", "stroke-width": 1
+    }));
+    var yl = el("text", {
+      x: M.l - 8, y: sy(v) + 4, "font-size": 12,
+      fill: "var(--text-muted)", "text-anchor": "end"
+    });
+    yl.textContent = v;
+    svg.appendChild(yl);
+  }
+  // x ticks
+  for (var c = 1; c <= maxCareer; c += 5) {
+    var xl = el("text", {
+      x: sx(c), y: H - 15, "font-size": 12,
+      fill: "var(--text-muted)", "text-anchor": "middle"
+    });
+    xl.textContent = c;
+    svg.appendChild(xl);
+  }
+  var xlab = el("text", {
+    x: M.l + iw / 2, y: H - 1, "font-size": 11.5, "font-style": "italic",
+    fill: "var(--text-muted)", "text-anchor": "middle"
+  });
+  xlab.textContent = "career year";
+  svg.appendChild(xlab);
+
+  function path(p) {
+    return cumulative(p).map(function (d, i) {
+      return (i ? "L" : "M") + sx(d.careerYear).toFixed(1) + " " + sy(d.value).toFixed(1);
+    }).join(" ");
+  }
+
+  // context: everyone, recessive
+  pool.forEach(function (p) {
+    if (state.selected.indexOf(p.id) !== -1) return;
+    svg.appendChild(el("path", {
+      d: path(p), fill: "none", stroke: "var(--deemph)",
+      "stroke-width": 1, "stroke-linejoin": "round", opacity: 0.9
+    }));
+  });
+
+  // selected, in front
+  var ends = [];
+  state.selected.forEach(function (id) {
+    var p = players[id];
+    var col = "var(--cat-" + hueOf[id] + ")";
+    svg.appendChild(el("path", {
+      d: path(p), fill: "none", stroke: col,
+      "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round"
+    }));
+    var series = cumulative(p);
+    var lastPt = series[series.length - 1];
+    svg.appendChild(el("circle", {
+      cx: sx(lastPt.careerYear), cy: sy(lastPt.value), r: 4,
+      fill: col, stroke: "var(--surface-1)", "stroke-width": 2
+    }));
+    ends.push({ p: p, y: sy(lastPt.value), x: sx(lastPt.careerYear), col: col });
+  });
+
+  // Careers end at different career years, so labels go in a gutter at the right
+  // edge — a readable column — with a leader line back to each line's end dot.
+  var GAP = 15, gutterX = M.l + iw + 16;
+  ends.sort(function (a, b) { return a.y - b.y; });
+  ends.forEach(function (e, i) {
+    e.ly = i === 0 ? e.y : Math.max(e.y, ends[i - 1].ly + GAP);
+  });
+  var overflow = ends.length ? ends[ends.length - 1].ly - (M.t + ih) : 0;
+  if (overflow > 0) ends.forEach(function (e) { e.ly -= overflow; });
+
+  ends.forEach(function (e) {
+    svg.appendChild(el("polyline", {
+      points: [e.x + 5, e.y, gutterX - 14, e.y, gutterX - 5, e.ly].join(" "),
+      fill: "none", stroke: e.col, "stroke-width": 1, opacity: 0.45,
+      "stroke-linejoin": "round"
+    }));
+    var lab = el("text", {
+      x: gutterX, y: e.ly + 3.5, "font-size": 11.5, fill: "var(--text-secondary)"
+    });
+    lab.textContent = e.p.last + " " + e.p.total;
+    svg.appendChild(lab);
+  });
+
+  cmpEl.appendChild(svg);
+
+  if (!state.selected.length) {
+    var msg = document.createElement("p");
+    msg.className = "cmp-hint";
+    msg.textContent = "Nothing selected — each grey line is one of the " + pool.length + ".";
+    cmpEl.appendChild(msg);
+  }
+}
+
+/* ==========================================================================
+   7. TABLE VIEW
+   ========================================================================== */
+
+function renderTable() {
+  var tb = document.querySelector("#tbl tbody");
+  tb.textContent = "";
+  sortedPlayers().forEach(function (p, i) {
+    var tr = document.createElement("tr");
+    function cell(text, cls) {
+      var td = document.createElement("td");
+      if (cls) td.className = cls;
+      td.textContent = text;
+      tr.appendChild(td);
+    }
+    cell(i + 1, "num");
+    cell(p.name + (p.snub ? " †" : ""));
+    cell(p.total, "num");
+    cell(p.titles, "num");
+    cell(p.finalsApps, "num");
+    cell(p.seasons, "num");
+    cell(p.playoffYears, "num");
+    cell(p.first + "–" + p.lastYear);
+    cell(p.teamOrder.map(function (t) { return TEAMS[t] || t; }).join(", "), "teams");
+    tb.appendChild(tr);
+  });
+}
+
+/* ==========================================================================
+   8. HERO + WIRING
+   ========================================================================== */
+
+function renderAll() {
+  buildAxis();
+  renderRows();
+  renderTable();
+}
+
+document.getElementById("rosterSel").addEventListener("change", function (e) {
+  state.roster = e.target.value;
+  // drop any selection that just left the roster, freeing its hue
+  state.selected.filter(function (id) { return !roster().some(function (p) { return p.id === id; }); })
+    .forEach(function (id) {
+      state.selected.splice(state.selected.indexOf(id), 1);
+      releaseHue(id);
+    });
+  renderAll();
+  renderChips();
+  renderCompare();
+});
+document.getElementById("sortSel").addEventListener("change", function (e) {
+  state.sort = e.target.value;
+  renderAll();
+});
+document.getElementById("alignSel").addEventListener("change", function (e) {
+  state.align = e.target.value;
+  renderAll();
+});
+document.getElementById("q").addEventListener("input", function (e) {
+  state.query = e.target.value.trim().toLowerCase();
+  renderRows();
+});
+var tblBtn = document.getElementById("tblBtn");
+tblBtn.addEventListener("click", function () {
+  var sec = document.getElementById("tableSec");
+  var open = sec.hidden;
+  sec.hidden = !open;
+  tblBtn.setAttribute("aria-pressed", open ? "true" : "false");
+  tblBtn.textContent = open ? "Hide table" : "Show table";
+});
+
+// open with the top three lines drawn
+players.slice().sort(function (a, b) { return b.total - a.total; })
+  .slice(0, 3).forEach(function (p) { state.selected.push(p.id); claimHue(p.id); });
+
+renderAll();
+renderChips();
+renderCompare();
+
+// expose for headless checks
+window.__PW = {
+  players: players, SERIES: SERIES, FINALS: FINALS,
+  TEAMS: TEAMS, FIRSTROUND: FIRSTROUND
+};
+
+})();
+</script>
+</body>
+</html>

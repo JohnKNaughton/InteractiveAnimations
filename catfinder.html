@@ -29,6 +29,9 @@
   .lvl:hover:not(.locked){transform:translateY(-2px); background:#fdf2dd;}
   .lvl.active{border-color:#d9a84a; background:#fdf0d0; box-shadow:0 2px 8px #d9a84a44;}
   .lvl.locked{filter:grayscale(1) opacity(.4); cursor:default;}
+  /* gated = openable with the secret word, so it still invites a click */
+  .lvl.gated{background:#f6efe2; border-color:#ded0b6; opacity:.75; cursor:pointer;}
+  .lvl.gated:hover{opacity:1; background:#fdf2dd; transform:translateY(-2px);}
   .lvl.done::after{content:'✓'; position:absolute; margin-top:-26px; margin-left:24px; font-size:10px; color:#7aa86a; font-weight:bold;}
   .paw{
     width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -70,6 +73,13 @@
   }
   #card .fact b{color:#9a7a3a;}
   #card button{font-size:16px; padding:10px 22px; margin-top:14px; background:#e9d7ae; border-color:#d9c08a;}
+  #card input{
+    font-family:inherit; font-size:17px; padding:10px 16px; border-radius:14px;
+    border:2px solid #e5d9c5; background:#fffdf7; color:#5a4a3a;
+    width:min(240px,80%); text-align:center; letter-spacing:.12em; margin-top:8px;
+  }
+  #card input:focus{outline:2px solid #d9a84a; outline-offset:2px; border-color:transparent;}
+  #card .keyerr{color:#b5563f; font-size:13.5px; min-height:1.3em; margin-top:8px;}
   #portraitWrap{display:flex; justify-content:center;}
   canvas#portrait{background:radial-gradient(circle at 50% 36%, #fff8e8, #f3e6cc); border-radius:50%; border:3px solid #ecd9b4;}
   .rules{text-align:left; font-size:14.5px; line-height:1.7; color:#5a4c3c;}
@@ -345,6 +355,7 @@ const LEVELS=[
     text:`It was never hide-and-seek — it was <b>introductions</b>. Bramble wanted her two families to meet properly: the cats she was raised with and the bears who raised her. As the last cat is found, mama bear brings the honeycomb, Nana Plum unpacks the berry pies, and the clearing fills with the rumble of one enormous purr — though nobody can tell how much is cats and how much is happy bear. Everyone falls asleep in one big warm pile before sundown. Even Waffles. Especially Waffles.`},
 },
 { id:'samantha', emoji:'🎂', name:"Samantha's Birthday", sub:'— a party for Samantha, from all nineteen cats', party:true,
+  gate:2017461200,          // needs the secret word — see pwHash() below
   roster:CATS,
   spots:[
     {id:'teapot',   x:330, y:322, r:30, emoji:'🫖', hint:`Earl Grey's tea service on the long table`},
@@ -394,7 +405,7 @@ const S={
   seed:0, rng:Math.random, assign:[], found:[], sprites:[], clicks:0, hintsUsed:0,
   complete:false, bannerT:0, lastCard:null, sparkle:null, petals:[], puffs:[],
   musicOn:true, sfxOn:true, hintReadyAt:0, finaleShown:false,
-  level:0, unlocked:1, beaten:[], act:{},
+  level:0, unlocked:1, beaten:[], keys:[], act:{},
 };
 const START_UNLOCKED=LEVELS.length;   // every adventure is open from the start
 function unlockCount(){ return clamp(START_UNLOCKED+S.beaten.length, START_UNLOCKED, LEVELS.length); }
@@ -402,12 +413,38 @@ function loadProgress(){
   try{
     S.beaten=JSON.parse(localStorage.getItem('cfBeaten')||'[]');
   }catch(e){ S.beaten=[]; }
+  try{
+    S.keys=JSON.parse(localStorage.getItem('cfKeys')||'[]');
+  }catch(e){ S.keys=[]; }
+  if(!Array.isArray(S.keys)) S.keys=[];
   S.unlocked=unlockCount();
 }
 function saveProgress(){
   try{
     localStorage.setItem('cfBeaten',JSON.stringify(S.beaten));
+    localStorage.setItem('cfKeys',JSON.stringify(S.keys));
   }catch(e){}
+}
+
+// ---------- the birthday gate ----------
+// A level carrying `gate:<hash>` needs a secret word before it will open. This
+// is a curtain, not a lock: everything here runs in the visitor's browser, so
+// anyone who reads the source can get past it. Storing the FNV-1a hash instead
+// of the word itself just keeps the surprise out of plain view-source.
+// Matching ignores case and surrounding spaces.
+function pwHash(s){
+  s=String(s).trim().toLowerCase();
+  let h=0x811c9dc5;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619)>>>0; }
+  return h>>>0;
+}
+function gateOpen(L){ return !L || !L.gate || S.keys.includes(L.id); }
+function tryKey(id, word){
+  const L=LEVELS.find(l=>l.id===id);
+  if(!L || !L.gate) return true;
+  if(pwHash(word)!==L.gate) return false;
+  if(!S.keys.includes(id)){ S.keys.push(id); saveProgress(); }
+  return true;
 }
 function newGame(seed){
   S.seed = (seed===undefined)? Math.floor(Math.random()*1e6) : seed;
@@ -424,6 +461,7 @@ function newGame(seed){
 }
 function setLevel(i, showIntro){
   if(i<0||i>=LEVELS.length||i>=S.unlocked) return false;
+  if(!gateOpen(LEVELS[i])) return false;
   S.level=i;
   newGame();
   const sub=$('subtitle'); if(sub) sub.textContent=LV().sub;
@@ -2573,10 +2611,14 @@ function updateUI(){
     LEVELS.forEach((L,i)=>{
       const d=document.createElement('div');
       const locked=i>=S.unlocked;
-      d.className='lvl'+(i===S.level?' active':'')+(locked?' locked':'')+(S.beaten.includes(L.id)?' done':'');
-      d.textContent=L.emoji;
-      d.title=locked? '??? — finish another adventure to unlock this one' : L.name;
-      if(!locked) d.onclick=()=>{ ensureAudio(); if(i!==S.level) setLevel(i); };
+      const gated=!locked && !gateOpen(L);
+      d.className='lvl'+(i===S.level?' active':'')+(locked?' locked':'')+(gated?' gated':'')+(S.beaten.includes(L.id)?' done':'');
+      d.textContent=gated? '🔒' : L.emoji;
+      d.title=locked? '??? — finish another adventure to unlock this one'
+            : gated? 'A hidden adventure — it needs the secret word'
+            : L.name;
+      if(gated) d.onclick=()=>{ ensureAudio(); askKey(i); };
+      else if(!locked) d.onclick=()=>{ ensureAudio(); if(i!==S.level) setLevel(i); };
       lvlBox.appendChild(d);
     });
   }
@@ -2677,8 +2719,9 @@ function showFinale(){
   if(!S.complete) return;
   const o=$('overlay'); if(!o) return;
   const L=LV();
-  const allDone=LEVELS.every(l=>S.beaten.includes(l.id));
-  const ni=LEVELS.findIndex((l,i)=>i!==S.level && i<S.unlocked && !S.beaten.includes(l.id));
+  // a still-locked adventure shouldn't withhold the crown, or block "next"
+  const allDone=LEVELS.every(l=>!gateOpen(l) || S.beaten.includes(l.id));
+  const ni=LEVELS.findIndex((l,i)=>i!==S.level && i<S.unlocked && gateOpen(l) && !S.beaten.includes(l.id));
   const nextBtn = ni<0? '' : `<button onclick="CF.next(${ni})">Next adventure — ${LEVELS[ni].emoji} ${LEVELS[ni].name} ➜</button>`;
   const crown = allDone? `<p style="text-align:center;">👑 <b>You've finished every adventure!</b> The whole atlas of friends has been found — all the locals, all the stories, all the naps. The cats are very proud of you. (They're planning more trips. They won't say where.)</p>` : '';
   $('card').innerHTML=`
@@ -2691,6 +2734,26 @@ function showFinale(){
     <button onclick="CF.stay()">Stay a while 🌅</button>
     <button onclick="CF.again()">Play again — new hiding spots 🔄</button>`;
   o.classList.add('show');
+}
+function askKey(i){
+  const o=$('overlay'); if(!o) return;
+  const L=LEVELS[i]; if(!L) return;
+  $('card').innerHTML=`
+    <h2>🔒 One more adventure</h2>
+    <div class="title">this one is a surprise</div>
+    <p>There's a last scene hiding in here, and it's a birthday present — so it keeps
+       itself shut until someone says the word. If you've been told it, type it below.</p>
+    <input id="keyInput" type="password" autocomplete="off" spellcheck="false"
+           placeholder="the secret word" aria-label="Secret word">
+    <div id="keyErr" class="keyerr" role="status"></div>
+    <button onclick="CF.unlock(${i})">Unlock 🎂</button>
+    <button onclick="CF.stay()">Never mind 🐾</button>`;
+  o.classList.add('show');
+  const inp=$('keyInput');
+  if(inp){
+    inp.focus();
+    inp.addEventListener('keydown', ev=>{ if(ev.key==='Enter'){ ev.preventDefault(); CF.unlock(i); } });
+  }
 }
 function levelIntro(){
   const o=$('overlay'); if(!o) return;
@@ -2707,6 +2770,19 @@ const CF={
   stay(){ const o=$('overlay'); if(o) o.classList.remove('show'); },
   again(){ const o=$('overlay'); if(o) o.classList.remove('show'); newGame(); },
   next(i){ const o=$('overlay'); if(o) o.classList.remove('show'); setLevel(i===undefined? S.level+1 : i); },
+  unlock(i){
+    const L=LEVELS[i], inp=$('keyInput'), err=$('keyErr');
+    if(!L||!inp) return;
+    if(tryKey(L.id, inp.value)){
+      const o=$('overlay'); if(o) o.classList.remove('show');
+      sfx('fanfare');
+      setLevel(i);
+    } else {
+      if(err) err.textContent='That’s not the word — try again?';
+      inp.value=''; inp.focus();
+      sfx('meow');
+    }
+  },
   intro(){
     const o=$('overlay'); if(!o) return;
     $('card').innerHTML=`
@@ -2716,7 +2792,8 @@ const CF={
         <li><b>Nine cats</b> are hiding in every scene — watch for a flick of a tail, the tips of two ears, a pair of eyes in a window.</li>
         <li><b>Click a cat</b> to meet them: every cat has a name, a story, and a true cat fact to share.</li>
         <li>Found cats trot over to the gathering spot. They always seem to be... waiting for something?</li>
-        <li>There are ${LEVELS.length} adventures, from the cottage meadow to the far north — pick any of them from the buttons up top, in any order. New places mean new local cats to meet.</li>
+        <li>There are ${LEVELS.filter(gateOpen).length} adventures, from the cottage meadow to the far north — pick any of them from the buttons up top, in any order. New places mean new local cats to meet.</li>
+        ${LEVELS.some(l=>!gateOpen(l))? `<li>And a 🔒 one that stays shut — it's a birthday surprise, and it opens for whoever's been told the word.</li>` : ''}
         <li>Stuck? The <b>✨ Hint</b> button gives a little sparkle of whisker-sense.</li>
         <li>No timer. No score. Just sunshine. ☀️</li>
       </ul>
@@ -2762,6 +2839,7 @@ function boot(){
 const API={S, newGame, clickAt, hint, foundCount, CATS, GUESTS, LEVELS, SPOTS:SPOTS_COTTAGE, SP, setLevel, loadProgress,
   catAtSpot, storyFor, drawCatFull, closeCard, showCatCard, BLANKET, GATHER,
   findCatByName, partyCats, showActivityCard,
+  pwHash, gateOpen, tryKey, askKey, saveProgress,
   _setCtx(c){ ctx=c; }, draw};
 if(typeof globalThis!=='undefined'){ globalThis.CFG=API; globalThis.CF=CF; }
 if(typeof document!=='undefined' && !IS_TEST){
