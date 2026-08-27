@@ -1,0 +1,1181 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beach Volleyball Point Tree</title>
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Tokens. Light is the base; dark is redeclared under both the OS media
+   query and the explicit [data-theme] stamp so the toggle wins either way.
+   Palette = validated data-viz default (blue / orange).
+   ───────────────────────────────────────────────────────────────────────── */
+:root{
+  color-scheme: light;
+  --plane:#f9f9f7; --surface:#fcfcfb; --surface-2:#f2f1ed;
+  --ink:#0b0b0b; --ink-2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --hair:rgba(11,11,11,.10);
+  --serve:#2a78d6; --recv:#eb6834;
+  --seq-450:#2a78d6;
+  --shadow:0 1px 2px rgba(11,11,11,.06), 0 4px 12px rgba(11,11,11,.05);
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232322;
+    --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --hair:rgba(255,255,255,.10);
+    --serve:#3987e5; --recv:#d95926;
+    --seq-450:#3987e5;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0d0d0d; --surface:#1a1a19; --surface-2:#232322;
+  --ink:#ffffff; --ink-2:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --hair:rgba(255,255,255,.10);
+  --serve:#3987e5; --recv:#d95926;
+  --seq-450:#3987e5;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--plane);color:var(--ink);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+h1,h2,h3{margin:0;font-weight:600}
+.mono{font-variant-numeric:tabular-nums}
+
+.app{display:grid;grid-template-rows:auto auto 1fr;height:100%;min-height:0}
+.body{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:10px;padding:0 10px 10px;min-height:0;overflow:hidden}
+@media (max-width:940px){ .body{grid-template-columns:minmax(0,1fr);overflow:auto} }
+
+header{display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--hair)}
+.brand{font-weight:650;letter-spacing:-.01em;white-space:nowrap}
+.brand span{color:var(--muted);font-weight:400}
+.spacer{flex:1}
+.btn{border:1px solid var(--hair);background:var(--surface);border-radius:8px;padding:5px 10px;
+  font-size:13px;font-weight:500;color:var(--ink-2);transition:background .12s,border-color .12s;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--axis)}
+.btn.sel{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn.sm{padding:3px 7px;font-size:12px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── the live touch counters: the thing being recorded ── */
+.strip{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;padding:8px 10px;margin:10px 10px 0;
+  background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);box-shadow:var(--shadow)}
+.sidecard{display:flex;align-items:center;gap:11px;padding:6px 13px;border-radius:9px;
+  border:1px solid var(--hair);border-left:4px solid var(--sc);background:var(--surface-2);min-width:232px}
+.sidecard.live{background:var(--surface);border-color:var(--sc);box-shadow:0 0 0 2px color-mix(in srgb,var(--sc) 22%,transparent)}
+.sidecard .big{font-size:31px;font-weight:650;line-height:1;letter-spacing:-.02em;min-width:30px;text-align:right}
+.sidecard .nm{font-size:12.5px;font-weight:600;line-height:1.2}
+.sidecard .sub{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.sidecard .ballnow{font-size:10.5px;font-weight:700;color:var(--sc);letter-spacing:.04em}
+.touches{display:flex;gap:3px;align-items:center;height:12px;margin-top:4px}
+.tdot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--muted);flex:none}
+.tdot.fill{background:var(--sc);border-color:var(--sc)}
+.kv{display:flex;flex-direction:column;justify-content:center;line-height:1.25;flex:none;padding:0 4px}
+.kv b{font-size:16px;font-weight:650}
+.kv i{font-style:normal;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+
+/* ── tree ── */
+.treewrap{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);
+  overflow:auto;min-height:0;max-height:64vh;position:relative;box-shadow:var(--shadow);flex:none}
+.treeinner{position:relative;display:inline-block;min-width:100%;padding:12px}
+.links{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.cols{position:relative;display:flex;align-items:flex-start;gap:26px}
+.col{display:flex;flex-direction:column;gap:6px;flex:none}
+.col-h{font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+  padding-bottom:2px;white-space:nowrap;display:flex;align-items:baseline;gap:6px}
+.col-h b{color:var(--ink-2);font-weight:600;letter-spacing:0;text-transform:none;font-size:12px}
+.reach{font-size:10px;color:var(--muted);border:1px solid var(--hair);border-radius:99px;padding:0 5px}
+
+.tn{display:flex;align-items:center;gap:8px;width:196px;padding:7px 9px;border-radius:8px;
+  background:var(--surface-2);border:1px solid var(--hair);border-left-width:3px;text-align:left;position:relative}
+.tn .lab{font-size:12.5px;font-weight:550;line-height:1.25}
+.tn .sub{font-size:10.5px;color:var(--muted);margin-top:1px}
+.tn:hover{border-color:var(--axis)}
+.tn .rew{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted);opacity:0}
+.tn:hover .rew{opacity:1}
+
+.opt{display:block;width:300px;padding:6px 9px;border-radius:9px;text-align:left;
+  background:var(--surface);border:1px solid var(--hair);border-left:3px solid var(--axis);
+  transition:transform .1s,box-shadow .12s,border-color .12s}
+.opt:hover,.opt:focus-visible{transform:translateX(2px);box-shadow:var(--shadow);border-color:var(--axis);outline:none}
+.opt .row1{display:flex;align-items:center;gap:7px}
+.opt .k{font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:4px;background:var(--surface-2);
+  color:var(--ink-2);display:grid;place-items:center;flex:none;border:1px solid var(--hair)}
+.opt .lab{font-size:12.5px;font-weight:550;line-height:1.25;flex:1}
+.opt .pct{font-size:10.5px;color:var(--muted);flex:none}
+.opt .row2{display:flex;align-items:center;gap:7px;margin-top:3px;padding-left:23px}
+.opt .meter{width:48px;height:3px;border-radius:99px;background:var(--grid);overflow:hidden;flex:none}
+.opt .meter i{display:block;height:100%;border-radius:99px}
+.opt .end{font-size:10.5px;font-weight:600;display:flex;align-items:center;gap:4px;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt .end .chip{width:8px;height:8px;border-radius:2px;flex:none}
+.opt .adds{font-size:10px;color:var(--muted);font-weight:500;white-space:nowrap}
+.opt.cont{border-left-color:var(--muted)}
+.opt.cont .end{color:var(--muted);font-weight:500}
+.opt.term{border-left-color:var(--tc)}
+
+.legendbar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--ink-2);
+  padding:7px 12px;background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);flex:none}
+.lgi{display:flex;align-items:center;gap:5px}
+.swl{width:3px;height:12px;border-radius:2px}
+.sw{width:10px;height:10px;border-radius:3px}
+
+.rail{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto;padding-bottom:4px}
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);padding:10px;box-shadow:var(--shadow)}
+.card h3{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;
+  display:flex;align-items:center;gap:6px}
+.card h3 .spacer{flex:1}
+.path{display:flex;flex-wrap:wrap;gap:3px;font-size:11.5px}
+.path .p{background:var(--surface-2);border:1px solid var(--hair);border-radius:5px;padding:1px 6px;white-space:nowrap}
+.path .arrow{color:var(--muted)}
+.odds{font-size:11.5px;color:var(--ink-2);margin-top:8px;padding-top:8px;border-top:1px solid var(--hair)}
+.odds b{font-size:16px;font-weight:650;display:block;letter-spacing:-.01em}
+
+.log{display:flex;flex-direction:column;max-height:300px;overflow:auto;margin:0 -10px}
+.lrow{display:grid;grid-template-columns:auto auto 1fr auto;gap:8px;align-items:center;
+  padding:5px 10px;border-top:1px solid var(--hair);font-size:11.5px}
+.lrow:first-child{border-top:0}
+.lrow .no{color:var(--muted);min-width:24px}
+.lrow .tt{font-weight:650;letter-spacing:-.01em;white-space:nowrap}
+.lrow .tt s{text-decoration:none;color:var(--muted);font-weight:400}
+.lrow .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.lrow .x{color:var(--muted);opacity:0;font-size:14px;line-height:1}
+.lrow:hover{background:var(--surface-2)}
+.lrow:hover .x{opacity:1}
+
+.stats{padding:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.tile{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);padding:9px 11px}
+.tile .l{font-size:11px;color:var(--muted)}
+.tile .v{font-size:23px;font-weight:650;letter-spacing:-.02em;line-height:1.15;margin-top:1px}
+.tile .d{font-size:11px;color:var(--ink-2)}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px}
+.chart{background:var(--surface);border:1px solid var(--hair);border-radius:var(--r);padding:11px 12px}
+.chart .ct{font-size:13px;font-weight:600}
+.chart .cs{font-size:11.5px;color:var(--muted);margin-bottom:9px}
+.clegend{display:flex;gap:12px;font-size:11.5px;color:var(--ink-2);margin-bottom:8px}
+.hb{display:flex;align-items:center;gap:8px;margin-bottom:2px;height:22px}
+.hb .hl{font-size:11.5px;color:var(--ink-2);width:150px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .ht{flex:1;height:14px}
+.hb .hf{height:14px;border-radius:0 4px 4px 0;background:var(--seq-450);min-width:2px}
+.hb .hv{font-size:11.5px;color:var(--ink-2);width:64px;text-align:right;flex:none}
+.colchart{display:flex;align-items:flex-end;gap:2px;height:132px;border-bottom:1px solid var(--axis);position:relative}
+.cbin{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:3px}
+.cpair{display:flex;align-items:flex-end;gap:2px;width:100%;height:100%;justify-content:center}
+.cf{width:100%;max-width:24px;border-radius:4px 4px 0 0;min-height:1px}
+.cv{font-size:10px;color:var(--ink-2)}
+.xax{display:flex;gap:2px;margin-top:4px}
+.xax div{flex:1;text-align:center;font-size:10px;color:var(--muted)}
+.gridline{position:absolute;left:0;right:0;border-top:1px solid var(--grid);pointer-events:none}
+table.tv{width:100%;border-collapse:collapse;font-size:11.5px}
+table.tv th,table.tv td{text-align:left;padding:3px 6px;border-bottom:1px solid var(--hair);white-space:nowrap}
+table.tv th{color:var(--muted);font-weight:500;position:sticky;top:0;background:var(--surface)}
+.tvwrap{max-height:260px;overflow:auto;margin-top:8px}
+
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);display:grid;place-items:center;z-index:50;padding:16px}
+.modal{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:16px;
+  max-width:520px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.modal h2{font-size:16px;margin-bottom:3px}
+.modal .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.f{display:flex;flex-direction:column;gap:3px}
+.f label{font-size:11px;color:var(--muted)}
+.f input{padding:6px 8px;border:1px solid var(--hair);border-radius:7px;background:var(--surface-2)}
+.f.wide{grid-column:1/-1}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.vrow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:5px 8px;
+  border:1px solid var(--hair);border-radius:8px;margin-bottom:5px}
+.vrow .vl{font-size:12.5px}
+
+.tip{position:fixed;z-index:99;pointer-events:none;background:var(--ink);color:var(--plane);
+  font-size:11.5px;padding:5px 8px;border-radius:6px;max-width:260px;opacity:0;transition:opacity .1s;line-height:1.35}
+.tip.show{opacity:1}
+.empty{color:var(--muted);font-size:12px;padding:6px 0}
+kbd{font:inherit;font-size:10.5px;border:1px solid var(--hair);border-bottom-width:2px;border-radius:4px;
+  padding:0 4px;background:var(--surface-2);color:var(--ink-2)}
+</style>
+
+<div class="app">
+  <header>
+    <div class="brand">Point Tree <span id="hsess">—</span></div>
+    <div class="spacer"></div>
+    <button class="btn" id="clockBtn" title="Sync to the video, then start (Space)">▶ 0:00</button>
+    <input class="btn mono" id="clockSet" style="width:70px" placeholder="0:00" title="Type a video time (m:ss) and press Enter">
+    <button class="btn" id="btnViol" title="Violation (V)">Violation</button>
+    <button class="btn" id="btnLet" title="Let / replay — discard this rally (L)">Let</button>
+    <button class="btn" id="btnUndo" title="Undo last contact (Backspace)">↶ Contact</button>
+    <button class="btn" id="btnUndoPt" title="Undo last logged point (Ctrl+Z)">↶ Point</button>
+    <select class="btn" id="sessSel" title="Session"></select>
+    <button class="btn" id="btnSetup">Rename</button>
+    <button class="btn" id="btnExport">Export</button>
+    <button class="btn" id="btnTheme" title="Toggle theme">◐</button>
+  </header>
+
+  <div class="strip" id="strip"></div>
+
+  <div class="body">
+    <div style="display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto">
+      <div class="treewrap" id="treewrap">
+        <div class="treeinner" id="treeinner">
+          <svg class="links" id="links"></svg>
+          <div class="cols" id="cols"></div>
+        </div>
+      </div>
+      <div class="legendbar">
+        <div class="lgi"><span class="swl" style="background:var(--muted)"></span> rally continues</div>
+        <div class="lgi"><span class="swl" style="background:var(--serve)"></span> serving side wins the point</div>
+        <div class="lgi"><span class="swl" style="background:var(--recv)"></span> receiving side wins the point</div>
+        <div class="lgi" style="color:var(--muted)">
+          <kbd>1</kbd>–<kbd>9</kbd>/<kbd>0</kbd> pick · <kbd>⌫</kbd> undo contact · <kbd>V</kbd> violation · click a trunk node to rewind</div>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <div class="rail">
+      <div class="card">
+        <h3>This rally <span class="spacer"></span><span id="rallyCount" style="color:var(--ink-2)"></span></h3>
+        <div class="path" id="path"></div>
+        <div class="odds" id="odds"></div>
+      </div>
+      <div class="card">
+        <h3>Points <span class="spacer"></span><span id="logCount" style="color:var(--ink-2)"></span></h3>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════════════
+   1. THE TREE — how a beach volleyball point evolves, contact by contact.
+
+   Sides are roles, not teams: 'S' is whichever side served this rally, 'R'
+   is whichever side received it. Nothing here knows or cares who is who.
+
+   Each phase is one contact decision. An option either `go`es (rally
+   continues) or `end`s the point:
+     end:'poss' → the side that just played the ball wins
+     end:'opp'  → the other side wins
+     earn       → 'won' (winner earned it) or 'err' (loser gave it away)
+     p          → prior probability, used until real data outweighs it
+
+   ── Touch accounting, which is the whole point of this tool ──
+   `touches` = contacts used by the side in possession *this possession*
+   (the 3-contact limit). `ph:'auto'` routes by the new count (1 → set,
+   2 → attack), which makes the beach rule that a block counts as one of
+   your three contacts fall out for free.
+
+   Separately, `count` tracks *cumulative* contacts per side across the whole
+   rally. Most options are one contact by the side in possession. Two flags
+   correct the cases where that isn't true:
+     opp:1  → the OTHER side also touched the ball in this step. Needed
+              because a dig is folded into the attack node's DUG outcomes
+              and a block is folded into the attack node's block outcomes;
+              without this, every dig and block would go uncounted.
+     none:1 → nobody touched the ball (it landed).
+   ═══════════════════════════════════════════════════════════════════════════ */
+const PHASES = {
+  serve: { name:'Serve', hint:'first contact of the rally', opts:[
+    {id:'serve_in',  lab:'Serve in play',                    p:.870, go:{flip:1,t:0,ph:'reception'}, cross:1},
+    {id:'ace',       lab:'ACE — untouched',                  p:.035, end:'poss', code:'ace',                  earn:'won', cross:1},
+    {id:'ace_touch', lab:'ACE — touched, no play',           p:.020, end:'poss', code:'ace_touched',          earn:'won', cross:1, opp:1},
+    {id:'se_net',    lab:'Service error — into the net',     p:.030, end:'opp',  code:'service_error_net',    earn:'err'},
+    {id:'se_long',   lab:'Service error — long',             p:.028, end:'opp',  code:'service_error_long',   earn:'err', cross:1},
+    {id:'se_wide',   lab:'Service error — wide',             p:.015, end:'opp',  code:'service_error_wide',   earn:'err', cross:1},
+    {id:'se_fault',  lab:'Foot fault / illegal serve',       p:.002, end:'opp',  code:'service_fault',        earn:'err'},
+  ]},
+  reception: { name:'Reception', hint:'receiving side, contact 1', opts:[
+    {id:'pass_good', lab:'Good pass — in system',            p:.640, go:{ph:'auto'}},
+    {id:'pass_poor', lab:'Poor pass — out of system',        p:.260, go:{ph:'auto'}},
+    {id:'pass_over', lab:'Overpass — crosses the net',       p:.025, go:{flip:1,t:0,ph:'overpass'}, cross:1},
+    {id:'rec_err',   lab:'Reception error — ball drops',     p:.055, end:'opp',  code:'reception_error',      earn:'err'},
+    {id:'rec_net',   lab:'Reception error — into the net',   p:.015, end:'opp',  code:'reception_error_net',  earn:'err'},
+    {id:'rec_hand',  lab:'Ball-handling fault on the pass',  p:.005, end:'opp',  code:'handling_fault_pass',  earn:'err'},
+  ]},
+  set: { name:'Set', hint:'second contact', opts:[
+    {id:'set_good',  lab:'Good set',                         p:.780, go:{ph:'auto'}},
+    {id:'set_poor',  lab:'Poor set — still attackable',      p:.150, go:{ph:'auto'}},
+    {id:'set_over',  lab:'Sent over on 2',                   p:.030, go:{ph:'sentover'}, cross:1},
+    {id:'set_dbl',   lab:'Set error — double contact',       p:.014, end:'opp',  code:'set_error_double',     earn:'err'},
+    {id:'set_lift',  lab:'Set error — lift / carry',         p:.010, end:'opp',  code:'set_error_lift',       earn:'err'},
+    {id:'set_drop',  lab:'Set error — dropped / into net',   p:.016, end:'opp',  code:'set_error_drop',       earn:'err'},
+  ]},
+  attack: { name:'Attack', hint:'the swing', opts:[
+    {id:'kill',      lab:'KILL — lands in',                  p:.420, end:'poss', code:'kill',                 earn:'won', cross:1},
+    {id:'dug',       lab:'DUG — clean, in system',           p:.200, go:{flip:1,t:1,ph:'auto'}, cross:1, opp:1},
+    {id:'dug_scr',   lab:'DUG — scramble, out of system',    p:.130, go:{flip:1,t:1,ph:'auto'}, cross:1, opp:1},
+    {id:'atk_out',   lab:'Attack error — out',               p:.060, end:'opp',  code:'attack_error_out',     earn:'err', cross:1},
+    {id:'blk_touch', lab:'Block touch — ball stays alive',   p:.060, go:{ph:'blocktouch'}, opp:1},
+    {id:'blk_kill',  lab:'BLOCKED — stuffed for a point',    p:.045, end:'opp',  code:'block_kill',           earn:'won', cross:1, opp:1},
+    {id:'kill_tool', lab:'KILL — off the block (tool)',      p:.035, end:'poss', code:'kill_tool',            earn:'won', cross:1, opp:1},
+    {id:'atk_net',   lab:'Attack error — into the net',      p:.035, end:'opp',  code:'attack_error_net',     earn:'err'},
+    {id:'blk_fault', lab:'Point — blocker net / antenna fault',p:.008,end:'poss',code:'block_fault',          earn:'err'},
+    {id:'atk_ill',   lab:'Attack error — illegal / antenna', p:.007, end:'opp',  code:'attack_error_illegal', earn:'err'},
+  ]},
+  dig: { name:'Dig / first contact', hint:'free ball, block deflection or overpass', opts:[
+    {id:'dig_good',  lab:'Good dig / pass',                  p:.450, go:{ph:'auto'}},
+    {id:'dig_scr',   lab:'Scramble dig',                     p:.250, go:{ph:'auto'}},
+    {id:'dig_drop',  lab:'Ball drops untouched — point ends',p:.180, end:'opp',  code:'ball_drops',           earn:'won', none:1},
+    {id:'dig_over',  lab:'Sent back over on 1',              p:.060, go:{ph:'sentover'}, cross:1},
+    {id:'dig_err',   lab:'Dig error — out / into the net',   p:.050, end:'opp',  code:'dig_error',            earn:'err'},
+    {id:'dig_hand',  lab:'Ball-handling fault on the dig',   p:.010, end:'opp',  code:'handling_fault_dig',   earn:'err'},
+  ]},
+  overpass: { name:'Overpass play', hint:'free swing at an overpassed ball', opts:[
+    {id:'op_kill',   lab:'Kill off the overpass',            p:.420, end:'poss', code:'overpass_kill',        earn:'won', cross:1},
+    {id:'op_alive',  lab:'Defense gets a play on it',        p:.220, go:{flip:1,t:0,ph:'dig'}, cross:1},
+    {id:'op_jwin',   lab:'Joust won — ball down',            p:.120, end:'poss', code:'joust_win',            earn:'won', cross:1, opp:1},
+    {id:'op_jloss',  lab:'Joust lost — ball down our side',  p:.120, end:'opp',  code:'joust_loss',           earn:'won', cross:1, opp:1},
+    {id:'op_err',    lab:'Error attacking the overpass',     p:.120, end:'opp',  code:'overpass_error',       earn:'err', cross:1},
+  ]},
+  sentover: { name:'Ball sent over', hint:'resolve the ball that crossed', noTouch:1, opts:[
+    {id:'so_play',   lab:'Opponent plays it — rally on',     p:.620, go:{flip:1,t:0,ph:'dig'}},
+    {id:'so_kill',   lab:'Lands in — point',                 p:.200, end:'poss', code:'over_kill',            earn:'won'},
+    {id:'so_err',    lab:'Out / into the net — error',       p:.180, end:'opp',  code:'over_error',           earn:'err'},
+  ]},
+  blocktouch: { name:'Block deflection', hint:'which side did it drop to?', noTouch:1, opts:[
+    {id:'bt_def',    lab:'Down to the blocking side',        p:.700, go:{flip:1,t:1,ph:'dig'}, cross:1},
+    {id:'bt_cover',  lab:'Rebounds to the attacking side',   p:.300, go:{t:0,ph:'dig'}},
+  ]},
+};
+
+/* Faults that can happen at any moment, on either side. */
+const VIOLATIONS = [
+  {code:'net_touch',     lab:'Net touch'},
+  {code:'centerline',    lab:'Under the net / centerline'},
+  {code:'four_hits',     lab:'Four contacts'},
+  {code:'service_order', lab:'Out of service order'},
+  {code:'screen',        lab:'Illegal screen'},
+  {code:'interference',  lab:'Interference / other fault'},
+];
+
+const SIDE_NAME  = {S:'Serving side', R:'Receiving side'};
+const SIDE_SHORT = {S:'Serve', R:'Receive'};
+const other = s => s === 'S' ? 'R' : 'S';
+const scol  = s => s === 'S' ? 'var(--serve)' : 'var(--recv)';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   2. STORE — sessions are just a label to group rows by. No teams, no score.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const KEY = 'avp_point_tree_v2';
+const uid = () => Math.random().toString(36).slice(2,9);
+
+var DB;   // `var`: load() → newSession() reads DB while it is still being assigned
+
+function newSession(over){
+  return Object.assign({
+    id: uid(),
+    label: 'Session ' + (DB && DB.sessions ? DB.sessions.length + 1 : 1),
+    date: new Date().toISOString().slice(0,10),
+    note: '',
+    points: [],
+  }, over || {});
+}
+
+DB = load();
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && Array.isArray(d.sessions) && d.sessions.length) return d;
+    }
+  }catch(e){ console.warn('could not read saved data', e); }
+  const s = newSession();
+  return {sessions:[s], active:s.id, theme:'dark'};
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(DB)); }catch(e){ console.warn('save failed', e); } }
+function S(){ return DB.sessions.find(s => s.id === DB.active) || DB.sessions[0]; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   3. LIVE RALLY
+   ═══════════════════════════════════════════════════════════════════════════ */
+let R = null;      // rally in progress
+let counts = {};   // "phase:optId" → observed count
+
+function resetRally(){
+  R = {steps:[], phase:'serve', poss:'S', touches:0, cross:0,
+       count:{S:0, R:0}, t0:null};
+}
+function optOf(ph, id){ return PHASES[ph].opts.find(o => o.id === id); }
+
+function recount(){
+  counts = {};
+  for(const s of DB.sessions)
+    for(const pt of s.points)
+      for(const st of (pt.steps || []))
+        counts[st.ph + ':' + st.id] = (counts[st.ph + ':' + st.id] || 0) + 1;
+}
+const SMOOTH = 10;
+function phaseTotal(ph){ return PHASES[ph].opts.reduce((n, o) => n + (counts[ph + ':' + o.id] || 0), 0); }
+/* Blend the hand-set prior with what has actually been logged, so the tree is
+   informative on rally one and converges to what you are really seeing. */
+function pHat(ph, o){
+  const tot = phaseTotal(ph), n = counts[ph + ':' + o.id] || 0;
+  return (n + o.p * SMOOTH) / (tot + SMOOTH);
+}
+
+/* How many contacts this option adds, and to which side. */
+function contactsOf(ph, o){
+  const c = {S:0, R:0};
+  if(!PHASES[ph].noTouch && !o.none) c[R.poss] += 1;
+  if(o.opp) c[other(R.poss)] += 1;
+  return c;
+}
+
+/* The one place a contact is applied. `pick` and the replay path share it so
+   they can never disagree about touch counts. */
+function applyStep(ph, o, record){
+  const phase = PHASES[ph];
+  const add = contactsOf(ph, o);
+  R.count.S += add.S; R.count.R += add.R;
+  R.cross += o.cross || 0;
+  if(record) R.steps.push({ph, id:o.id, lab:o.lab, poss:R.poss,
+                           touch: (phase.noTouch || o.none) ? null : R.touches + 1,
+                           add, p: pHat(ph, o)});
+  if(!phase.noTouch && !o.none) R.touches++;
+  if(o.end) return;
+  const go = o.go;
+  if(go.flip){ R.poss = other(R.poss); R.touches = go.t || 0; }
+  else if(go.t != null){ R.touches = go.t; }
+  R.phase = go.ph === 'auto' ? (R.touches === 1 ? 'set' : 'attack') : go.ph;
+}
+
+function pick(id){
+  const o = optOf(R.phase, id);
+  if(!o) return;
+  if(!R.steps.length) R.t0 = clockNow();
+  const ph = R.phase, poss = R.poss;
+  applyStep(ph, o, true);
+  if(o.end) finish(o.end === 'poss' ? poss : other(poss), o, ph);
+  else renderAll();
+}
+
+function finish(winner, o, endPhase){
+  S().points.push({
+    id: uid(),
+    touchesS: R.count.S,
+    touchesR: R.count.R,
+    total: R.count.S + R.count.R,
+    crossings: R.cross,
+    winner,                                   // 'S' or 'R'
+    code: o.code,
+    endLab: o.lab,
+    endPhase: endPhase || (R.steps.length ? R.steps[R.steps.length - 1].ph : 'serve'),
+    earn: o.earn,
+    steps: R.steps.map(s => ({ph:s.ph, id:s.id, poss:s.poss})),
+    likelihood: R.steps.reduce((x, s) => x * s.p, 1),
+    vStart: R.t0, vEnd: clockNow(),
+    at: new Date().toISOString(),
+  });
+  save(); recount(); resetRally(); renderAll();
+}
+
+/* Undo by replaying — the counters can never drift from the step list. */
+function replay(keep){
+  const t0 = R.t0;
+  resetRally(); R.t0 = t0;
+  for(const s of keep){
+    const o = optOf(s.ph, s.id);
+    if(o && !o.end) applyStep(s.ph, o, true);
+  }
+  renderAll();
+}
+function undoContact(){ if(R.steps.length) replay(R.steps.slice(0, -1).map(s => ({ph:s.ph, id:s.id}))); }
+function rewindTo(n){ replay(R.steps.slice(0, n).map(s => ({ph:s.ph, id:s.id}))); }
+function undoPoint(){
+  const s = S();
+  if(!s.points.length) return;
+  s.points.pop(); save(); recount(); resetRally(); renderAll();
+}
+function deletePoint(id){
+  const s = S(), i = s.points.findIndex(p => p.id === id);
+  if(i < 0) return;
+  s.points.splice(i, 1); save(); recount(); resetRally(); renderAll();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   4. VIDEO CLOCK
+   ═══════════════════════════════════════════════════════════════════════════ */
+const CL = {running:false, base:0, t0:0};
+function clockNow(){ return CL.running ? CL.base + (Date.now() - CL.t0) / 1000 : CL.base; }
+function mmss(s){
+  if(s == null) return '';
+  s = Math.max(0, Math.round(s));
+  const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0');
+}
+function toggleClock(){
+  if(CL.running){ CL.base = clockNow(); CL.running = false; }
+  else { CL.t0 = Date.now(); CL.running = true; }
+  paintClock();
+}
+function paintClock(){ $('clockBtn').textContent = (CL.running ? '⏸ ' : '▶ ') + mmss(clockNow()); }
+setInterval(() => { if(CL.running) paintClock(); }, 500);
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   5. RENDER
+   ═══════════════════════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const el = (tag, cls, txt) => { const n = document.createElement(tag);
+  if(cls) n.className = cls; if(txt != null) n.textContent = txt; return n; };
+const pctS = p => (p * 100 < 1 ? (p * 100).toFixed(1) : Math.round(p * 100)) + '%';
+
+function renderAll(){ renderStrip(); renderTree(); renderRail(); renderLog(); renderStats(); }
+
+/* ── the live touch counters ── */
+function renderStrip(){
+  const host = $('strip'); host.innerHTML = '';
+  $('hsess').textContent = '· ' + S().label;
+
+  for(const side of ['S','R']){
+    const c = el('div','sidecard' + (R.poss === side ? ' live' : ''));
+    c.style.setProperty('--sc', scol(side));
+    c.append(el('div','big mono', String(R.count[side])));
+    const box = el('div');
+    box.append(el('div','nm', SIDE_NAME[side]));
+    box.append(el('div','sub','contacts this rally'));
+    if(R.poss === side){
+      const td = el('div','touches');
+      for(let i = 0; i < 3; i++){
+        const d = el('span','tdot' + (i < R.touches ? ' fill' : ''));
+        d.style.setProperty('--sc', scol(side));
+        td.append(d);
+      }
+      box.append(td);
+    }
+    c.append(box);
+    if(R.poss === side) c.append(el('div','ballnow','● BALL'));
+    host.append(c);
+    tipify(c, SIDE_NAME[side] + ' has touched the ball ' + R.count[side] +
+      ' time' + (R.count[side] === 1 ? '' : 's') + ' so far this rally.');
+  }
+
+  const ph = PHASES[R.phase];
+  const kv = (b, i) => { const k = el('div','kv'); k.append(el('b', null, b)); k.append(el('i', null, i)); host.append(k); };
+  kv(ph.name, 'now · ' + ph.hint);
+  kv(String(R.count.S + R.count.R), 'total contacts');
+  kv(String(R.cross), 'net crossings');
+  kv('#' + (S().points.length + 1), 'point in session');
+}
+
+/* ── the tree ── */
+function renderTree(){
+  const cols = $('cols'); cols.innerHTML = '';
+  const reach = reachRates();
+
+  R.steps.forEach((st, i) => {
+    const c = el('div','col');
+    const h = el('div','col-h');
+    h.append(el('b', null, PHASES[st.ph].name));
+    h.append(el('span', null, '#' + (i + 1)));
+    if(reach[i] != null) h.append(el('span','reach', pctS(reach[i]) + ' of rallies'));
+    c.append(h);
+
+    const n = el('button','tn');
+    n.dataset.nid = 't' + i;
+    n.style.borderLeftColor = scol(st.poss);
+    const box = el('div');
+    box.append(el('div','lab', st.lab));
+    const bits = [SIDE_SHORT[st.poss]];
+    if(st.touch) bits.push('contact ' + st.touch);
+    if(st.add && st.add[other(st.poss)]) bits.push('+1 ' + SIDE_SHORT[other(st.poss)].toLowerCase());
+    bits.push(pctS(st.p));
+    box.append(el('div','sub', bits.join(' · ')));
+    n.append(box);
+    n.append(el('span','rew','↶ rewind'));
+    n.onclick = () => rewindTo(i);
+    tipify(n, 'Click to rewind the rally to just before this contact.');
+    c.append(n);
+    cols.append(c);
+  });
+
+  const ph = PHASES[R.phase];
+  const c = el('div','col');
+  const h = el('div','col-h');
+  h.append(el('b', null, ph.name));
+  h.append(el('span', null, ph.noTouch ? 'resolve' : SIDE_NAME[R.poss].toLowerCase() + ' · contact ' + (R.touches + 1)));
+  c.append(h);
+
+  const opts = ph.opts.map(o => ({o, p: pHat(R.phase, o)}));
+  const max = Math.max.apply(null, opts.map(x => x.p));
+  opts.forEach((x, j) => {
+    const o = x.o, b = el('button','opt ' + (o.end ? 'term' : 'cont'));
+    b.dataset.nid = 'f' + j;
+    const win = o.end ? (o.end === 'poss' ? R.poss : other(R.poss)) : null;
+    if(win) b.style.setProperty('--tc', scol(win));
+
+    const r1 = el('div','row1');
+    r1.append(el('span','k', j === 9 ? '0' : String(j + 1)));
+    r1.append(el('span','lab', o.lab));
+    r1.append(el('span','pct mono', pctS(x.p)));
+    b.append(r1);
+
+    const r2 = el('div','row2');
+    const m = el('div','meter'); const f = el('i');
+    f.style.width = Math.max(2, x.p / max * 100) + '%';
+    f.style.background = win ? scol(win) : 'var(--muted)';
+    m.append(f); r2.append(m);
+
+    const e = el('div','end');
+    if(win){
+      const chip = el('span','chip'); chip.style.background = scol(win);
+      e.append(chip);
+      e.append(el('span', null, '→ ' + SIDE_NAME[win] + (o.earn === 'err' ? ' · error' : ' · earned')));
+    }else{
+      e.append(el('span', null, '↳ rally continues'));
+    }
+    r2.append(e);
+
+    // what this contact does to the counters — the recorded quantity
+    const add = contactsOf(R.phase, o);
+    const bits = [];
+    if(add.S) bits.push('+' + add.S + ' S');
+    if(add.R) bits.push('+' + add.R + ' R');
+    r2.append(el('span','adds', bits.length ? bits.join(' ') : 'no touch'));
+    b.append(r2);
+
+    const n = counts[R.phase + ':' + o.id] || 0;
+    tipify(b, o.lab + ' — ' + pctS(x.p) + ' of ' + ph.name.toLowerCase() + ' contacts (logged ' + n +
+      '×, prior ' + pctS(o.p) + '). Adds ' + (bits.length ? bits.join(' and ') : 'no contact') +
+      ' to the touch counts.');
+    b.onclick = () => pick(o.id);
+    c.append(b);
+  });
+  cols.append(c);
+
+  requestAnimationFrame(drawLinks);
+  const w = $('treewrap');
+  requestAnimationFrame(() => { w.scrollLeft = w.scrollWidth; });
+}
+
+/* Share of logged rallies that got at least this deep. */
+function reachRates(){
+  const all = DB.sessions.flatMap(s => s.points);
+  if(!all.length) return [];
+  return R.steps.map((_, i) => all.filter(p => (p.steps || []).length >= i + 1).length / all.length);
+}
+
+function drawLinks(){
+  const svg = $('links'), inner = $('treeinner');
+  const base = inner.getBoundingClientRect();
+  svg.setAttribute('width', inner.scrollWidth);
+  svg.setAttribute('height', inner.scrollHeight);
+  svg.style.width = inner.scrollWidth + 'px';
+  svg.style.height = inner.scrollHeight + 'px';
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+  const box = nid => {
+    const n = inner.querySelector('[data-nid="' + nid + '"]');
+    if(!n) return null;
+    const r = n.getBoundingClientRect();
+    return {l:r.left - base.left, r:r.right - base.left, cy:(r.top + r.bottom) / 2 - base.top};
+  };
+  const link = (a, b, w, col, dash) => {
+    if(!a || !b) return;
+    const dx = Math.max(18, (b.l - a.r) * .6);
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d','M' + a.r + ',' + a.cy + ' C' + (a.r + dx) + ',' + a.cy +
+                       ' ' + (b.l - dx) + ',' + b.cy + ' ' + b.l + ',' + b.cy);
+    p.setAttribute('fill','none'); p.setAttribute('stroke', col);
+    p.setAttribute('stroke-width', w); p.setAttribute('stroke-linecap','round');
+    if(dash) p.setAttribute('stroke-dasharray','1 5');
+    svg.append(p);
+  };
+  for(let i = 1; i < R.steps.length; i++) link(box('t' + (i - 1)), box('t' + i), 2, 'var(--axis)');
+
+  const lastTrunk = R.steps.length ? box('t' + (R.steps.length - 1)) : null;
+  if(!lastTrunk) return;
+  const ph = PHASES[R.phase];
+  const ps = ph.opts.map(o => pHat(R.phase, o));
+  const mx = Math.max.apply(null, ps);
+  ph.opts.forEach((o, j) => link(lastTrunk, box('f' + j),
+    .8 + (ps[j] / mx) * 2.6, o.end ? 'var(--grid)' : 'var(--axis)', o.end ? 1 : 0));
+}
+window.addEventListener('resize', () => requestAnimationFrame(drawLinks));
+
+/* ── rail ── */
+function renderRail(){
+  const p = $('path'); p.innerHTML = '';
+  if(!R.steps.length){
+    p.append(el('div','empty','Nothing logged yet. Pick the serve outcome to start the rally.'));
+  }else{
+    R.steps.forEach((s, i) => {
+      if(i) p.append(el('span','arrow','›'));
+      const c = el('span','p', s.lab);
+      c.style.borderLeft = '3px solid ' + scol(s.poss);
+      p.append(c);
+    });
+  }
+  const lk = R.steps.reduce((x, s) => x * s.p, 1);
+  const o = $('odds'); o.innerHTML = '';
+  if(R.steps.length){
+    o.append(el('b', null, '1 in ' + Math.round(1 / lk).toLocaleString()));
+    o.append(el('span', null, ' rallies follow this exact sequence — ' + pctS(lk) +
+      '. Each contact multiplies the branch probabilities.'));
+  }else{
+    o.append(el('span', null, 'Rally likelihood appears here as you log contacts.'));
+  }
+  $('rallyCount').textContent = R.count.S + ' – ' + R.count.R + ' touches';
+}
+
+function renderLog(){
+  const s = S(), host = $('log'); host.innerHTML = '';
+  $('logCount').textContent = s.points.length + ' logged';
+  if(!s.points.length){ host.append(el('div','empty','No points logged in this session yet.')); return; }
+  s.points.slice().reverse().forEach((pt, k) => {
+    const i = s.points.length - k;
+    const row = el('div','lrow');
+    row.append(el('span','no mono','#' + i));
+    const tt = el('span','tt mono');
+    const a = el('span', null, String(pt.touchesS)); a.style.color = scol('S');
+    const b = el('span', null, String(pt.touchesR)); b.style.color = scol('R');
+    tt.append(a); tt.append(el('s', null, ' – ')); tt.append(b);
+    row.append(tt);
+    row.append(el('div','t', pt.endLab));
+    const x = el('button','x','×'); x.title = 'Delete this point';
+    x.onclick = () => deletePoint(pt.id);
+    row.append(x);
+    tipify(row, 'Serving side ' + pt.touchesS + ' contacts, receiving side ' + pt.touchesR +
+      ' — ' + pt.total + ' total, ' + pt.crossings + ' crossings. Ended: ' + pt.endLab +
+      ' (' + SIDE_NAME[pt.winner].toLowerCase() + ' wins)' +
+      (pt.vStart != null ? ' · video ' + mmss(pt.vStart) : '') + '.');
+    host.append(row);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   6. STATS
+   ═══════════════════════════════════════════════════════════════════════════ */
+let showTable = false;
+function renderStats(){
+  const host = $('stats'); host.innerHTML = '';
+  const P = S().points, n = P.length;
+  const avg = f => n ? (P.reduce((s, p) => s + f(p), 0) / n) : 0;
+
+  const tiles = el('div','tiles');
+  const tile = (l, v, d) => { const t = el('div','tile');
+    t.append(el('div','l', l)); t.append(el('div','v', v)); if(d) t.append(el('div','d', d)); tiles.append(t); };
+
+  tile('Points logged', String(n), S().label);
+  tile('Touches per rally', n ? avg(p => p.total).toFixed(1) : '—',
+       n ? 'longest ' + Math.max.apply(null, P.map(p => p.total)) : '');
+  tile('Serving side', n ? avg(p => p.touchesS).toFixed(1) : '—', 'contacts per rally');
+  tile('Receiving side', n ? avg(p => p.touchesR).toFixed(1) : '—', 'contacts per rally');
+  tile('Net crossings', n ? avg(p => p.crossings).toFixed(1) : '—', 'per rally');
+  const so = P.filter(p => p.winner === 'R').length;
+  tile('Receiving side wins', n ? Math.round(so / n * 100) + '%' : '—', so + ' of ' + n + ' points');
+  const shortest = P.filter(p => p.total <= 4).length;
+  tile('Four contacts or fewer', n ? Math.round(shortest / n * 100) + '%' : '—', shortest + ' rallies');
+  host.append(tiles);
+
+  const charts = el('div','charts');
+  charts.append(chartTotals(P));
+  charts.append(chartBySide(P));
+  charts.append(chartEndings(P));
+  host.append(charts);
+
+  const tv = el('div','chart');
+  tv.append(el('div','ct','Logged points'));
+  const cs = el('div','cs');
+  cs.append(document.createTextNode('Every value above, as text. '));
+  const bt = el('button','btn sm', showTable ? 'Hide table' : 'Show data table');
+  bt.onclick = () => { showTable = !showTable; renderStats(); };
+  cs.append(bt);
+  tv.append(cs);
+  if(showTable) tv.append(dataTable(P));
+  host.append(tv);
+}
+
+function bar(v, mx, col){ const f = el('div','cf'); f.style.height = (v / mx * 100) + '%'; f.style.background = col; return f; }
+
+function chartTotals(P){
+  const c = el('div','chart');
+  c.append(el('div','ct','Total touches per rally'));
+  c.append(el('div','cs','Both sides combined — how long points actually last.'));
+  if(!P.length){ c.append(el('div','empty','No points yet.')); return c; }
+  const N = 13, bins = new Array(N + 1).fill(0);
+  P.forEach(p => bins[Math.min(N, Math.max(0, p.total))]++);
+  const mx = Math.max.apply(null, bins) || 1;
+  const wrap = el('div','colchart');
+  for(let i = 1; i <= N; i++){
+    const b = el('div','cbin');
+    if(bins[i]) b.append(el('div','cv mono', String(bins[i])));
+    b.append(bar(bins[i], mx, 'var(--seq-450)'));
+    tipify(b, bins[i] + ' rall' + (bins[i] === 1 ? 'y' : 'ies') + ' with ' +
+      (i === N ? N + ' or more' : i) + ' total touch' + (i === 1 ? '' : 'es') + '.');
+    wrap.append(b);
+  }
+  const gl = el('div','gridline'); gl.style.top = '50%'; wrap.append(gl);
+  c.append(wrap);
+  const ax = el('div','xax');
+  for(let i = 1; i <= N; i++) ax.append(el('div', null, i === N ? N + '+' : String(i)));
+  c.append(ax);
+  return c;
+}
+
+function chartBySide(P){
+  const c = el('div','chart');
+  c.append(el('div','ct','Touches by side'));
+  c.append(el('div','cs','How many contacts each side made in a rally.'));
+  const lg = el('div','clegend');
+  [['S','Serving side'],['R','Receiving side']].forEach(([k, nm]) => {
+    const i = el('div','lgi');
+    const sw = el('span','sw'); sw.style.background = scol(k);
+    i.append(sw); i.append(el('span', null, nm)); lg.append(i);
+  });
+  c.append(lg);
+  if(!P.length){ c.append(el('div','empty','No points yet.')); return c; }
+  const N = 8, bs = new Array(N + 1).fill(0), br = new Array(N + 1).fill(0);
+  P.forEach(p => { bs[Math.min(N, p.touchesS)]++; br[Math.min(N, p.touchesR)]++; });
+  const mx = Math.max(Math.max.apply(null, bs), Math.max.apply(null, br)) || 1;
+  const wrap = el('div','colchart');
+  for(let i = 0; i <= N; i++){
+    const b = el('div','cbin');
+    const pair = el('div','cpair');
+    pair.append(bar(bs[i], mx, scol('S')));
+    pair.append(bar(br[i], mx, scol('R')));
+    b.append(pair);
+    tipify(b, (i === N ? N + '+' : i) + ' contacts in a rally — serving side ' + bs[i] +
+      ' time' + (bs[i] === 1 ? '' : 's') + ', receiving side ' + br[i] + '.');
+    wrap.append(b);
+  }
+  const gl = el('div','gridline'); gl.style.top = '50%'; wrap.append(gl);
+  c.append(wrap);
+  const ax = el('div','xax');
+  for(let i = 0; i <= N; i++) ax.append(el('div', null, i === N ? N + '+' : String(i)));
+  c.append(ax);
+  return c;
+}
+
+function chartEndings(P){
+  const c = el('div','chart');
+  c.append(el('div','ct','How points end'));
+  c.append(el('div','cs','The final contact of every logged rally.'));
+  if(!P.length){ c.append(el('div','empty','No points yet.')); return c; }
+  const m = new Map();
+  P.forEach(p => m.set(p.endLab, (m.get(p.endLab) || 0) + 1));
+  const list = [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const mx = list[0][1];
+  list.forEach(([lab, v]) => {
+    const row = el('div','hb');
+    row.append(el('div','hl', lab));
+    const track = el('div','ht');
+    const f = el('div','hf'); f.style.width = Math.max(2, v / mx * 100) + '%';
+    track.append(f); row.append(track);
+    row.append(el('div','hv mono', v + '  ·  ' + Math.round(v / P.length * 100) + '%'));
+    tipify(row, lab + ' — ' + v + ' point' + (v === 1 ? '' : 's') + ', ' +
+      Math.round(v / P.length * 100) + '% of the ' + P.length + ' logged.');
+    c.append(row);
+  });
+  return c;
+}
+
+function dataTable(P){
+  const w = el('div','tvwrap'), t = el('table','tv');
+  const cols = ['#','Serve side','Receive side','Total','Crossings','Won by','Ending','Video'];
+  const thead = el('thead'), tr = el('tr');
+  cols.forEach(h => tr.append(el('th', null, h)));
+  thead.append(tr); t.append(thead);
+  const tb = el('tbody');
+  P.slice().reverse().forEach((p, k) => {
+    const x = el('tr');
+    [P.length - k, p.touchesS, p.touchesR, p.total, p.crossings,
+     SIDE_SHORT[p.winner], p.endLab, mmss(p.vStart)]
+      .forEach(v => x.append(el('td', null, String(v))));
+    tb.append(x);
+  });
+  t.append(tb); w.append(t); return w;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   7. CSV — one row per point. Touch counts are the payload.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const CSV_COLS = [
+  'session','date','point_no',
+  'serving_side_touches','receiving_side_touches','total_touches','net_crossings',
+  'won_by','point_type','ending_label','ending_phase','earned_or_error',
+  'video_time','rally_seconds','path_ids','path_labels','logged_at'
+];
+
+function pointRows(s){
+  return s.points.map((p, i) => ({
+    session:s.label, date:s.date, point_no:i + 1,
+    serving_side_touches:p.touchesS,
+    receiving_side_touches:p.touchesR,
+    total_touches:p.total,
+    net_crossings:p.crossings,
+    won_by:p.winner === 'S' ? 'serving' : 'receiving',
+    point_type:p.code, ending_label:p.endLab, ending_phase:p.endPhase,
+    earned_or_error:p.earn === 'err' ? 'error' : 'earned',
+    video_time:mmss(p.vStart),
+    rally_seconds:(p.vStart != null && p.vEnd != null) ? Math.max(0, p.vEnd - p.vStart).toFixed(1) : '',
+    path_ids:(p.steps || []).map(x => x.id).join('>'),
+    path_labels:(p.steps || []).map(x => { const o = optOf(x.ph, x.id); return o ? o.lab : x.id; }).join(' | '),
+    logged_at:p.at || ''
+  }));
+}
+
+function csvCell(v){
+  const s = String(v == null ? '' : v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+}
+const toCSV = (cols, rows) =>
+  [cols.join(',')].concat(rows.map(r => cols.map(c => csvCell(r[c])).join(','))).join('\r\n');
+
+function download(name, text, type){
+  const blob = new Blob(['﻿' + text], {type:(type || 'text/csv') + ';charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.append(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+}
+const slug = s => String(s || 'session').replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'').toLowerCase();
+
+function exportPoints(sessions, name){
+  const rows = sessions.flatMap(pointRows);
+  if(!rows.length){ alert('No points logged yet.'); return; }
+  download(name, toCSV(CSV_COLS, rows));
+}
+
+/* One column per session: touch-count distributions side by side. */
+function exportBySession(){
+  const list = DB.sessions.filter(s => s.points.length);
+  if(!list.length){ alert('No points logged yet.'); return; }
+  const rows = [];
+  const push = (metric, fn) => rows.push(Object.assign({metric},
+    Object.fromEntries(list.map(s => [s.label, fn(s.points)]))));
+  const avg = (P, f) => P.length ? (P.reduce((x, p) => x + f(p), 0) / P.length).toFixed(2) : '';
+
+  push('date', () => '');
+  list.forEach(s => { rows[0][s.label] = s.date; });
+  push('points_logged',            P => P.length);
+  push('avg_total_touches',        P => avg(P, p => p.total));
+  push('avg_serving_side_touches', P => avg(P, p => p.touchesS));
+  push('avg_receiving_side_touches',P => avg(P, p => p.touchesR));
+  push('avg_net_crossings',        P => avg(P, p => p.crossings));
+  push('max_total_touches',        P => P.length ? Math.max.apply(null, P.map(p => p.total)) : '');
+  push('pct_won_by_receiving',     P => P.length ? (P.filter(p => p.winner === 'R').length / P.length * 100).toFixed(1) : '');
+  for(let i = 1; i <= 12; i++) push('rallies_with_' + i + '_total_touches', P => P.filter(p => p.total === i).length);
+  push('rallies_with_13_or_more_total_touches', P => P.filter(p => p.total >= 13).length);
+  const codes = [...new Set(list.flatMap(s => s.points.map(p => p.code)))].sort();
+  codes.forEach(code => push('count_' + code, P => P.filter(p => p.code === code).length));
+
+  download('point_tree_by_session_' + new Date().toISOString().slice(0,10) + '.csv',
+           toCSV(['metric'].concat(list.map(s => s.label)), rows));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   8. MODALS
+   ═══════════════════════════════════════════════════════════════════════════ */
+let modalOpen = false;
+function modal(build){
+  closeModal();
+  const scrim = el('div','scrim'); scrim.id = 'scrim';
+  const m = el('div','modal');
+  build(m, closeModal);
+  scrim.append(m);
+  scrim.onclick = e => { if(e.target === scrim) closeModal(); };
+  document.body.append(scrim);
+  modalOpen = true;
+  const first = m.querySelector('input,button');
+  if(first) first.focus();
+}
+function closeModal(){ const s = $('scrim'); if(s) s.remove(); modalOpen = false; }
+
+function field(label, value, key, wide){
+  const f = el('div','f' + (wide ? ' wide' : ''));
+  f.append(el('label', null, label));
+  const i = el('input'); i.value = value == null ? '' : value; i.dataset.k = key;
+  f.append(i); return f;
+}
+
+function openSetup(){
+  const s = S();
+  modal((m, close) => {
+    m.append(el('h2','','Session'));
+    m.append(el('div','sub','Just a label to group rows by in the CSV. Nothing here identifies a team — every point is recorded as serving side versus receiving side.'));
+    const gr = el('div','fgrid');
+    gr.append(field('Label', s.label, 'label', true));
+    gr.append(field('Date', s.date, 'date'));
+    gr.append(field('Note', s.note, 'note'));
+    m.append(gr);
+    const foot = el('div','mfoot');
+    const del = el('button','btn','Delete session');
+    del.style.marginRight = 'auto';
+    del.onclick = () => {
+      if(!confirm('Delete "' + s.label + '" and its ' + s.points.length + ' logged points? This cannot be undone.')) return;
+      DB.sessions = DB.sessions.filter(x => x.id !== s.id);
+      if(!DB.sessions.length) DB.sessions.push(newSession());
+      DB.active = DB.sessions[0].id;
+      save(); recount(); resetRally(); renderSessSel(); renderAll(); close();
+    };
+    const cancel = el('button','btn','Cancel'); cancel.onclick = close;
+    const okb = el('button','btn sel','Save');
+    okb.onclick = () => {
+      m.querySelectorAll('[data-k]').forEach(i => { s[i.dataset.k] = i.value; });
+      save(); renderSessSel(); renderAll(); close();
+    };
+    foot.append(del, cancel, okb); m.append(foot);
+  });
+}
+
+function openViolation(){
+  modal((m, close) => {
+    m.append(el('h2','','Violation'));
+    m.append(el('div','sub','Pick the fault and the side that committed it. The point goes to the other side; touch counts so far are kept.'));
+    VIOLATIONS.forEach(v => {
+      const row = el('div','vrow');
+      row.append(el('div','vl', v.lab));
+      ['S','R'].forEach(side => {
+        const b = el('button','btn sm', SIDE_SHORT[side]);
+        b.style.borderLeft = '3px solid ' + scol(side);
+        b.title = SIDE_NAME[side] + ' commits it → point to the ' + SIDE_NAME[other(side)].toLowerCase();
+        b.onclick = () => {
+          close();
+          finish(other(side), {code:'violation_' + v.code,
+                               lab:v.lab + ' — ' + SIDE_NAME[side].toLowerCase(), earn:'err'}, R.phase);
+        };
+        row.append(b);
+      });
+      m.append(row);
+    });
+    const foot = el('div','mfoot');
+    const cancel = el('button','btn','Cancel'); cancel.onclick = close;
+    foot.append(cancel); m.append(foot);
+  });
+}
+
+function openExport(){
+  const s = S();
+  const nAll = DB.sessions.reduce((n, x) => n + x.points.length, 0);
+  modal((m, close) => {
+    m.append(el('h2','','Export'));
+    m.append(el('div','sub','One row per point, ' + CSV_COLS.length +
+      ' columns. The touch counts are the first thing in the file: serving-side contacts, receiving-side contacts and their total.'));
+    const row = (title, desc, fn, dis) => {
+      const b = el('button','btn');
+      b.style.cssText = 'display:block;width:100%;text-align:left;padding:10px 12px;margin-bottom:8px;white-space:normal';
+      b.append(el('div', null, title));
+      const d = el('div', null, desc);
+      d.style.cssText = 'font-size:11.5px;color:var(--muted);margin-top:2px';
+      b.append(d);
+      b.disabled = !!dis;
+      b.onclick = () => { fn(); close(); };
+      m.append(b);
+    };
+    row('This session — one row per point', s.label + ' · ' + s.points.length + ' points',
+        () => exportPoints([s], 'point_tree_' + slug(s.label) + '_' + s.date + '.csv'), !s.points.length);
+    row('All sessions — one row per point', DB.sessions.length + ' sessions · ' + nAll + ' points',
+        () => exportPoints(DB.sessions, 'point_tree_all_' + new Date().toISOString().slice(0,10) + '.csv'), !nAll);
+    row('Summary — one column per session',
+        'Average and max touches per side, the full distribution of rally lengths, and a count for every ending type',
+        exportBySession, !nAll);
+    row('Backup — everything as JSON', 'Reload it later to keep logging where you left off',
+        () => download('point_tree_backup_' + new Date().toISOString().slice(0,10) + '.json',
+                       JSON.stringify(DB, null, 1), 'application/json'));
+
+    const imp = el('div','f wide');
+    imp.append(el('label', null,'Restore a JSON backup (replaces everything currently stored)'));
+    const fi = el('input'); fi.type = 'file'; fi.accept = '.json,application/json';
+    fi.onchange = () => {
+      const f = fi.files[0]; if(!f) return;
+      const rd = new FileReader();
+      rd.onload = () => {
+        try{
+          const d = JSON.parse(rd.result);
+          if(!d || !Array.isArray(d.sessions) || !d.sessions.length) throw new Error('not a point-tree backup');
+          if(!confirm('Replace all ' + nAll + ' currently stored points with this backup?')) return;
+          DB = d; if(!S()) DB.active = DB.sessions[0].id;
+          save(); recount(); resetRally(); renderSessSel(); renderAll(); close();
+        }catch(e){ alert('Could not read that file: ' + e.message); }
+      };
+      rd.readAsText(f);
+    };
+    imp.append(fi); m.append(imp);
+
+    const foot = el('div','mfoot');
+    const cancel = el('button','btn','Close'); cancel.onclick = close;
+    foot.append(cancel); m.append(foot);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   9. TOOLTIP + WIRING
+   ═══════════════════════════════════════════════════════════════════════════ */
+function tipify(node, text){
+  node.addEventListener('mouseenter', () => { const t = $('tip'); t.textContent = text; t.classList.add('show'); });
+  node.addEventListener('mousemove', e => {
+    const t = $('tip'), pad = 14;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    const r = t.getBoundingClientRect();
+    if(x + r.width > innerWidth - 8) x = e.clientX - r.width - pad;
+    if(y + r.height > innerHeight - 8) y = e.clientY - r.height - pad;
+    t.style.left = x + 'px'; t.style.top = y + 'px';
+  });
+  node.addEventListener('mouseleave', () => $('tip').classList.remove('show'));
+}
+
+function renderSessSel(){
+  const sel = $('sessSel'); sel.innerHTML = '';
+  DB.sessions.forEach(s => {
+    const o = el('option', null, s.label + ' (' + s.points.length + ')');
+    o.value = s.id; if(s.id === DB.active) o.selected = true; sel.append(o);
+  });
+  const o = el('option', null, '+ New session…'); o.value = '__new'; sel.append(o);
+}
+$('sessSel').onchange = e => {
+  if(e.target.value === '__new'){
+    const s = newSession(); DB.sessions.push(s); DB.active = s.id;
+    save(); recount(); resetRally(); renderSessSel(); renderAll(); openSetup();
+  }else{
+    DB.active = e.target.value; save(); resetRally(); renderSessSel(); renderAll();
+  }
+};
+$('btnSetup').onclick = openSetup;
+$('btnViol').onclick = openViolation;
+$('btnExport').onclick = openExport;
+$('btnUndo').onclick = undoContact;
+$('btnUndoPt').onclick = undoPoint;
+$('btnLet').onclick = () => { resetRally(); renderAll(); };
+$('clockBtn').onclick = toggleClock;
+$('clockSet').onkeydown = e => {
+  if(e.key !== 'Enter') return;
+  const v = e.target.value.trim();
+  if(!/^\d+(:\d{1,2}){1,2}$/.test(v)){ e.target.value = ''; return; }
+  const p = v.split(':').map(Number);
+  CL.base = p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + p[1];
+  CL.t0 = Date.now(); paintClock(); e.target.value = ''; e.target.blur();
+};
+$('btnTheme').onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', cur);
+  DB.theme = cur; save(); requestAnimationFrame(drawLinks);
+};
+
+document.addEventListener('keydown', e => {
+  if(modalOpen && e.key === 'Escape'){ closeModal(); return; }
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if(tag === 'INPUT' || tag === 'SELECT' || modalOpen) return;
+  if(e.key === 'Backspace'){ e.preventDefault(); undoContact(); return; }
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); undoPoint(); return; }
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.key === ' '){ e.preventDefault(); toggleClock(); return; }
+  if(e.key.toLowerCase() === 'v'){ e.preventDefault(); openViolation(); return; }
+  if(e.key.toLowerCase() === 'l'){ e.preventDefault(); resetRally(); renderAll(); return; }
+  if(/^[0-9]$/.test(e.key)){
+    const o = PHASES[R.phase].opts[e.key === '0' ? 9 : (+e.key - 1)];
+    if(o){ e.preventDefault(); pick(o.id); }
+  }
+});
+
+document.documentElement.setAttribute('data-theme', DB.theme || 'dark');
+recount(); resetRally(); renderSessSel(); renderAll(); paintClock();
+</script>
