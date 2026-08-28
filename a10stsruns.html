@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Slay the Spire 2 — A10 Run Dashboard</title>
+<title>Slay the Spire 2 — My A10 Runs</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -291,8 +291,8 @@
 <body>
 
 <div id="hdr">
-  <h1>Slay the Spire 2 — Ascension 10 RUNS</h1>
-  <span class="sub">Kieran's personal run history at A10 only (Not counting Neow Abandons) Click a character card to filter by character. Across many different versions, starting with initial release Spring 2026, updated 8/27/26</span>
+  <h1>Slay the Spire 2 — My Ascension 10 Runs</h1>
+  <span class="sub">My own run history, Ascension 10 only, not counting the runs I abandoned at Neow. Click a character card to filter by character. Across many versions, starting from the initial release in Spring 2026 — updated 8/27/26</span>
   <div id="hdr-right">
     <span id="last-loaded"></span>
     <button id="load-btn" onclick="document.getElementById('run-file-input').click()">Load Runs</button>
@@ -318,7 +318,7 @@
         <div id="chart-sub">Floor-by-floor absolute HP · click a character card to filter</div>
       </div>
       <div style="font-size:10px;color:#374151;max-width:180px;line-height:1.5;text-align:center;padding:0 12px;border-left:1.5px solid #e2e8f0;border-right:1.5px solid #e2e8f0;">
-         The run is extend by 2 floors if you pick the <strong style="color:#1e293b">Golden Path</strong> boss reward
+         The run extends by 2 floors if I pick the <strong style="color:#1e293b">Golden Path</strong> boss reward
       </div>
       <div id="legend">
         <div class="legend-item">
@@ -336,12 +336,12 @@
   <div id="bottom-row">
     <div class="panel">
       <div class="panel-title">Top Killers</div>
-      <div class="panel-sub">What ended your runs (losses only)</div>
+      <div class="panel-sub">What ended my runs (losses only)</div>
       <div id="kills-list"></div>
     </div>
     <div class="panel">
       <div class="panel-title">Floors Reached</div>
-      <div class="panel-sub">Distribution across all qualifying runs</div>
+      <div class="panel-sub">Distribution across all of my qualifying runs</div>
       <svg id="floors-chart"></svg>
     </div>
   </div>
@@ -357,13 +357,13 @@
 
   <!-- Damage dealers -->
   <div id="damage-section" style="margin-top:24px">
-    <div class="section-label" style="margin-bottom:12px">Top damage dealers · avg damage taken per encounter</div>
+    <div class="section-label" style="margin-bottom:12px">Top damage dealers · avg damage I took per encounter</div>
     <div id="damage-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
   </div>
 
   <!-- Card Elo -->
   <div id="elo-section" style="margin-top:24px">
-    <div class="section-label" style="margin-bottom:12px">Card Elo · how often you take a card over the alternatives</div>
+    <div class="section-label" style="margin-bottom:12px">Card Elo · how often I take a card over the alternatives</div>
     <div class="panel" style="padding:0;overflow:hidden">
       <div class="elo-head-note" id="elo-note"></div>
       <div id="elo-tabs"></div>
@@ -374,8 +374,8 @@
         <button class="elo-min active" data-min="5">5×</button>
         <button class="elo-min" data-min="15">15×</button>
         <div id="elo-legend">
-          <div class="elo-key"><div class="elo-swatch" style="background:#2a78d6"></div>Above the skip line — you take it</div>
-          <div class="elo-key"><div class="elo-swatch" style="background:#e34948"></div>Below — you pass</div>
+          <div class="elo-key"><div class="elo-swatch" style="background:#2a78d6"></div>Above the skip line — I take it</div>
+          <div class="elo-key"><div class="elo-swatch" style="background:#e34948"></div>Below — I pass</div>
         </div>
       </div>
       <div id="elo-list" style="padding:14px 20px;max-height:520px;overflow-y:auto"></div>
@@ -873,7 +873,7 @@ function buildDamageSection() {
     panel.className = 'dmg-panel';
     panel.innerHTML = `
       <div class="dmg-panel-title">${LABELS[type]}</div>
-      <div class="dmg-panel-sub">avg damage taken per encounter</div>
+      <div class="dmg-panel-sub">avg damage I took per encounter</div>
       ${entries.map(e => `
         <div class="dmg-row">
           <div class="dmg-bar-wrap">
@@ -1053,7 +1053,7 @@ function buildEloList() {
 
   const note = document.getElementById('elo-note');
   note.innerHTML =
-    `The card you took beat the ones you left, and beat skipping; a card you left lost only to the card you took. ` +
+    `The card I took beat the ones I left, and beat skipping; a card I left lost only to the card I took. ` +
     `<strong style="color:#1e293b">Skipping is rated too</strong>, and sits at ` +
     `<strong style="color:#1e293b">${skip}</strong> — that is the centre line. ` +
     `Shop inventories are excluded (the game logs the whole shelf as a "choice"). ` +
@@ -1063,9 +1063,9 @@ function buildEloList() {
   const axis = `<div class="elo-axis">
       <div></div><div>Card</div><div style="text-align:right">Elo</div>
       <div class="elo-axis-scale">
-        <span>← passed over</span>
+        <span>← I passed</span>
         <span class="elo-axis-mid">skip ${skip}</span>
-        <span>preferred →</span>
+        <span>I took →</span>
       </div>
       <div style="text-align:right">Taken / offered</div>
     </div>`;
@@ -1090,7 +1090,7 @@ function buildEloList() {
     const r = rows.find(x => x.card === el.dataset.card);
     el.onmousemove = e => showTip(
       `<strong>${prettyCard(r.card)}</strong><br>Elo ${r.elo} · ${r.elo - skip >= 0 ? '+' : ''}${r.elo - skip} vs skipping` +
-      `<br>Taken ${r.taken} of ${r.offered} times offered (${r.pick_rate}%)`, e.clientX, e.clientY);
+      `<br>I took it ${r.taken} of the ${r.offered} times it was offered (${r.pick_rate}%)`, e.clientX, e.clientY);
     el.onmouseleave = hideTip;
   });
 }
