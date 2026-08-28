@@ -235,6 +235,57 @@
     line-height: 1.6;
     max-width: 220px;
   }
+
+  /* Card Elo
+     Diverging encoding: Elo has a real midpoint (the skip line), so above and
+     below it are opposite states, not just more and less. Blue/red poles with a
+     neutral centre; validated for protan/deutan separation against a white
+     surface (CVD dE 21.6, normal-vision 32.6, both marks clear 3:1). */
+  #elo-tabs { display:flex; border-bottom:1.5px solid #e2e8f0; }
+  #elo-controls {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:12px 20px; border-bottom:1.5px solid #e2e8f0; background:#fcfdfe;
+  }
+  #elo-search {
+    font-family:inherit; font-size:11px; font-weight:600; color:#1e293b;
+    padding:5px 9px; border:1.5px solid #e2e8f0; border-radius:6px; width:150px;
+  }
+  #elo-search:focus { outline:none; border-color:#6366f1; }
+  .elo-min {
+    padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer;
+    border:1.5px solid #e2e8f0; background:#fff; font-family:inherit;
+    border-radius:6px; color:#374151; transition:all .15s;
+  }
+  .elo-min:hover { border-color:#94a3b8; color:#1e293b; }
+  .elo-min.active { border-color:#6366f1; color:#6366f1; background:color-mix(in srgb, #6366f1 8%, #fff); }
+  #elo-legend { margin-left:auto; display:flex; align-items:center; gap:14px; font-size:10px; color:#374151; }
+  .elo-key { display:flex; align-items:center; gap:5px; }
+  .elo-swatch { width:10px; height:10px; border-radius:2px; }
+
+  .elo-row {
+    display:grid; grid-template-columns:30px 178px 46px 1fr 82px;
+    align-items:center; gap:10px; padding:3px 0;
+  }
+  .elo-row:hover { background:#f8fafc; }
+  .elo-rank { font-size:10px; color:#94a3b8; text-align:right; font-variant-numeric:tabular-nums; }
+  .elo-name { font-size:11px; font-weight:600; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .elo-val  { font-size:11px; font-weight:700; color:#1e293b; text-align:right; font-variant-numeric:tabular-nums; }
+  .elo-n    { font-size:10px; color:#374151; text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .elo-track { position:relative; height:12px; background:#f8fafc; border-radius:3px; }
+  .elo-zero  { position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:#94a3b8; }
+  .elo-fill  { position:absolute; top:1px; height:10px; }
+  .elo-head-note { font-size:10px; color:#374151; line-height:1.6; padding:14px 20px 0; }
+  .elo-axis {
+    display:grid; grid-template-columns:30px 178px 46px 1fr 82px; gap:10px;
+    align-items:center; padding:0 0 7px; margin-bottom:5px;
+    border-bottom:1px solid #e2e8f0;
+    font-size:9px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:#94a3b8;
+  }
+  .elo-axis-scale { position:relative; display:flex; justify-content:space-between; }
+  .elo-axis-mid {
+    position:absolute; left:50%; transform:translateX(-50%);
+    color:#475569; letter-spacing:.4px;
+  }
 </style>
 </head>
 <body>
@@ -310,11 +361,33 @@
     <div id="damage-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
   </div>
 
+  <!-- Card Elo -->
+  <div id="elo-section" style="margin-top:24px">
+    <div class="section-label" style="margin-bottom:12px">Card Elo · how often you take a card over the alternatives</div>
+    <div class="panel" style="padding:0;overflow:hidden">
+      <div class="elo-head-note" id="elo-note"></div>
+      <div id="elo-tabs"></div>
+      <div id="elo-controls">
+        <input id="elo-search" type="search" placeholder="Find a card…" autocomplete="off">
+        <span style="font-size:10px;color:#374151">Seen at least</span>
+        <button class="elo-min" data-min="1">1×</button>
+        <button class="elo-min active" data-min="5">5×</button>
+        <button class="elo-min" data-min="15">15×</button>
+        <div id="elo-legend">
+          <div class="elo-key"><div class="elo-swatch" style="background:#2a78d6"></div>Above the skip line — you take it</div>
+          <div class="elo-key"><div class="elo-swatch" style="background:#e34948"></div>Below — you pass</div>
+        </div>
+      </div>
+      <div id="elo-list" style="padding:14px 20px;max-height:520px;overflow-y:auto"></div>
+    </div>
+  </div>
+
 </div>
 
 <div id="tooltip"></div>
 
 <script src="sts2_data.js"></script>
+<script src="sts2_elo.js"></script>
 <script>
 // ── Constants ──────────────────────────────────────────────────────────
 const CHARS = ['NECROBINDER', 'REGENT', 'DEFECT', 'IRONCLAD', 'SILENT'];
@@ -937,8 +1010,113 @@ document.getElementById('run-file-input').addEventListener('change', async funct
   this.value = '';
 });
 
+// ── Card Elo ──────────────────────────────────────────────────────────
+// Its own dataset: every A10 run on disk, not the curated set the rest of the
+// page draws on, and deliberately not scoped by the patch filter above.
+const ELO_ABOVE = '#2a78d6', ELO_BELOW = '#e34948';
+let eloTab = 'OVERALL', eloMin = 5, eloQuery = '';
+
+function eloSlice() {
+  if (eloTab === 'OVERALL') return CARD_ELO.overall;
+  return CARD_ELO.by_character[eloTab] || { rows: [], skip: CARD_ELO.base, pairs: 0 };
+}
+
+function prettyCard(id) {
+  return id.split('_').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+}
+
+function buildEloTabs() {
+  const order = ['OVERALL'].concat(CHARS.filter(c => CARD_ELO.by_character[c]));
+  document.getElementById('elo-tabs').innerHTML = order.map(t => {
+    const colour = t === 'OVERALL' ? '#6366f1' : CHAR_COLOR[t];
+    const label = t === 'OVERALL' ? 'Overall' : (CHAR_LABEL[t] || t);
+    const n = t === 'OVERALL' ? CARD_ELO.overall.rows.length : CARD_ELO.by_character[t].rows.length;
+    return `<div class="card-tab${eloTab === t ? ' active' : ''}" data-tab="${t}"
+              style="--tc:${colour}">${label} <span style="opacity:.6">${n}</span></div>`;
+  }).join('');
+  document.querySelectorAll('#elo-tabs .card-tab').forEach(el => {
+    el.onclick = () => { eloTab = el.dataset.tab; buildEloTabs(); buildEloList(); };
+  });
+}
+
+function buildEloList() {
+  const slice = eloSlice();
+  const skip = slice.skip;
+  const q = eloQuery.trim().toLowerCase();
+  const rows = slice.rows.filter(r =>
+    r.offered >= eloMin && (!q || prettyCard(r.card).toLowerCase().includes(q)));
+
+  // one symmetric domain for the whole tab, so bar length is comparable
+  // between rows and the centre stays put
+  let domain = 1;
+  slice.rows.forEach(r => { domain = Math.max(domain, Math.abs(r.elo - skip)); });
+
+  const note = document.getElementById('elo-note');
+  note.innerHTML =
+    `The card you took beat the ones you left, and beat skipping; a card you left lost only to the card you took. ` +
+    `<strong style="color:#1e293b">Skipping is rated too</strong>, and sits at ` +
+    `<strong style="color:#1e293b">${skip}</strong> — that is the centre line. ` +
+    `Shop inventories are excluded (the game logs the whole shelf as a "choice"). ` +
+    `Cards seen only once or twice are pulled toward ${CARD_ELO.base}. ` +
+    `Independent of the patch filter above.`;
+
+  const axis = `<div class="elo-axis">
+      <div></div><div>Card</div><div style="text-align:right">Elo</div>
+      <div class="elo-axis-scale">
+        <span>← passed over</span>
+        <span class="elo-axis-mid">skip ${skip}</span>
+        <span>preferred →</span>
+      </div>
+      <div style="text-align:right">Taken / offered</div>
+    </div>`;
+
+  document.getElementById('elo-list').innerHTML = axis + (rows.length ? rows.map((r, i) => {
+    const diff = r.elo - skip;
+    const pct = Math.abs(diff) / domain * 50;
+    const above = diff >= 0;
+    const fill = above
+      ? `left:50%;width:${pct}%;background:${ELO_ABOVE};border-radius:0 4px 4px 0`
+      : `right:50%;width:${pct}%;background:${ELO_BELOW};border-radius:4px 0 0 4px`;
+    return `<div class="elo-row" data-card="${r.card}">
+      <div class="elo-rank">${i + 1}</div>
+      <div class="elo-name">${prettyCard(r.card)}</div>
+      <div class="elo-val">${r.elo}</div>
+      <div class="elo-track"><div class="elo-zero"></div><div class="elo-fill" style="${fill}"></div></div>
+      <div class="elo-n">${r.taken}/${r.offered} · ${r.pick_rate}%</div>
+    </div>`;
+  }).join('') : `<div style="font-size:11px;color:#374151;padding:8px 0">No cards match.</div>`);
+
+  document.querySelectorAll('#elo-list .elo-row').forEach(el => {
+    const r = rows.find(x => x.card === el.dataset.card);
+    el.onmousemove = e => showTip(
+      `<strong>${prettyCard(r.card)}</strong><br>Elo ${r.elo} · ${r.elo - skip >= 0 ? '+' : ''}${r.elo - skip} vs skipping` +
+      `<br>Taken ${r.taken} of ${r.offered} times offered (${r.pick_rate}%)`, e.clientX, e.clientY);
+    el.onmouseleave = hideTip;
+  });
+}
+
+function buildElo() {
+  if (typeof CARD_ELO === 'undefined') {
+    document.getElementById('elo-section').style.display = 'none';
+    return;
+  }
+  buildEloTabs();
+  buildEloList();
+  document.getElementById('elo-search').addEventListener('input', function () {
+    eloQuery = this.value; buildEloList();
+  });
+  document.querySelectorAll('.elo-min').forEach(btn => {
+    btn.onclick = () => {
+      eloMin = +btn.dataset.min;
+      document.querySelectorAll('.elo-min').forEach(b => b.classList.toggle('active', b === btn));
+      buildEloList();
+    };
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────
 renderAll();
+buildElo();
 
 window.addEventListener('resize', () => {
   drawHpChart();

@@ -213,7 +213,7 @@ const AGES = [
       sun:'#ffeeb0', mtnF:'#8a8272', mtnN:'#6b6252', hill:'#7a7a4a',
       gnd:'#8a6f45', gndD:'#614d2e', grass:'#7d8b3e', wat:'#3f7f96', watL:'#62a8bc',
       tree:'#4a6b32', treeD:'#33502a', bld:'#c2a273', bldD:'#8e7450', acc:'#d9b44a', win:'#ffc366' },
-  build:['mud','mud','granary','kiln','tower'], wonder:'ziggurat', bridge:'stone',
+  build:['mud','mud','granary','kiln','tower','hall'], wonder:'ziggurat', bridge:'stone',
   sky:'stars', folk:'walker', smoke:.7, trees:.7,
   au:{ root:98, scale:[0,2,3,5,7,10], tex:'flute' } },
 
@@ -568,7 +568,7 @@ const KIND_LABEL = {
    ───────────────────────────────────────────────────────────────────────── */
 const ZONE_OF = {
   tent:'res', hut:'res', mud:'res', timber:'res', villa:'res', longhouse:'res',
-  kiln:'ind', tithebarn:'ind', bathhouse:'core',
+  kiln:'ind', tithebarn:'ind', bathhouse:'core', hall:'core',
   townhouse:'res', tenement:'res', keep:'res', arcology:'res',
   temple:'core', column:'core', dome:'core', clocktower:'core', tower:'core',
   deco:'core', glass:'core', server:'core', crystal:'core', monolith:'core',
@@ -4202,6 +4202,30 @@ function setback(c){
 function roofFurniture(c){
   const r = mulberry(c.seed ^ 0x5bf03);
   const top = c.by - c.h;
+  /* A water tank on legs is half of why an ancient roof read as a block of
+     flats. The early ages get what actually stood on a flat mud roof. */
+  if(c.age <= 2){
+    const n0 = 1 + ((r() * 2) | 0);
+    for(let i=0;i<n0;i++){
+      const t = r(), fx = c.x - c.w/2 + 2 + r() * Math.max(1, c.w - 4);
+      if(t < 0.42){                                   /* storage jars */
+        const s = Math.max(2, c.w*0.10);
+        rect(fx, top - s, s, s, c.d);
+        rect(fx, top - s, s, 1, c.dlt);
+      } else if(t < 0.74){                            /* a reed awning on poles */
+        const pw = Math.max(3, c.w*0.32), ph = Math.max(2, c.h*0.05);
+        rect(fx - pw/2, top - ph, pw, 1, c.a);
+        rect(fx - pw/2, top - ph, 1, ph, c.d);
+        rect(fx + pw/2 - 1, top - ph, 1, ph, c.d);
+      } else {                                        /* the roof ladder */
+        const lh = Math.max(3, c.h*0.09);
+        rect(fx, top - lh, 1, lh, c.d);
+        rect(fx + 2, top - lh, 1, lh, c.d);
+        for(let s2=1;s2<lh;s2+=2) rect(fx, top - lh + s2, 3, 1, c.d);
+      }
+    }
+    return;
+  }
   const n = 1 + ((r() * 3) | 0);
   for(let i=0;i<n;i++){
     const t = r(), fx = c.x - c.w/2 + r() * c.w;
@@ -4270,9 +4294,10 @@ function drawFire(x, by, w, f){
    handful of rects instead of row by row. At the widest zooms there are 300+
    buildings on screen and the full painters cost more than the frame budget. */
 const SHAPE = {
-  tent:'point', hut:'point', firepit:'thin', mud:'box', granary:'dome',
+  tent:'point', hut:'point', firepit:'thin', mud:'mudbrick', granary:'dome',
   longhouse:'pitch', kiln:'dome', bathhouse:'dome', tithebarn:'pitch',
-  tower:'thin', clocktower:'thin', temple:'pitch', villa:'pitch', column:'thin',
+  tower:'step', clocktower:'thin', temple:'pitch', villa:'pitch', column:'thin',
+  hall:'broadroof',
   timber:'pitch', keep:'box', windmill:'point', townhouse:'pitch', dome:'dome',
   factory:'box', chimney:'thin', tenement:'box', deco:'step', radiomast:'thin',
   glass:'box', server:'box', dish:'thin', arcology:'point', launchpad:'thin',
@@ -4320,6 +4345,48 @@ function drawSimple(k, c){
       yy -= sh; ww = Math.max(2, ww*0.72);
     }
     if(c.lit) rect(x-1, by - h*.4, 2, Math.max(1, h*.2), c.win);
+    break; }
+  /* Most bronze-age buildings are only 10-16px tall, so this is the painter
+     that actually gets seen -- and left on the default it was a box with rows
+     of lit windows, which is a block of flats at any size. Three stacked bands
+     lean the wall in, and the openings are one dark door and at most one slit.
+     Kept to about a dozen rects: mudbrick also turns up in industrial mining
+     towns, where there are three hundred buildings on screen.              */
+  case 'mudbrick': {
+    const rf = Math.max(1, Math.round(h * 0.11)), wh = h - rf;
+    const lean = Math.max(1, w * 0.22), bands = 4;
+    /* Four bands, widest at the base. Not boxL per band: that would put a lit
+       cap and a dark sill on every one of them and the wall would read as a
+       stack of slabs rather than one leaning mass. */
+    for(let i=0;i<bands;i++){
+      const y0 = Math.round(by - wh + wh * i / bands);
+      const bh = Math.max(1, Math.round(by - wh + wh * (i+1) / bands) - y0);
+      const ww = Math.max(2, Math.round(w - lean * (1 - i / (bands - 1))));
+      const x0 = Math.round(x - ww/2);
+      rect(x0, y0, ww, bh, c.b);
+      const e = Math.max(1, Math.round(ww * 0.24));
+      rect(c.side > 0 ? x0 + ww - e : x0, y0, e, bh, c.lt);
+      rect(c.side > 0 ? x0 : x0 + ww - e, y0, Math.max(1, e-1), bh, c.sd);
+    }
+    const tw = Math.max(2, Math.round(w - lean)), tx = Math.round(x - tw/2);
+    rect(tx, by-wh, tw, 1, c.dlt);                         /* the sunlit roofline */
+    rect(tx-1, by-wh-rf, tw+2, rf, c.d);                   /* the parapet */
+    rect(tx-1, by-wh-rf, tw+2, 1, c.dlt);
+    const dh = Math.max(2, Math.round(wh*0.36));
+    rect(x-1, by-dh, 2, dh, c.sd);                         /* the one doorway */
+    if(c.lit) px(x + Math.round(tw*0.28), by - wh + Math.max(1, Math.round(wh*0.24)), c.win);
+    break; }
+
+  case 'broadroof': {                  /* the hall, small: podium and wide eaves */
+    const pf = Math.max(1, Math.round(h*0.12)), rh = Math.max(2, Math.round(h*0.40));
+    const wh2 = Math.max(1, h - pf - rh);
+    rect(x-hw-1, by-pf, w+2, pf, c.d);
+    boxL(x-hw, by-pf-wh2, w, wh2, c.b, c.lt, c.sd, c.side);
+    for(let i=0;i<rh;i++){
+      const ww = Math.round(w * (0.34 + (i/rh)*0.92)) + 3;
+      rect(x-ww/2, by-pf-wh2-rh+i, ww, 1, i === 0 ? c.a : (i < rh*0.7 ? c.b : c.d));
+    }
+    if(c.lit) px(x, by - pf - Math.max(1, Math.round(wh2*0.5)), c.win);
     break; }
   default: {
     boxL(x-hw, by-h, w, h, c.b, c.lt, c.sd, c.side);
@@ -4437,33 +4504,117 @@ function drawKind(k, c){
     glow(x, by-4, 9, 'rgba(255,150,60,.07)');
     break; }
 
-  case 'mud': {                        /* flat-roofed mudbrick, with a parapet */
-    boxL(x-hw, by-h, w, h, c.b, c.lt, c.sd, c.side);
-    rect(x-hw-1, by-h-2, w+2, 2, c.d);                 /* parapet */
-    rect(x-hw-1, by-h-2, w+2, 1, c.dlt);
-    for(let yy=by-h+4; yy<by-2; yy+=4) rect(x-hw+1, yy, w-2, 1, 'rgba(0,0,0,0.10)');
-    for(let i=1;i<3;i++) rect(x-hw-1, by-h+i*(h/3), 2, 1, c.d);   /* roof beams */
-    if(c.lit){
-      rect(x-hw+2, by-5, 2, 4, c.win);
-      if(w>9) rect(x+hw-4, by-5, 2, 4, c.win);
-    } else if(h>7) rect(x-hw+2, by-5, 2, 4, c.sd);
+  /* ── the bronze age ───────────────────────────────────────────────────
+     These were a plain box with a regular grid of windows, which is the
+     recipe for a block of flats however you colour it. What makes mudbrick
+     read as mudbrick is that the walls lean inward as they rise, that the
+     roof beams poke through the wall below the roofline, and that the
+     openings are few, small and high -- a dark doorway and a couple of
+     slits, not four floors of glazing.                                   */
+  case 'mud': {                        /* battered mudbrick, flat roof */
+    const rf = Math.max(2, Math.round(h * 0.09));       /* parapet */
+    const wh = h - rf;
+    const lean = Math.max(1, w * 0.20);                 /* the batter */
+    for(let i=0;i<wh;i++){
+      const ww = Math.max(3, Math.round(w - lean * (i / wh)));
+      const x0 = Math.round(x - ww/2), yy = by - 1 - i;
+      rect(x0, yy, ww, 1, c.b);
+      const e = Math.max(1, Math.round(ww * 0.22));
+      rect(c.side > 0 ? x0 + ww - e : x0, yy, e, 1, c.lt);
+      rect(c.side > 0 ? x0 : x0 + ww - e, yy, Math.max(1, e-1), 1, c.sd);
+    }
+    const tw = Math.max(3, Math.round(w - lean)), tx = Math.round(x - tw/2);
+    for(let yy=by-wh+4; yy<by-3; yy+=5) rect(tx+1, yy, tw-2, 1, 'rgba(0,0,0,0.09)');
+    const beamY = by - wh + 1;                          /* ends of the roof beams */
+    for(let bx=tx+1; bx<tx+tw-1; bx+=3) rect(bx, beamY, 1, 1, c.d);
+    rect(tx-1, beamY, 1, 1, c.d); rect(tx+tw, beamY, 1, 1, c.d);
+    rect(tx-1, by-wh-rf, tw+2, rf, c.d);                /* the parapet */
+    rect(tx-1, by-wh-rf, tw+2, 1, c.dlt);
+    if(tw >= 13) for(let mx=tx+1; mx<tx+tw-2; mx+=5) rect(mx, by-wh-rf-1, 2, 1, c.d);
+    /* the recessed buttress strips that give a mudbrick facade its rhythm */
+    const nb = Math.max(2, Math.round(tw/5));
+    for(let i=1;i<nb;i++){
+      const bx2 = Math.round(tx + i*(tw/nb));
+      rect(bx2, by-wh+3, 1, wh-6, 'rgba(0,0,0,0.13)');
+    }
+    const dw = Math.max(2, Math.round(w*0.20)), dh = Math.max(4, Math.round(wh*0.36));
+    rect(x-dw/2, by-dh, dw, dh, c.sd);                  /* the one doorway */
+    rect(x-dw/2, by-dh, dw, 1, c.d);
+    const sy = by - wh + Math.round(wh*0.24), sc = c.lit ? c.win : c.sd;
+    rect(x - tw*0.30, sy, 1, 2, sc);                    /* slits, set high */
+    if(tw > 10) rect(x + tw*0.24, sy, 1, 2, sc);
     break; }
 
-  case 'granary': {                    /* round silo with a domed cap */
-    rect(x-hw, by-h, w, h, c.b);
-    for(let i=0;i<4;i++) rect(x-hw+1+i*(w/4), by-h, 1, h, c.d);
-    for(let i=0;i<3;i++){ const ww=w-i*2; rect(x-ww/2, by-h-1-i, ww, 1, c.d); }
+  case 'granary': {                    /* a reed-bound beehive, not a silo */
+    for(let i=0;i<h;i++){
+      const t = i / h;
+      const ww = Math.max(2, Math.round(w * (1 - t*t*0.80)));
+      const x0 = Math.round(x - ww/2), yy = by - 1 - i;
+      rect(x0, yy, ww, 1, c.b);
+      const e = Math.max(1, Math.round(ww * 0.24));
+      rect(c.side > 0 ? x0 + ww - e : x0, yy, e, 1, c.lt);
+      rect(c.side > 0 ? x0 : x0 + ww - e, yy, Math.max(1, e-1), 1, c.sd);
+    }
+    for(let i=1;i<5;i++){                               /* the withy bands */
+      const t = i/5, ww = Math.max(2, Math.round(w * (1 - t*t*0.80)));
+      rect(x - ww/2, by - 1 - h*t, ww, 1, c.d);
+    }
+    const gd = Math.max(2, Math.round(w*0.22)), gh = Math.max(3, Math.round(h*0.20));
+    rect(x-gd/2, by-gh, gd, gh, c.sd);
+    rect(x-1, by-h-2, 2, 3, c.d);                       /* where the reeds tie off */
     break; }
 
-  case 'tower': case 'clocktower': {
+  case 'tower': {                      /* a shrine on a stepped platform */
+    const ph = h * 0.60, tiers = 3, th = ph / tiers;
+    let yy = by, ww = w;
+    for(let i=0;i<tiers;i++){
+      const nw = Math.max(4, Math.round(ww));
+      boxL(x-nw/2, yy-th, nw, th, i%2 ? c.b : c.d, c.lt, c.sd, c.side);
+      rect(x-nw/2, yy-th, nw, 1, c.dlt);                /* the lit terrace edge */
+      yy -= th; ww = Math.max(5, ww*0.76);
+    }
+    const sw = Math.max(2, Math.round(w*0.16));         /* the stair up the front */
+    for(let s=1; s<ph-1; s+=2) rect(x-sw/2, by-1-s, sw, 1, c.sd);
+    rect(x-sw/2-1, by-ph, 1, ph, c.d);
+    rect(x+sw/2, by-ph, 1, ph, c.d);
+    const shw = Math.max(4, Math.round(ww)), shh = h - ph;
+    boxL(x-shw/2, by-h, shw, shh, c.b, c.lt, c.sd, c.side);
+    rect(x-shw/2-1, by-h-2, shw+2, 2, c.d);
+    rect(x-shw/2-1, by-h-2, shw+2, 1, c.dlt);
+    const sd2 = Math.max(2, Math.round(shw*0.34)), sh2 = Math.max(3, Math.round(shh*0.6));
+    rect(x-sd2/2, by-ph-sh2, sd2, sh2, c.lit ? c.win : c.sd);
+    break; }
+
+  case 'hall': {                       /* a broad tiled roof on an earth podium */
+    const pf = Math.max(2, Math.round(h*0.10));
+    const rh = Math.max(4, Math.round(h*0.42));
+    const wh2 = h - pf - rh;
+    rect(x-hw-2, by-pf, w+4, pf, c.d);                  /* rammed-earth podium */
+    rect(x-hw-2, by-pf, w+4, 1, c.dlt);
+    boxL(x-hw, by-pf-wh2, w, wh2, c.b, c.lt, c.sd, c.side);
+    const bays = Math.max(2, Math.round(w/6));          /* the timber bays */
+    for(let i=1;i<bays;i++) rect(x-hw+i*(w/bays), by-pf-wh2, 1, wh2, c.d);
+    const hd = Math.max(2, Math.round(w*0.22)), hh2 = Math.max(3, Math.round(wh2*0.7));
+    rect(x-hd/2, by-pf-hh2, hd, hh2, c.lit ? c.win : c.sd);
+    for(let i=0;i<rh;i++){                              /* eaves that spread wide */
+      const t = i / rh;
+      const ww = Math.round(w * (0.32 + t*0.94)) + 4;
+      rect(x-ww/2, by-pf-wh2-rh+i, ww, 1, t < 0.16 ? c.a : (t < 0.68 ? c.b : c.d));
+    }
+    const ew = Math.round(w*1.26) + 4;
+    rect(x-ew/2, by-pf-wh2-1, ew, 1, c.d);
+    rect(x-ew/2-1, by-pf-wh2-2, 2, 1, c.d);             /* the tips lift */
+    rect(x+ew/2-1, by-pf-wh2-2, 2, 1, c.d);
+    rect(x-w*0.34, by-pf-wh2-rh-1, Math.max(2, w*0.68), 1, c.d);   /* the ridge */
+    break; }
+
+  case 'clocktower': {
     rect(x-hw, by-h, w, h, c.b);
     rect(x-hw-1, by-h-2, w+2, 2, c.d);
     windows(c, 2, 2, 3, 3);
-    if(k==='clocktower'){
-      const cy = by-h+5;
-      disc(x, cy, 3, c.d); disc(x, cy, 2, c.win);
-      px(x, cy-1, c.d); px(x+1, cy, c.d);
-    }
+    const cy = by-h+5;
+    disc(x, cy, 3, c.d); disc(x, cy, 2, c.win);
+    px(x, cy-1, c.d); px(x+1, cy, c.d);
     break; }
 
   case 'temple': case 'villa': {       /* columns under a pediment */
