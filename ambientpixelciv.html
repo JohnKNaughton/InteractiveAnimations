@@ -206,7 +206,9 @@ const AGES = [
       tree:'#2f5a2a', treeD:'#1e3d1c', bld:'#7a5c3e', bldD:'#54402b', acc:'#c8763c', win:'#ffb45e' },
   build:['tent','hut','hut','longhouse','firepit'], wonder:'menhir', bridge:'log',
   sky:'stars', folk:'walker', smoke:.5, trees:1.0,
-  au:{ root:110, scale:[0,3,5,7,10], tex:'drum' } },
+  au:{ root:110, scale:[0,3,5,7,10], tex:'drum',
+       ivs:[0,7,12], col:['sine',19,.055], wet:.30, bright:360,
+       bell:['triangle',1,5,14], air:[420,0.50,1.15] } },
 
 { name:'Bronze Age', sub:'grain, ziggurats, and the first cities',
   p:{ dT:'#79b0d8',dB:'#cfe0e8', kT:'#e8a04f',kB:'#f7d9a0', nT:'#0c1228',nB:'#1d2748',
@@ -215,7 +217,9 @@ const AGES = [
       tree:'#4a6b32', treeD:'#33502a', bld:'#c2a273', bldD:'#8e7450', acc:'#d9b44a', win:'#ffc366' },
   build:['mud','mud','granary','kiln','tower','hall'], wonder:'ziggurat', bridge:'stone',
   sky:'stars', folk:'walker', smoke:.7, trees:.7,
-  au:{ root:98, scale:[0,2,3,5,7,10], tex:'flute' } },
+  au:{ root:98, scale:[0,2,3,5,7,10], tex:'flute',
+       ivs:[0,7,10], col:['triangle',14,.050], wet:.40, bright:430,
+       bell:['triangle',2,4,12], air:[620,0.60,1.00] } },
 
 { name:'Classical Age', sub:'marble, philosophy, and the long roads',
   p:{ dT:'#5fa5dd',dB:'#bfe0f0', kT:'#f0975c',kB:'#ffd9a8', nT:'#08122c',nB:'#17264a',
@@ -224,7 +228,9 @@ const AGES = [
       tree:'#3a6b34', treeD:'#27502a', bld:'#e6e2d2', bldD:'#b0aa96', acc:'#b4542f', win:'#ffcf7a' },
   build:['temple','villa','villa','bathhouse','column'], wonder:'parthenon', bridge:'arch',
   sky:'stars', folk:'walker', smoke:.55, trees:.75,
-  au:{ root:130.8, scale:[0,2,4,7,9], tex:'lyre' } },
+  au:{ root:130.8, scale:[0,2,4,7,9], tex:'lyre',
+       ivs:[0,7,16], col:['sine',19,.050], wet:.54, bright:560,
+       bell:['sine',2,3.5,10], air:[780,0.70,0.95] } },
 
 { name:'Medieval Age', sub:'stone walls, plague, and cathedral light',
   p:{ dT:'#6d93b8',dB:'#b3c9d6', kT:'#c97f52',kB:'#e0b184', nT:'#070d20',nB:'#131d38',
@@ -233,7 +239,9 @@ const AGES = [
       tree:'#24512a', treeD:'#17381f', bld:'#8b8478', bldD:'#635d54', acc:'#8d2f2f', win:'#ffbb5c' },
   build:['timber','timber','tithebarn','keep','windmill'], wonder:'cathedral', bridge:'arch',
   sky:'stars', folk:'walker', smoke:.85, trees:.9,
-  au:{ root:110, scale:[0,2,3,5,7,8,10], tex:'bell' } },
+  au:{ root:110, scale:[0,2,3,5,7,8,10], tex:'bell',
+       ivs:[0,7,15], col:['sine',12,.070], wet:.78, bright:470,
+       bell:['sine',1,5,15], air:[980,0.80,1.10] } },
 
 { name:'Age of Sail', sub:'domes, printing, and maps of the whole world',
   p:{ dT:'#6ba3cf',dB:'#cbdfe8', kT:'#f2a45f',kB:'#ffe0b0', nT:'#0a1026',nB:'#1a2646',
@@ -242,7 +250,9 @@ const AGES = [
       tree:'#2d5c30', treeD:'#1d4023', bld:'#d9cfb4', bldD:'#a89d84', acc:'#46a08b', win:'#ffc978' },
   build:['townhouse','townhouse','dome','clocktower'], wonder:'observatory', bridge:'arch',
   sky:'stars', folk:'walker', smoke:.7, trees:.75,
-  au:{ root:146.8, scale:[0,2,4,5,7,9,11], tex:'lyre' } },
+  au:{ root:146.8, scale:[0,2,4,5,7,9,11], tex:'glass',
+       ivs:[0,4,7], col:['triangle',16,.045], wet:.50, bright:620,
+       bell:['sine',2,3.5,11], air:[700,0.45,1.30] } },
 
 { name:'Industrial Age', sub:'coal, iron, and a sky the colour of soot',
   p:{ dT:'#7e8286',dB:'#c9bda6', kT:'#cc8244',kB:'#e5b476', nT:'#15131b',nB:'#2a2632',
@@ -251,7 +261,9 @@ const AGES = [
       tree:'#2a4028', treeD:'#1c2c1e', bld:'#7a4a3a', bldD:'#563229', acc:'#c9922f', win:'#ffb03c' },
   build:['factory','factory','tenement','chimney'], wonder:'ironbridge', bridge:'iron',
   sky:'stars', folk:'walker', smoke:2.2, trees:.35,
-  au:{ root:82.4, scale:[0,2,3,5,7,10], tex:'engine' } },
+  au:{ root:82.4, scale:[0,2,3,5,7,10], tex:'engine',
+       ivs:[0,7,12], col:['sawtooth',7,.030], wet:.26, bright:330,
+       bell:['triangle',1,4,12], air:[240,2.60,1.20] } },
 
 { name:'Electric Age', sub:'wires, engines, and cities that never sleep',
   p:{ dT:'#5f9ed4',dB:'#b9d4e4', kT:'#e8845c',kB:'#f6c193', nT:'#0c1020',nB:'#22203a',
@@ -260,7 +272,9 @@ const AGES = [
       tree:'#2c5230', treeD:'#1d3a22', bld:'#b6b2ab', bldD:'#87847e', acc:'#e04f4f', win:'#ffd98a' },
   build:['deco','deco','tenement','radiomast'], wonder:'skyscraper', bridge:'suspension',
   sky:'stars', folk:'car', smoke:1.3, trees:.5,
-  au:{ root:110, scale:[0,3,5,7,10], tex:'city' } },
+  au:{ root:110, scale:[0,3,5,7,10], tex:'city',
+       ivs:[0,5,10], col:['square',12,.022], wet:.38, bright:700,
+       bell:['sine',2,3,9], air:[320,3.20,1.00] } },
 
 { name:'Information Age', sub:'glass, orbit, and the whole world talking at once',
   p:{ dT:'#6aa8dc',dB:'#c6dcec', kT:'#d98a7a',kB:'#f0c0c8', nT:'#070a1c',nB:'#1a1836',
@@ -269,7 +283,9 @@ const AGES = [
       tree:'#24523a', treeD:'#163a28', bld:'#c8d6e0', bldD:'#93a1ab', acc:'#4fd8e8', win:'#bff4ff' },
   build:['glass','glass','server','dish'], wonder:'spire', bridge:'suspension',
   sky:'satellites', folk:'car', smoke:.6, trees:.6,
-  au:{ root:146.8, scale:[0,2,4,7,9,11], tex:'digital' } },
+  au:{ root:146.8, scale:[0,2,4,7,9,11], tex:'digital',
+       ivs:[0,2,7], col:['square',14,.020], wet:.44, bright:820,
+       bell:['square',4,2.5,8], air:[1500,0.90,0.80] } },
 
 { name:'Space Age', sub:'elevators, colonies, and a ring around the world',
   p:{ dT:'#4f93d6',dB:'#b7d6ee', kT:'#d98a63',kB:'#f2cbb0', nT:'#04081a',nB:'#0f1836',
@@ -278,7 +294,9 @@ const AGES = [
       tree:'#245442', treeD:'#163b2e', bld:'#e2e8ee', bldD:'#a9b2ba', acc:'#ff8a3c', win:'#9fd8ff' },
   build:['arcology','glass','launchpad','arcology'], wonder:'elevator', bridge:'beam',
   sky:'ring', folk:'drone', smoke:.5, trees:.65,
-  au:{ root:185, scale:[0,2,4,6,7,9,11], tex:'orbit' } },
+  au:{ root:185, scale:[0,2,4,6,7,9,11], tex:'orbit',
+       ivs:[0,7,14], col:['sine',21,.045], wet:.64, bright:900,
+       bell:['sine',2,4,13], air:[1900,1.40,0.45] } },
 
 { name:'Singularity', sub:'the valley wakes up, and remembers everything',
   p:{ dT:'#7a86d8',dB:'#cfd4f2', kT:'#c86ad0',kB:'#f0b0e8', nT:'#05041a',nB:'#150a30',
@@ -287,15 +305,33 @@ const AGES = [
       tree:'#2a5a6a', treeD:'#1a3c4a', bld:'#d8d0ff', bldD:'#9d95c8', acc:'#ffd36a', win:'#e8d0ff' },
   build:['crystal','crystal','lattice','monolith'], wonder:'dyson', bridge:'beam',
   sky:'dyson', folk:'spark', smoke:.2, trees:.8,
-  au:{ root:196, scale:[0,2,4,6,7,9,11], tex:'shimmer' } },
+  au:{ root:196, scale:[0,2,4,6,7,9,11], tex:'shimmer',
+       ivs:[0,7,12], col:['sine',24,.040], wet:.70, bright:1020,
+       bell:['sine',4,2.5,7], air:[2400,1.10,0.55] } },
 ];
 
-/* What the drone is tuned to for a given age. Kept as a plain function so the
-   tuning can be reasoned about, and tested, without a running audio clock. */
-const DRONE_IVS = [0, 7, 12];
+/* What the drone is tuned to for a given age. Kept as plain functions so the
+   tuning can be reasoned about, and tested, without a running audio clock.
+
+   Each age tunes its own drone. A bare fifth is hollow and primal; a fifth
+   with a major tenth over it is open and consonant; a minor tenth is the same
+   chord turned modal. That is most of what makes one hour sound unlike the
+   next, and none of it disturbs the slow, quiet character of the piece.     */
+const DRONE_IVS = [0, 7, 12];                 /* the fallback shape */
+function droneIvs(ageIdx){
+  return AGES[clamp(ageIdx,0,9)].au.ivs || DRONE_IVS;
+}
 function droneFreq(ageIdx, voice){
   const r = AGES[clamp(ageIdx,0,9)].au.root;
-  return r * Math.pow(2, DRONE_IVS[voice]/12) * (1 + (voice-1) * 0.0016);
+  return r * Math.pow(2, droneIvs(ageIdx)[voice]/12) * (1 + (voice-1) * 0.0016);
+}
+/* the colour voice: one extra partial that carries the age's timbre */
+function colourFreq(ageIdx){
+  const A = AGES[clamp(ageIdx,0,9)].au;
+  return A.root * Math.pow(2, (A.col ? A.col[1] : 12)/12);
+}
+function colourOf(ageIdx){
+  return AGES[clamp(ageIdx,0,9)].au.col || ['sine', 12, 0];
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -521,7 +557,7 @@ const world = {
   aqueduct:null, reservoir:null, airfield:null, aircraft:[], oldrelics:[],
   flocks:[], meteors:[],
   stars:[], clouds:[], roads:[], farms:[], carts:[], ports:[], ships:[], shore:[],
-  rails:[], trains:[], techOrder:[], relics:[],
+  rails:[], trains:[], techOrder:[], relics:[], rarities:[], spire:null,
 };
 
 /* Three rivers: a broad one at the centre that the first town is built on,
@@ -835,6 +871,34 @@ function buildRelics(){
   }
 }
 
+
+/* One thing per age that is only there for that hour, and only in one or two
+   places -- a boundary stele in the bronze age, a wayside cross in the
+   medieval one, a spent booster lying on its cradles in the space age. They
+   are not the age's subject (that is renderSignature, which is always on
+   screen); these are quieter, and you may well miss them. */
+const RARITY_OF = ['bonepile','stele','wayshrine','wayscross','whalebones',
+                   'lockgate','neonsign','dishfarm','booster','memorial'];
+function buildRarities(){
+  const w = world;
+  w.rarities.length = 0;
+  for(let age=0; age<10; age++){
+    const want = 1 + (rnd() < 0.45 ? 1 : 0);        /* once, sometimes twice */
+    let placed = 0, tries = 0;
+    while(placed < want && tries++ < 90){
+      const x = Math.round(CITY_X - 1600 + rnd() * 7000);
+      if(!isLand(x) || wetAt(x)) continue;
+      if(w.sites.some(S => Math.abs(S.x - x) < S.r + 55)) continue;
+      if(Math.abs(groundAt(x+9) - groundAt(x-9)) > 13) continue;
+      /* only keep an age's own pair apart -- two different ages are never on
+         screen together, so they are free to reuse the same clearing */
+      if(w.rarities.some(r => r.age === age && Math.abs(r.x - x) < 260)) continue;
+      w.rarities.push({ x, age, kind:RARITY_OF[age], seed:(rnd()*1e6)|0 });
+      placed++;
+    }
+  }
+}
+
 function buildTrees(){
   world.trees.length = 0;
   for(let i=0;i<2200;i++){
@@ -880,7 +944,8 @@ function resetWorld(seed){
     for(let i=a.length-1;i>0;i--){ const j = (rnd()*(i+1))|0; const t=a[i]; a[i]=a[j]; a[j]=t; }
     return a;
   });
-  buildTerrain(); buildSites(); buildPorts(); buildRelics(); buildTrees(); buildSky();
+  buildTerrain(); buildSites(); buildPorts(); buildRelics(); buildRarities();
+  buildSpire(); buildTrees(); buildSky();
   soilKey = '';
   world.monuments.length = 0; world.folk.length = 0; world.parts.length = 0;
 }
@@ -1032,6 +1097,118 @@ function startBuild(L, ageIdx, A){
   if(L.kind==='chimney'||L.kind==='radiomast'||L.kind==='dish') L.h *= 1.2;
   L.h = clamp(L.h, 6, 420);
   L.w = clamp(L.w, 4, 190);
+}
+
+
+/* ── things in orbit ─────────────────────────────────────────────────────
+   From the space age on there is traffic overhead, and it is enormous. These
+   are drawn between the sky and the land so they pass BEHIND the hills: that
+   is the whole trick that makes them read as far away rather than as large
+   objects close by. They are slow -- a hull takes several minutes to cross --
+   low in contrast, and lit from the same side as everything else.          */
+const ORBIT_AGE = 8;
+const ORBITALS = [
+  { kind:'behemoth', y:0.20, len:430, spd: 0.0042, ph:0.10 },
+  { kind:'ring',     y:0.11, len:900, spd: 0.0009, ph:0.55 },
+  { kind:'station',  y:0.31, len:150, spd:-0.0026, ph:0.72 },
+  { kind:'yard',     y:0.26, len:260, spd: 0.0016, ph:0.33 },
+];
+
+function renderOrbital(){
+  const w = world, prog = w.age + w.ageT;
+  if(prog < ORBIT_AGE - 0.35) return;
+  const L = dayLight(), night = 1 - L;
+  const fade = clamp((prog - ORBIT_AGE + 0.35) / 0.7, 0, 1);
+  if(fade <= 0.02) return;
+  /* Sunlit metal. It must NOT fade with the ground light: something in orbit
+     is still in the sun long after the valley below it is dark, and scaling
+     these with dayLight made them invisible on exactly the nights they should
+     be the most striking thing in the sky. */
+  const A = (a) => a * fade * (0.50 + L * 0.22);
+  const hull  = (a) => cssa([146, 158, 178], A(a));
+  const hullL = (a) => cssa([196, 208, 226], A(a));
+  const hullD = (a) => cssa([ 54,  60,  78], a * fade * (0.30 + night * 0.42));
+  const lampC = [180, 214, 255];
+
+  for(let n=0;n<ORBITALS.length;n++){
+    const O = ORBITALS[n];
+    if(n >= 3 && prog < ORBIT_AGE + 0.9) continue;      /* the yard comes later */
+    const span = W + O.len * 2;
+    const x = ((O.ph + w.t * O.spd) % 1 + 1) % 1 * span - O.len;
+    const y = H * O.y;
+    const S = O.len / 430;                              /* everything scales off the hull */
+    const R = (a,b,c2,d2,e) => rect(a, b, Math.max(1,c2), Math.max(1,d2), e);
+
+    if(O.kind === 'behemoth'){
+      const ln = O.len, th = Math.max(3, 17*S);
+      /* the hull: a long spine that tapers to a prow */
+      const i0 = Math.max(0, Math.floor(-x - 2)), i1 = Math.min(ln, Math.ceil(W - x + 2));
+      for(let i=i0;i<i1;i++){
+        const t = i/ln;
+        const taper = t < .12 ? (t/.12) : (t > .93 ? (1-t)/.07 : 1);
+        const hh = th * (0.42 + 0.58*taper);
+        R(x + i, y - hh*0.5, 1, hh, hull(.74));
+      }
+      R(x + ln*0.12, y - th*0.5, ln*0.81, 1, hullL(.55));       /* the sunlit top edge */
+      R(x + ln*0.12, y + th*0.5 - 1, ln*0.81, 1, hullD(.5));
+      /* ribs, a dorsal spine, and the engine block */
+      for(let i=0;i<11;i++) R(x + ln*(0.16 + i*0.072), y - th*0.5, Math.max(1, 2*S), th, hullD(.30));
+      R(x + ln*0.30, y - th*0.5 - Math.max(2, 6*S), ln*0.34, Math.max(2, 6*S), hull(.5));
+      R(x + ln*0.30, y - th*0.5 - Math.max(2, 6*S), ln*0.34, 1, hullL(.45));
+      const eb = Math.max(2, 9*S);
+      for(let e=0;e<3;e++){
+        const ey = y - th*0.34 + e*(th*0.34);
+        R(x - eb, ey - Math.max(1,2*S), eb, Math.max(2, 4*S), hullD(.55));
+        rect(x - eb - Math.max(2, 7*S), ey - Math.max(1,1.5*S), Math.max(2, 7*S), Math.max(1, 3*S),
+             cssa([120, 178, 255], (0.18 + night*0.30) * fade));
+      }
+      /* the windows: one long row, only worth drawing when it is big enough */
+      if(night > .25 && th >= 6){
+        for(let i=0;i<Math.round(ln/9);i++){
+          if(((i*2654435761) >>> 4) % 5 === 0) continue;
+          px(x + ln*0.16 + i*9, y - th*0.16, cssa(lampC, (0.30 + night*0.45) * fade));
+        }
+      }
+    } else if(O.kind === 'ring'){
+      /* a ring seen almost edge on: a very shallow arc across the whole sky */
+      const ln = O.len, rise = 26;
+      const j0 = Math.max(0, Math.floor(-x - 2)), j1 = Math.min(ln, Math.ceil(W - x + 2));
+      for(let i=j0;i<j1;i++){
+        const t = i/ln;
+        const yy = y - Math.sin(t*Math.PI) * rise;
+        R(x + i, yy, 1, Math.max(1, 2*S), hull(.36));
+        if(i % 26 === 0) R(x + i, yy - Math.max(1,2*S), Math.max(1,2*S), Math.max(2, 5*S), hull(.24));
+        if(night > .3 && i % 13 === 0) px(x + i, yy + 1, cssa(lampC, 0.22 * fade));
+      }
+    } else if(O.kind === 'station'){
+      /* a spine with two habitat rings turning on it */
+      const ln = O.len, th = Math.max(2, 5*S);
+      R(x, y - th*0.5, ln, th, hull(.55));
+      R(x, y - th*0.5, ln, 1, hullL(.5));
+      for(const rp of [0.30, 0.68]){
+        const rr0 = Math.max(4, 26*S);
+        const squash = 0.30 + 0.24*Math.abs(Math.sin(w.t*0.05 + rp*9));
+        for(let a2=0;a2<38;a2++){
+          const ang = a2/38*Math.PI*2;
+          px(x + ln*rp + Math.cos(ang)*rr0, y + Math.sin(ang)*rr0*squash, hull(.5));
+        }
+        if(night > .3) for(let a2=0;a2<8;a2++){
+          const ang = a2/8*Math.PI*2;
+          px(x + ln*rp + Math.cos(ang)*rr0, y + Math.sin(ang)*rr0*squash, cssa(lampC, .35*fade));
+        }
+      }
+      R(x + ln - Math.max(2,8*S), y - Math.max(2,7*S), Math.max(2,8*S), Math.max(3,14*S), hull(.5));
+    } else {
+      /* a shipyard: scaffolding around a hull that is not finished yet */
+      const ln = O.len, th = Math.max(3, 20*S);
+      R(x, y - th*0.5, ln*0.72, th*0.62, hull(.42));         /* the part that exists */
+      for(let i=0;i<9;i++) R(x + i*(ln/9), y - th*0.75, Math.max(1,2*S), th*1.5, hull(.30));
+      R(x, y - th*0.75, ln, Math.max(1,2*S), hull(.34));
+      R(x, y + th*0.75, ln, Math.max(1,2*S), hull(.34));
+      if(night > .25) for(let i=0;i<6;i++)
+        px(x + ln*(0.1 + i*0.14), y - th*0.2, cssa([255, 214, 150], (0.25 + night*0.4)*fade));
+    }
+  }
 }
 
 /* ── wonders ─────────────────────────────────────────────────────────────── */
@@ -3348,6 +3525,226 @@ function renderSurf(){
 }
 
 /* ── things standing alone in the country ────────────────────────────────── */
+
+/* The per-age rarities. Each fades in over the first minutes of its hour and
+   out again at the end, so nothing pops into existence on an age boundary. */
+function renderRarities(){
+  const w = world, P = pal(), L = dayLight(), z = w.zoom, night = 1 - L;
+  const amb = ambient();
+  const f0 = clamp(w.ageT / 0.10, 0, 1), f1 = clamp((1 - w.ageT) / 0.10, 0, 1);
+  const fade = Math.min(f0, f1);
+  if(fade <= 0.02) return;
+  const body = css(mix(shade(P.bld,  .48+L*.52), amb, .20));
+  const lite = css(mix(mix(shade(P.bld,.48+L*.52), amb, .20), [255,248,226], .26));
+  const dark = css(mix(shade(P.bldD, .48+L*.52), amb, .22));
+  const acc  = css(mix(shade(P.acc,  .55+L*.45), amb, .16));
+  const bone = css(mix(shade([226,218,196], .48+L*.52), amb, .18));
+  const wx0 = WX(-40), wx1 = WX(W+40);
+
+  for(const Rl of w.rarities){
+    if(Rl.age !== w.age) continue;
+    if(Rl.x < wx0 || Rl.x > wx1) continue;
+    const x = SX(Rl.x, D_TOWN), y = SY(groundAt(Rl.x), D_TOWN);
+    const k = 1.25 * sizeMul(w.t) * z * fade;
+    if(k < 0.10) continue;
+    const K = n => n * k;
+    const R = (a,b,c2,d2,e) => rect(a, b, Math.max(1,c2), Math.max(1,d2), e);
+    const lit = night > .34;
+
+    switch(Rl.kind){
+    case 'bonepile': {              /* a shelter framed out of mammoth ribs */
+      const h = K(13);
+      for(let i=0;i<5;i++){
+        const t = (i - 2) / 2, bx = x + t*K(7);
+        for(let j=0;j<h;j++){
+          const u = j/h;
+          R(bx + t*K(3)*u*u, y - j, Math.max(1,K(1.5)), 1, bone);
+        }
+      }
+      R(x - K(9), y - K(1), K(18), K(1.6), dark);
+      break; }
+    case 'stele': {                 /* a carved boundary stone under a cap */
+      const h = K(15), ww = K(5);
+      R(x - ww/2, y - h, ww, h, body);
+      R(x - ww/2, y - h, Math.max(1,K(1.2)), h, lite);
+      R(x - ww/2 - K(1), y - h - K(2), ww + K(2), K(2), dark);
+      for(let i=1;i<5;i++) R(x - ww/2 + K(1), y - h + i*(h/5), ww - K(2), 1, dark);
+      break; }
+    case 'wayshrine': {             /* two little columns and a lamp */
+      const h = K(11);
+      R(x - K(5), y - K(1.4), K(10), K(1.6), dark);
+      R(x - K(4), y - h, Math.max(1,K(1.6)), h, body);
+      R(x + K(2.4), y - h, Math.max(1,K(1.6)), h, body);
+      R(x - K(5.4), y - h - K(2.4), K(11), K(2.4), body);
+      R(x - K(5.4), y - h - K(2.4), K(11), 1, lite);
+      if(lit){ px(x, y - h + K(3), cssa(P.win, .95)); addLight(x, y - h + K(3), Math.max(3,K(5)), C_WARM, .12); }
+      break; }
+    case 'wayscross': {             /* a stone cross on worn steps */
+      const h = K(16);
+      for(let i=0;i<3;i++) R(x - K(6 - i*1.6), y - K(i*1.3) - K(1.3), K(12 - i*3.2), K(1.4), i ? body : dark);
+      R(x - K(1), y - h, K(2), h - K(3.6), body);
+      R(x - K(3.4), y - h + K(2.4), K(7), Math.max(1,K(1.8)), body);
+      R(x - K(1), y - h, K(2), 1, lite);
+      if(lit){ px(x + K(3), y - h + K(4), cssa(P.win, .9)); addLight(x + K(3), y - h + K(4), Math.max(3,K(4)), C_WARM, .10); }
+      break; }
+    case 'whalebones': {            /* a ribcage picked clean, half in the sand */
+      R(x - K(14), y - K(1), K(28), Math.max(1,K(1.4)), bone);
+      for(let i=0;i<7;i++){
+        const t = (i - 3) / 3, rh = K(9) * (1 - t*t*0.62);
+        const bx = x + t*K(12);
+        for(let j=0;j<rh;j++)
+          R(bx + Math.sin(j/rh*1.9)*K(2.6)*(t < 0 ? -1 : 1), y - K(1) - j,
+            Math.max(1, K(1.4)), 1, bone);
+      }
+      R(x - K(17), y - K(3.5), K(4.5), K(3.5), bone);        /* the skull */
+      break; }
+    case 'lockgate': {              /* a canal lock, gates shut */
+      R(x - K(13), y - K(1), K(26), Math.max(1,K(1.6)), dark);
+      R(x - K(13), y - K(6), Math.max(1,K(2)), K(6), body);
+      R(x + K(11), y - K(6), Math.max(1,K(2)), K(6), body);
+      R(x - K(11), y - K(4.6), K(22), Math.max(1,K(1.2)), css(mix([90,120,140], amb, .3)));
+      for(const s2 of [-1,1]){
+        R(x + s2*K(4) - K(0.6), y - K(7.5), Math.max(1,K(1.2)), K(7.5), dark);
+        R(x + s2*K(4) - K(2.6), y - K(7.5), K(5), Math.max(1,K(1)), dark);
+      }
+      break; }
+    case 'neonsign': {              /* a roadside sign nobody has taken down */
+      const h = K(17);
+      R(x - K(0.9), y - h, Math.max(1,K(1.8)), h, dark);
+      R(x - K(6), y - h - K(7), K(12), K(7), body);
+      R(x - K(6), y - h - K(7), K(12), 1, lite);
+      const glow = lit ? cssa([255,120,170], .92) : css(mix([190,90,130], amb, .25));
+      R(x - K(4.2), y - h - K(5.4), K(8.4), Math.max(1,K(1.6)), glow);
+      R(x - K(3), y - h - K(3), K(6), Math.max(1,K(1.2)), glow);
+      if(lit) addLight(x, y - h - K(4), Math.max(4,K(8)), [255,120,170], .16);
+      break; }
+    case 'dishfarm': {              /* three dishes listening to nothing much */
+      R(x - K(11), y - K(1), K(22), Math.max(1,K(1.4)), dark);
+      for(let i=0;i<3;i++){
+        const dx = x + (i-1)*K(7.5), h = K(7);
+        R(dx - K(0.7), y - h, Math.max(1,K(1.4)), h, dark);
+        const r0 = K(3.4);
+        for(let j=0;j<r0;j++){
+          const ww = Math.sqrt(Math.max(0, r0*r0 - j*j))*2;
+          R(dx - ww/2 + K(1), y - h - j, ww, 1, j > r0*.45 ? lite : body);
+        }
+        if(lit) px(dx + K(1), y - h - K(1), cssa([160,240,180], .9));
+      }
+      break; }
+    case 'booster': {               /* a spent stage back on its cradles */
+      const ln = K(30), rr0 = K(3.6);
+      R(x - ln/2, y - K(2) - rr0*2, ln, rr0*2, body);
+      R(x - ln/2, y - K(2) - rr0*2, ln, Math.max(1,K(1.2)), lite);
+      R(x - ln/2, y - K(2) - 1, ln, 1, dark);
+      for(let i=0;i<4;i++) R(x - ln/2 + i*(ln/4), y - K(2) - rr0*2, 1, rr0*2, dark);
+      R(x + ln/2 - K(3), y - K(2) - rr0*2 - K(1.4), K(3), K(1.4), dark);   /* the bell end */
+      for(const s2 of [-1,1]) R(x + s2*K(9) - K(1), y - K(2), K(2), K(2), dark);
+      if(lit) px(x - ln/2 + K(2), y - K(2) - rr0, cssa([255,90,90], .9));
+      break; }
+    case 'memorial': {              /* a slab that remembers, and hums a little */
+      const h = K(20), ww = K(6);
+      const hover = Math.sin(w.t * 0.5 + Rl.seed) * K(1.2);
+      R(x - ww/2, y - h - K(3) + hover, ww, h, css(mix([40,38,58], amb, .2)));
+      R(x - ww/2, y - h - K(3) + hover, Math.max(1,K(1)), h, cssa([170,200,255], .5));
+      for(let i=0;i<4;i++){
+        const t = (i/4 + (w.t*0.06 % 1)) % 1;
+        px(x + Math.sin(t*6.28 + Rl.seed)*K(6), y - K(2) - t*h, cssa([190,215,255], .55*(1-t)));
+      }
+      R(x - K(5), y - K(1), K(10), Math.max(1,K(1.2)), dark);
+      if(lit) addLight(x, y - h*.5, Math.max(4,K(9)), [150,190,255], .14);
+      break; }
+    }
+  }
+}
+
+
+/* The iron spire. Raised late in the industrial age on the edge of a town --
+   out where the houses thin, not in the middle of them -- and never taken
+   down: the following ages hang a broadcast mast on it, then dishes, and it
+   ends its life as the tallest thing in the valley with a red light on top. */
+const SPIRE_AT = 5.55;                       /* age + fraction when it goes up */
+function buildSpire(){
+  const w = world;
+  w.spire = null;
+  const inland = w.sites.filter(S => S.x > CITY_X + 200);
+  const host = inland.length ? inland[(rnd() * inland.length) | 0] : w.sites[0];
+  if(!host) return;
+  for(const s2 of [1, -1]){                  /* just past the edge of town */
+    const x = Math.round(host.x + s2 * host.r * 1.35);
+    if(!isLand(x) || wetAt(x)) continue;
+    if(Math.abs(groundAt(x+10) - groundAt(x-10)) > 12) continue;
+    w.spire = { x, seed:(rnd()*1e6)|0 };
+    return;
+  }
+  w.spire = { x: Math.round(host.x + host.r * 1.35), seed:(rnd()*1e6)|0 };
+}
+
+function renderSpire(){
+  const w = world, S = w.spire;
+  if(!S) return;
+  const prog = w.age + w.ageT;
+  if(prog < SPIRE_AT) return;
+  const x = SX(S.x, D_TOWN);
+  if(x < -120 || x > W + 120) return;
+  const grow = ease(clamp((prog - SPIRE_AT) / 0.30, 0, 1));
+  const P = pal(), L = dayLight(), night = 1 - L, amb = ambient();
+  const k = 1.6 * sizeMul(w.t) * w.zoom;
+  if(k < 0.08) return;
+  const K = n => n * k;
+  const y = SY(groundAt(S.x), D_TOWN);
+  const iron = css(mix(shade([120, 96, 78], .46+L*.54), amb, .22));
+  const ironL= css(mix(mix(shade([120, 96, 78], .46+L*.54), amb, .22), [255,244,214], .26));
+  const dark = css(mix(shade([72, 58, 46], .46+L*.54), amb, .24));
+  const R = (a,b,c2,d2,e) => rect(a, b, Math.max(1,c2), Math.max(1,d2), e);
+
+  const H = K(64) * grow, base = K(11);
+  /* the shaft: two uprights that curve in, braced across */
+  const hwAt = t => base * Math.pow(1 - t, 1.55) + K(0.9);
+  const steps = Math.max(6, Math.round(H));
+  for(let i=0;i<steps;i++){
+    const t = i/steps, yy = y - i*(H/steps), hw = hwAt(t);
+    R(x - hw, yy, Math.max(1, K(1.1)), 1, i % 7 < 4 ? iron : ironL);
+    R(x + hw - K(1.1), yy, Math.max(1, K(1.1)), 1, dark);
+    if(i % Math.max(3, Math.round(K(3.5))) === 0) R(x - hw, yy, hw*2, 1, dark);   /* a brace */
+  }
+  /* the great arches between the legs, which is what makes it read as iron */
+  if(K(6) >= 3){
+    const ah = H*0.20;
+    for(let i=0;i<Math.round(ah);i++){
+      const t = i/ah, hw = hwAt(t*0.20);
+      const cut = hw * (1 - Math.sqrt(Math.max(0, 1 - t*t)))*0.9;
+      R(x - hw + cut, y - i, Math.max(1,K(1)), 1, dark);
+      R(x + hw - cut - K(1), y - i, Math.max(1,K(1)), 1, dark);
+    }
+  }
+  /* platforms */
+  for(const pt of [0.30, 0.66]){
+    const hw = hwAt(pt);
+    R(x - hw - K(1.4), y - H*pt, hw*2 + K(2.8), Math.max(1, K(1.5)), iron);
+    R(x - hw - K(1.4), y - H*pt, hw*2 + K(2.8), 1, ironL);
+  }
+  /* what the later ages bolt on to it */
+  if(prog >= 6.0 && grow > .98){
+    const mh = K(26) * ease(clamp((prog - 6.0)/0.4, 0, 1));
+    R(x - K(0.8), y - H - mh, Math.max(1, K(1.6)), mh, iron);
+    for(let i=1;i<4;i++) R(x - K(3.2), y - H - mh*(i/4), K(6.4), 1, dark);
+    if(prog >= 7.0){
+      for(const s2 of [-1, 1]){
+        const dy = y - H*0.66 - K(3);
+        R(x + s2*(hwAt(0.66) + K(1)), dy, K(3.4), K(3.4), iron);
+        R(x + s2*(hwAt(0.66) + K(1)), dy, K(3.4), 1, ironL);
+      }
+    }
+    if(night > .3){
+      px(x, y - H - mh, cssa(C_REDLIGHT, .55 + 0.45*Math.sin(w.t*2.2)));
+      addLight(x, y - H - mh, Math.max(3, K(5)), C_REDLIGHT, .10);
+    }
+  }
+  if(night > .35 && grow > .5){
+    addLight(x, y - H*0.5, Math.max(4, K(9)), C_WARM, .08);
+  }
+}
+
 function renderRelics(){
   const w = world, P = pal(), L = dayLight(), z = w.zoom, night = 1 - L;
   const prog = w.age + w.ageT;
@@ -4917,17 +5314,68 @@ function drawWonder(kind, c){
     break; }
 
   case 'cathedral': {
-    const h = K(38)*G;
-    R(x - K(15), by - h*.52, K(30), h*.52, c.b);
-    for(let i=0;i<K(30); i+=Math.max(2,K(6))) R(x - K(15) + i, by - h*.52, 1, h*.52, c.d);
+    /* Glass is the whole point of a cathedral: the building is an excuse to
+       hold it up. By day the windows read as dark holes in pale stone; after
+       dark they are the only coloured light in the valley. */
+    const h = K(38)*G, nh = h*.52, nx = x - K(15), nw = K(30);
+    const glassLit = dec < .62 && c.lit;
+    const GL = [[198,58,62],[56,98,192],[228,180,64],[54,142,100]];  /* ruby, sapphire, gold, emerald */
+    const glass = (j, bright) => glassLit
+      ? cssa(mix(GL[j & 3], [255,238,206], .18 + bright * .34), (.82 + bright * .18) * (1 - dec))
+      : css(mix(GL[j & 3], [26,24,30], .58));
+
+    R(nx, by - nh, nw, nh, c.b);                          /* the nave */
+    /* a pitched roof, so it is not a flat-topped box */
+    const rh = Math.max(1, K(5)*G);
+    for(let i=0;i<rh;i++){
+      const ww = nw * (1 - i/rh*0.86);
+      R(x - ww/2, by - nh - i - 1, ww, 1, i < rh*.4 ? c.a : c.d);
+    }
+    /* lancets: tall windows with a pointed head, between the buttress piers */
+    const bays = Math.max(3, Math.round(K(30)/Math.max(3, K(6))));
+    for(let i=0;i<bays;i++){
+      const bx = nx + (i + .5) * (nw/bays);
+      R(bx - Math.max(1,K(1.6))/2, by - nh*.72, Math.max(1,K(1.6)), nh*.52, glass(i, .5));
+      if(K(1.6) >= 2) px(bx, by - nh*.74, glass(i, .8));   /* the pointed head */
+    }
+    for(let i=0;i<=bays;i++)                               /* the piers between them */
+      R(nx + i*(nw/bays), by - nh, Math.max(1, K(1.2)), nh, c.d);
+    /* flying buttresses: a quarter arc from the nave out to a low pier */
+    if(dec < .55 && K(6) >= 3){
+      for(const s of [-1, 1]){
+        const px0 = x + s*(nw*.5 + K(5));
+        R(px0 - K(1), by - nh*.34, K(2), nh*.34, c.d);     /* the outer pier */
+        const steps = Math.max(4, Math.round(K(9)));
+        const bw = Math.max(1, K(1.1));
+        for(let i=0;i<steps;i++){
+          const t = i/steps;
+          R(x + s*(nw*.5 + K(5)*(1-t)), by - nh*.34 - K(7)*Math.sin(t*Math.PI*.5), bw, bw, c.d);
+        }
+      }
+    }
+    /* the west towers and their spires */
     if(dec < .7){
       R(x - K(5), by - h, K(10), h, c.b);
       const sp = K(13)*G;
       for(let i=0;i<sp;i++) R(x - (K(9) - i*(K(9)/sp))/2, by - h - i, K(9) - i*(K(9)/sp), 1, c.d);
     }
-    if(c.lit && dec < .5){
-      R(x - K(2.5), by - h*.40, K(5), K(6), c.win);
-      addLight(x, by - h*.40, Math.max(4, K(11)), C_WARM, .22);
+    /* the rose window, centred on the west front */
+    const rr0 = K(4.5);
+    if(rr0 >= 2.2 && dec < .62){
+      const cy = by - nh - Math.max(2, K(3));
+      disc(x, cy, rr0 + Math.max(1, K(0.8)), c.d);         /* the stone surround */
+      disc(x, cy, rr0, glass(0, .35));
+      const spokes = rr0 >= 4 ? 8 : 4;
+      for(let i=0;i<spokes;i++){
+        const ang = i * Math.PI*2/spokes;
+        px(x + Math.cos(ang)*rr0*.62, cy + Math.sin(ang)*rr0*.62, glass(i, .95));
+        if(rr0 >= 4) px(x + Math.cos(ang)*rr0*.30, cy + Math.sin(ang)*rr0*.30, c.d);
+      }
+      px(x, cy, glass(2, 1));
+    }
+    if(glassLit){
+      addLight(x, by - nh*.60, Math.max(5, K(14)), C_WARM, .20);
+      addLight(x, by - nh - Math.max(2, K(3)), Math.max(4, K(8)), [210,140,180], .16);
     }
     break; }
 
@@ -5085,6 +5533,7 @@ function renderParticles(){
 function render(){
   const w = world;
   renderSky();
+  renderOrbital();
   renderRainbow();
   renderLand();
   renderGroundDetail();
@@ -5098,6 +5547,8 @@ function render(){
   renderShips();
   renderTrains();
   renderRelics();
+  renderRarities();
+  renderSpire();
   renderOldRelics();
   renderLandmarks();
   renderCivic();
@@ -5234,6 +5685,8 @@ const Sound = {
     }
     this.rev.buffer = ir;
     const revG = c.createGain(); revG.gain.value = .46;
+    this.revG = revG; this.wetNow = .46;
+    this.airHz = 900; this.airQ = .55; this.airGain = 1;   /* tracked here; see setLevel */
     this.rev.connect(revG); revG.connect(this.master);
     this.dry = c.createGain(); this.dry.gain.value = .72;
     this.dry.connect(this.master);
@@ -5271,6 +5724,34 @@ const Sound = {
       o.connect(gg); gg.connect(this.droneG); o.start();
       this.drone.push({ o, g:gg });
     }
+    /* the colour voice: a fourth partial whose waveform belongs to the age --
+       a saw for the industrial grind, a square for the digital sheen, a high
+       sine for the singularity. It is faded to silence across an age change
+       so the waveform can be swapped without a click. */
+    this.colourG = c.createGain(); this.colourG.gain.value = 0; this.colVol = 0;
+    this.colour = c.createOscillator();
+    this.colour.type = 'sine';
+    this.colour.frequency.value = colourFreq(world.age);
+    /* a lid on the colour voice: a saw or a square straight into the mix is
+       the one thing here that could ever be called harsh */
+    this.colFilt = c.createBiquadFilter();
+    this.colFilt.type = 'lowpass'; this.colFilt.frequency.value = 900; this.colFilt.Q.value = .5;
+    this.colour.connect(this.colourG);
+    this.colourG.connect(this.colFilt);
+    this.colFilt.connect(this.droneG);
+    this.colour.start();
+
+    /* The breath. About six cycles a minute -- the pace people are taught for
+       calming down -- swelling the whole bed by a fifth and easing back. It is
+       the difference between quiet music and music that actively settles you. */
+    this.breath = c.createGain(); this.breath.gain.value = 1;
+    const blfo = c.createOscillator(); blfo.frequency.value = 0.10;
+    const bg = c.createGain(); bg.gain.value = 0.19;
+    blfo.connect(bg); bg.connect(this.breath.gain); blfo.start();
+    this.droneG.disconnect();
+    this.droneG.connect(this.breath);
+    this.breath.connect(dfilt);
+
     const flfo = c.createOscillator(); flfo.frequency.value = .021;
     const fg = c.createGain(); fg.gain.value = 260;
     flfo.connect(fg); fg.connect(dfilt.frequency); flfo.start();
@@ -5323,11 +5804,52 @@ const Sound = {
       d.o.frequency.linearRampToValueAtTime(f, t + gl);
       d.target = f;
     });
-    const bright = 380 + i * 120;
-    const fromB = (this.age < 0) ? bright : 380 + this.age * 120;
+    /* Brightness is per age now rather than a straight ramp with the century:
+       the industrial hour wants to be duller than the one before it, and the
+       cathedral hour sits in the middle. */
+    const brightOf = k => AGES[clamp(k,0,9)].au.bright || (380 + k * 120);
+    const bright = brightOf(i);
+    const fromB = (this.age < 0) ? bright : brightOf(this.age);
     this.droneFilt.frequency.cancelScheduledValues(t);
     this.droneFilt.frequency.setValueAtTime(fromB, t);
     this.droneFilt.frequency.linearRampToValueAtTime(bright, t + gl);
+
+    /* how much room the age sits in: open air in the stone age, a cathedral
+       in the medieval one, close and dry under the soot */
+    const air = AGES[clamp(i,0,9)].au.air;
+    if(air && this.riverF){
+      this.riverF.frequency.cancelScheduledValues(t);
+      this.riverF.frequency.setValueAtTime(this.airHz, t);
+      this.airHz = air[0];
+      this.riverF.frequency.linearRampToValueAtTime(air[0], t + gl);
+      this.riverF.Q.cancelScheduledValues(t);
+      this.riverF.Q.setValueAtTime(this.airQ, t);
+      this.airQ = air[1];
+      this.riverF.Q.linearRampToValueAtTime(air[1], t + gl);
+      this.airGain = air[2];
+    }
+
+    const wet = AGES[clamp(i,0,9)].au.wet;
+    if(wet != null){
+      this.revG.gain.cancelScheduledValues(t);
+      this.revG.gain.setValueAtTime(this.wetNow, t);
+      this.wetNow = wet;
+      this.revG.gain.linearRampToValueAtTime(wet, t + gl);
+    }
+
+    /* the colour voice ducks to nothing, changes its waveform in the silence,
+       and comes back as the new age's timbre */
+    const col = colourOf(i), half = gl * 0.5;
+    const cg = this.colourG.gain;
+    cg.cancelScheduledValues(t);
+    cg.setValueAtTime(this.colVol, t);
+    cg.linearRampToValueAtTime(0, t + half);
+    this.colour.frequency.setValueAtTime(colourFreq(i), t + half);
+    this.colVol = col[2];
+    cg.linearRampToValueAtTime(this.colVol, t + gl);
+    const wave = col[0];
+    setTimeout(() => { if(this.ok) this.colour.type = wave; }, half * 1000);
+
     this.age = i;
   },
 
@@ -5337,11 +5859,14 @@ const Sound = {
     const o = c.createOscillator(); o.type = type || 'sine'; o.frequency.value = freq;
     const o2 = c.createOscillator(); o2.type = 'sine'; o2.frequency.value = freq * 2.01;
     const g1 = c.createGain(), g2 = c.createGain();
+    /* A slow swell, not a strike. A 20ms attack is a bell being hit; a third
+       of a second is the same note arriving on its own. */
+    const atk = Math.min(0.34, dur * .16);
     g1.gain.setValueAtTime(0, t);
-    g1.gain.linearRampToValueAtTime(vol, t + .02);
+    g1.gain.linearRampToValueAtTime(vol, t + atk);
     g1.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     g2.gain.setValueAtTime(0, t);
-    g2.gain.linearRampToValueAtTime(vol * .28, t + .01);
+    g2.gain.linearRampToValueAtTime(vol * .28, t + atk * .7);
     g2.gain.exponentialRampToValueAtTime(0.0001, t + dur * .5);
     o.connect(g1); o2.connect(g2);
     g1.connect(this.dry); g1.connect(this.rev);
@@ -5377,7 +5902,7 @@ const Sound = {
     this.setAge(world.age);
 
     /* the river swells with the rain */
-    const rg = .045 + (world.rain || 0) * .085;
+    const rg = (.045 + (world.rain || 0) * .085) * (this.airGain || 1);
     this.riverG.gain.setTargetAtTime(rg, t, 2.5);
 
     /* the drone lifts a little when things are going well */
@@ -5386,13 +5911,16 @@ const Sound = {
     const sc = A.au.scale, root = A.au.root;
     const note = k => root * Math.pow(2, (sc[((k % sc.length) + sc.length) % sc.length] + 12 * (1 + (k / sc.length | 0))) / 12);
 
-    /* bells: the melodic layer, rarer in hard times */
+    /* Bells: the melodic layer, rarer in hard times. Its voice, register and
+       spacing belong to the age -- a low wooden note every dozen seconds in
+       the stone age, a high glassy one every three in the singularity. */
     if(t > this.nextChime){
+      const bv = A.au.bell || ['sine', 1, 3.2, 11];
       const busy = .35 + world.prosperity * .65;
-      this.nextChime = t + rr(3.2, 11) / busy;
+      this.nextChime = t + rr(bv[2], bv[3]) / busy;
       const k = ri(0, sc.length * 2 - 1);
-      this.bell(note(k), rr(3.5, 7.5), rr(.035, .075), 'sine');
-      if(rnd() < .30) this.bell(note(k + 2) * 2, rr(2.5, 5), rr(.015, .035), 'sine');
+      this.bell(note(k) * bv[1], rr(3.5, 7.5), rr(.035, .075), bv[0]);
+      if(rnd() < .30) this.bell(note(k + 2) * bv[1] * 2, rr(2.5, 5), rr(.015, .035), bv[0]);
     }
 
     /* one texture per age, so each hour has its own sonic signature */
@@ -5414,6 +5942,14 @@ const Sound = {
         const f = root * .5;
         this.bell(f, 9, .085, 'sine');
         setTimeout(() => this.on && this.bell(f, 8, .055, 'sine'), 2100);
+      } else if(tex === 'glass'){
+        /* the age of sail: a glass harmonica tone, and the rigging behind it.
+           Two close partials beating slowly is what makes a wet rim sing. */
+        this.nextTex = t + rr(9, 19);
+        const f = note(ri(3,7)) * 2;
+        this.bell(f, rr(5,8), .026, 'sine');
+        setTimeout(() => this.on && this.bell(f * 1.005, rr(4,7), .018, 'sine'), 140);
+        if(rnd() < .45) setTimeout(() => this.on && this.hit(rr(1400, 2600), .9, .012, 6), 900);
       } else if(tex === 'engine'){
         this.nextTex = t + rr(1.1, 2.3);
         this.hit(rr(150, 260), .34, .05, 3.2);
