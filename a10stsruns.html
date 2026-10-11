@@ -30,14 +30,99 @@
   #hdr-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 
   #load-btn {
-    background: #fff; border: 1.5px solid #cbd5e1; color: #1e293b;
-    padding: 6px 14px; cursor: pointer; font-family: inherit;
-    font-size: 11px; font-weight: 600; letter-spacing: .4px;
+    background: #4f46e5; border: 1.5px solid #4f46e5; color: #fff;
+    padding: 7px 16px; cursor: pointer; font-family: inherit;
+    font-size: 12px; font-weight: 700; letter-spacing: .3px;
     border-radius: 6px; transition: all .15s; white-space: nowrap;
   }
-  #load-btn:hover { border-color: #374151; color: #1e293b; }
-  #load-btn.loading { border-color: #3b82f6; color: #3b82f6; }
-  #load-btn.success { border-color: #22c55e; color: #16a34a; }
+  #load-btn:hover { background: #4338ca; border-color: #4338ca; }
+
+  /* "you are looking at somebody else's runs" strip */
+  #viewer-banner {
+    background: #eef2ff; border-bottom: 3px solid #c7d2fe;
+    padding: 9px 32px; display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
+    font-size: 12px; color: #1e293b;
+  }
+  #viewer-banner[hidden] { display: none; }
+  #viewer-banner-text { flex: 1 1 360px; line-height: 1.45; }
+  #viewer-banner button {
+    background: #fff; border: 1.5px solid #a5b4fc; color: #312e81;
+    padding: 5px 12px; border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  #viewer-banner button:hover { border-color: #4f46e5; }
+
+  /* ── "Analyze my own runs" dialog ── */
+  #own-dlg {
+    border: none; border-radius: 14px; padding: 0; margin: auto; color: #1e293b; font-family: inherit;
+    width: min(660px, calc(100vw - 24px)); max-height: calc(100vh - 24px);
+    box-shadow: 0 20px 60px rgba(15,23,42,.35);
+  }
+  #own-dlg::backdrop { background: rgba(15,23,42,.55); }
+  .dlg-body { padding: 24px 28px 26px; }
+  .dlg-top { display: flex; align-items: flex-start; gap: 12px; }
+  .dlg-top h2 { font-size: 19px; font-weight: 800; color: #0f172a; flex: 1; }
+  .dlg-x {
+    background: none; border: none; font-size: 26px; line-height: 1; color: #374151;
+    cursor: pointer; padding: 0 4px; font-family: inherit;
+  }
+  .dlg-x:hover { color: #0f172a; }
+  .dlg-lead { font-size: 13px; line-height: 1.55; color: #374151; margin: 8px 0 18px; }
+  .dlg-lead strong { color: #0f172a; }
+  .dlg-step { display: flex; gap: 14px; margin-bottom: 18px; }
+  .dlg-num {
+    flex: none; width: 26px; height: 26px; border-radius: 50%; background: #4f46e5; color: #fff;
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .dlg-step-body { flex: 1; min-width: 0; font-size: 13px; line-height: 1.55; color: #374151; }
+  .dlg-step-body > strong { color: #0f172a; font-size: 14px; }
+  .dlg-hint { font-size: 11.5px; color: #374151; margin-top: 8px; line-height: 1.5; }
+  kbd {
+    background: #f1f5f9; border: 1px solid #cbd5e1; border-bottom-width: 2px; border-radius: 4px;
+    padding: 1px 6px; font-family: inherit; font-size: 11px; font-weight: 600; color: #0f172a;
+  }
+  .copybox { display: flex; gap: 8px; margin: 8px 0; align-items: stretch; }
+  .copybox code {
+    flex: 1; background: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 6px;
+    padding: 8px 12px; font-size: 13px; font-weight: 600; color: #0f172a;
+    user-select: all; overflow-x: auto; white-space: nowrap;
+  }
+  .dlg-btn {
+    background: #fff; border: 1.5px solid #cbd5e1; color: #1e293b; padding: 8px 16px;
+    border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 600;
+  }
+  .dlg-btn:hover { border-color: #374151; }
+  .dlg-btn.big {
+    background: #4f46e5; border-color: #4f46e5; color: #fff; font-size: 14px; font-weight: 700;
+    padding: 12px 22px; width: 100%;
+  }
+  .dlg-btn.big:hover { background: #4338ca; border-color: #4338ca; }
+  #dropzone {
+    margin-top: 10px; border: 2px dashed #94a3b8; border-radius: 10px; padding: 16px;
+    text-align: center; font-size: 12.5px; color: #374151; transition: all .12s;
+  }
+  #dropzone.over { border-color: #4f46e5; background: #eef2ff; color: #312e81; }
+  .dlg-link {
+    background: none; border: none; padding: 0; margin-top: 10px; font-family: inherit;
+    font-size: 11.5px; color: #4338ca; text-decoration: underline; cursor: pointer;
+  }
+  #dlg-status:empty { display: none; }
+  .dlg-msg {
+    border-radius: 8px; padding: 12px 14px; font-size: 13px; line-height: 1.5; margin-top: 4px;
+  }
+  .dlg-msg.busy { background: #eef2ff; border: 1.5px solid #c7d2fe; color: #312e81; }
+  .dlg-msg.err  { background: #fef2f2; border: 1.5px solid #fecaca; color: #7f1d1d; }
+  .dlg-msg.ok   { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #14532d; }
+  .dlg-msg strong { color: inherit; }
+  .asc-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+  .asc-chip {
+    background: #fff; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 6px 12px;
+    font-family: inherit; font-size: 12px; font-weight: 600; color: #1e293b; cursor: pointer;
+  }
+  .asc-chip:hover:not(:disabled) { border-color: #4f46e5; }
+  .asc-chip.active { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+  .asc-chip:disabled { opacity: .45; cursor: not-allowed; }
+  .asc-chip small { font-weight: 500; opacity: .85; margin-left: 4px; }
 
   #last-loaded {
     font-size: 11px; color: #374151; white-space: nowrap;
@@ -291,13 +376,18 @@
 <body>
 
 <div id="hdr">
-  <h1>Slay the Spire 2 — My Ascension 10 Runs</h1>
-  <span class="sub">My own run history, Ascension 10 only, not counting the runs I abandoned at Neow. Click a character card to filter by character. Across many versions, starting from the initial release in Spring 2026 — updated 8/27/26</span>
+  <h1 id="page-title">Slay the Spire 2 — My Ascension 10 Runs</h1>
+  <span class="sub" id="page-sub">My own run history, Ascension 10 only, not counting the runs I abandoned at Neow. Click a character card to filter by character. Across many versions, starting from the initial release in Spring 2026 — updated 8/27/26</span>
   <div id="hdr-right">
     <span id="last-loaded"></span>
-    <button id="load-btn" onclick="document.getElementById('run-file-input').click()">Load Runs</button>
-    <input id="run-file-input" type="file" multiple accept=".run" style="display:none">
+    <button id="load-btn" type="button">Analyze my own runs</button>
   </div>
+</div>
+
+<div id="viewer-banner" hidden>
+  <span id="viewer-banner-text"></span>
+  <button type="button" id="banner-change">Load different runs</button>
+  <button type="button" id="banner-reset">Back to John's runs</button>
 </div>
 
 <div id="wrap">
@@ -317,7 +407,7 @@
         <div id="chart-title">HP Trajectory</div>
         <div id="chart-sub">Floor-by-floor absolute HP · click a character card to filter</div>
       </div>
-      <div style="font-size:10px;color:#374151;max-width:180px;line-height:1.5;text-align:center;padding:0 12px;border-left:1.5px solid #e2e8f0;border-right:1.5px solid #e2e8f0;">
+      <div data-voice style="font-size:10px;color:#374151;max-width:180px;line-height:1.5;text-align:center;padding:0 12px;border-left:1.5px solid #e2e8f0;border-right:1.5px solid #e2e8f0;">
          The run extends by 2 floors if I pick the <strong style="color:#1e293b">Golden Path</strong> boss reward
       </div>
       <div id="legend">
@@ -336,12 +426,12 @@
   <div id="bottom-row">
     <div class="panel">
       <div class="panel-title">Top Killers</div>
-      <div class="panel-sub">What ended my runs (losses only)</div>
+      <div class="panel-sub" data-voice>What ended my runs (losses only)</div>
       <div id="kills-list"></div>
     </div>
     <div class="panel">
       <div class="panel-title">Floors Reached</div>
-      <div class="panel-sub">Distribution across all of my qualifying runs</div>
+      <div class="panel-sub" data-voice>Distribution across all of my qualifying runs</div>
       <svg id="floors-chart"></svg>
     </div>
   </div>
@@ -357,13 +447,13 @@
 
   <!-- Damage dealers -->
   <div id="damage-section" style="margin-top:24px">
-    <div class="section-label" style="margin-bottom:12px">Top damage dealers · avg damage I took per encounter</div>
+    <div class="section-label" data-voice style="margin-bottom:12px">Top damage dealers · avg damage I took per encounter</div>
     <div id="damage-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
   </div>
 
   <!-- Card Elo -->
   <div id="elo-section" style="margin-top:24px">
-    <div class="section-label" style="margin-bottom:12px">Card Elo · how often I take a card over the alternatives</div>
+    <div class="section-label" data-voice style="margin-bottom:12px">Card Elo · how often I take a card over the alternatives</div>
     <div class="panel" style="padding:0;overflow:hidden">
       <div class="elo-head-note" id="elo-note"></div>
       <div id="elo-tabs"></div>
@@ -374,8 +464,8 @@
         <button class="elo-min active" data-min="5">5×</button>
         <button class="elo-min" data-min="15">15×</button>
         <div id="elo-legend">
-          <div class="elo-key"><div class="elo-swatch" style="background:#2a78d6"></div>Above the skip line — I take it</div>
-          <div class="elo-key"><div class="elo-swatch" style="background:#e34948"></div>Below — I pass</div>
+          <div class="elo-key" data-voice><div class="elo-swatch" style="background:#2a78d6"></div>Above the skip line — I take it</div>
+          <div class="elo-key" data-voice><div class="elo-swatch" style="background:#e34948"></div>Below — I pass</div>
         </div>
       </div>
       <div id="elo-list" style="padding:14px 20px;max-height:520px;overflow-y:auto"></div>
@@ -383,6 +473,51 @@
   </div>
 
 </div>
+
+<dialog id="own-dlg">
+  <div class="dlg-body">
+    <div class="dlg-top">
+      <h2>Analyze your own runs</h2>
+      <button type="button" class="dlg-x" id="dlg-close" aria-label="Close">&times;</button>
+    </div>
+    <p class="dlg-lead">See every chart on this page for <strong>your</strong> Slay the Spire 2 history.
+      Your run files are read <strong>inside your browser</strong> &mdash; nothing is uploaded anywhere,
+      and the page owner never sees them.</p>
+
+    <div class="dlg-step">
+      <div class="dlg-num">1</div>
+      <div class="dlg-step-body">
+        <strong>Open the game's save folder</strong><br>
+        On Windows, press <kbd>Win</kbd> + <kbd>R</kbd>, paste this, and press Enter:
+        <div class="copybox">
+          <code id="path-code">%APPDATA%\SlayTheSpire2</code>
+          <button type="button" class="dlg-btn" id="copy-path">Copy</button>
+        </div>
+        <div class="dlg-hint">A folder window opens. Leave it open &mdash; it's the folder you pick in the next step.
+          Not on Windows? Search your computer for a folder called <b>SlayTheSpire2</b>.</div>
+      </div>
+    </div>
+
+    <div class="dlg-step">
+      <div class="dlg-num">2</div>
+      <div class="dlg-step-body">
+        <strong>Pick that folder here</strong>
+        <div style="margin-top:8px">
+          <button type="button" class="dlg-btn big" id="pick-folder" autofocus>Choose the SlayTheSpire2 folder&hellip;</button>
+        </div>
+        <div id="dropzone">&hellip;or drag the folder and drop it here</div>
+        <div class="dlg-hint">Your browser may say it is about to &ldquo;upload&rdquo; the folder and show a button
+          called Upload. That is only its wording for &ldquo;let this page read these files&rdquo; &mdash; they stay on your computer.</div>
+        <button type="button" class="dlg-link" id="pick-files">I'd rather pick individual .run files</button>
+      </div>
+    </div>
+
+    <div id="dlg-status" aria-live="polite"></div>
+    <div id="dlg-result"></div>
+  </div>
+  <input id="folder-input" type="file" webkitdirectory multiple style="display:none">
+  <input id="files-input" type="file" multiple accept=".run" style="display:none">
+</dialog>
 
 <div id="tooltip"></div>
 
@@ -407,7 +542,10 @@ const CHAR_LABEL = {
 };
 
 // ── Data prep ─────────────────────────────────────────────────────────
-const runs = [...RUN_DATA]; // mutable; replaced on file load
+const runs = [...RUN_DATA]; // mutable; swapped out when a visitor loads their own runs
+const OWN_RUNS = [...RUN_DATA];
+const OWN_ELO = typeof CARD_ELO !== 'undefined' ? CARD_ELO : null;
+let eloData = OWN_ELO;     // card-Elo payload currently on screen
 const chars = ['IRONCLAD', 'SILENT', 'REGENT', 'NECROBINDER', 'DEFECT'];
 
 // Runs grouped by character (rebuilt on every render)
@@ -507,6 +645,13 @@ function fmtEncounter(id) {
 }
 
 // ── HP Trajectory ─────────────────────────────────────────────────────
+function drawEmptyChart(svg, W, msg) {
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', 90);
+  svg.setAttribute('viewBox', `0 0 ${W} 90`);
+  svg.innerHTML = `<text x="${(W / 2).toFixed(0)}" y="50" text-anchor="middle" font-size="12" fill="#374151">${msg}</text>`;
+}
+
 function drawHpChart() {
   const svg = document.getElementById('hp-chart');
   const W = svg.parentElement.clientWidth - 48;
@@ -514,6 +659,7 @@ function drawHpChart() {
   const PAD = { top: 10, right: 20, bottom: 36, left: 42 };
 
   const visRuns = getVisRuns();
+  if (!visRuns.length) return drawEmptyChart(svg, W, 'No runs for this selection');
 
   const maxFloor = Math.max(...visRuns.map(r => r.floor_hp.length));
   const maxHpAll = Math.max(...visRuns.flatMap(r => r.floor_max_hp));
@@ -647,6 +793,7 @@ function drawFloorsChart() {
   const PAD = { top: 10, right: 10, bottom: 36, left: 36 };
 
   const visRuns = getVisRuns();
+  if (!visRuns.length) return drawEmptyChart(svg, W, 'No runs for this selection');
 
   // One bar per distinct floor count
   const maxFloor = Math.max(...visRuns.map(r => r.floors));
@@ -712,60 +859,6 @@ function drawFloorsChart() {
     });
     el.addEventListener('mouseleave', hideTip);
   });
-}
-
-// ── Run file parsing ──────────────────────────────────────────────────
-function parseRunFile(json) {
-  const r = json;
-  if (r.ascension !== 10 || r.was_abandoned) return null;
-  const player = r.players && r.players[0];
-  if (!player) return null;
-
-  const floorHp = [], floorMaxHp = [], floorTypes = [], floorGold = [], encounters = [], cardChoices = [];
-  (r.map_point_history || []).forEach(act => {
-    act.forEach(point => {
-      const ps = (point.player_stats || []).find(p => p.player_id === 1);
-      if (ps) {
-        floorHp.push(ps.current_hp);
-        floorMaxHp.push(ps.max_hp);
-        floorTypes.push(point.map_point_type);
-        floorGold.push(ps.current_gold);
-        if (['monster','elite','boss'].includes(point.map_point_type)) {
-          const room = (point.rooms || [])[0];
-          if (room) encounters.push({
-            name:   (room.model_id || '').replace('ENCOUNTER.', ''),
-            type:   point.map_point_type,
-            damage: ps.damage_taken || 0,
-          });
-        }
-        (ps.card_choices || []).forEach(c => {
-          cardChoices.push({ card: (c.card?.id || '').replace('CARD.', ''), picked: !!c.was_picked });
-        });
-      }
-    });
-  });
-
-  if (floorHp.length < 2) return null;
-
-  return {
-    character:    (player.character || '').replace('CHARACTER.', ''),
-    win:          !!r.win,
-    ascension:    r.ascension,
-    floors:       floorHp.length,
-    build_id:     r.build_id || null,
-    killed_by:    (r.killed_by_encounter || 'NONE.NONE').replace('ENCOUNTER.', ''),
-    acts_reached: (r.acts || []).length,
-    run_time_sec: r.run_time,
-    start_time:   r.start_time,
-    deck_size:    (player.deck || []).length,
-    relic_count:  (player.relics || []).length,
-    floor_hp:     floorHp,
-    floor_max_hp: floorMaxHp,
-    floor_types:  floorTypes,
-    floor_gold:   floorGold,
-    encounters:   encounters,
-    card_choices: cardChoices,
-  };
 }
 
 // ── Card pick rates ───────────────────────────────────────────────────
@@ -873,7 +966,7 @@ function buildDamageSection() {
     panel.className = 'dmg-panel';
     panel.innerHTML = `
       <div class="dmg-panel-title">${LABELS[type]}</div>
-      <div class="dmg-panel-sub">avg damage I took per encounter</div>
+      <div class="dmg-panel-sub">${V('avg damage I took per encounter')}</div>
       ${entries.map(e => `
         <div class="dmg-row">
           <div class="dmg-bar-wrap">
@@ -948,68 +1041,6 @@ function updateLastLoaded(isoStr, count) {
   el.innerHTML = `Data as of <strong>${fmt}, ${time}</strong> · ${count} runs`;
 }
 
-// ── Load from localStorage on startup ────────────────────────────────
-(function loadFromStorage() {
-  try {
-    const saved = localStorage.getItem('sts2_runs');
-    const ts    = localStorage.getItem('sts2_loaded_at');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length) {
-        runs.length = 0;
-        parsed.forEach(r => runs.push(r));
-        updateLastLoaded(ts, runs.length);
-      }
-    }
-  } catch (e) {}
-})();
-
-// ── File picker handler ───────────────────────────────────────────────
-document.getElementById('run-file-input').addEventListener('change', async function () {
-  const btn = document.getElementById('load-btn');
-  btn.textContent = 'Loading…';
-  btn.className = 'loading';
-
-  const files = Array.from(this.files);
-  const results = [];
-
-  await Promise.all(files.map(file => new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const run = parseRunFile(JSON.parse(e.target.result));
-        if (run) results.push(run);
-      } catch (_) {}
-      resolve();
-    };
-    reader.readAsText(file);
-  })));
-
-  if (results.length) {
-    runs.length = 0;
-    results.forEach(r => runs.push(r));
-
-    const ts = new Date().toISOString();
-    try {
-      localStorage.setItem('sts2_runs', JSON.stringify(runs));
-      localStorage.setItem('sts2_loaded_at', ts);
-    } catch (_) {}
-
-    updateLastLoaded(ts, runs.length);
-    renderAll();
-
-    btn.textContent = `Loaded ${results.length} runs`;
-    btn.className = 'success';
-    setTimeout(() => { btn.textContent = 'Load Runs'; btn.className = ''; }, 3000);
-  } else {
-    btn.textContent = 'No valid runs found';
-    btn.className = '';
-    setTimeout(() => { btn.textContent = 'Load Runs'; }, 2000);
-  }
-
-  this.value = '';
-});
-
 // ── Card Elo ──────────────────────────────────────────────────────────
 // Its own dataset: every A10 run on disk, not the curated set the rest of the
 // page draws on, and deliberately not scoped by the patch filter above.
@@ -1017,8 +1048,8 @@ const ELO_ABOVE = '#2a78d6', ELO_BELOW = '#e34948';
 let eloTab = 'OVERALL', eloMin = 5, eloQuery = '';
 
 function eloSlice() {
-  if (eloTab === 'OVERALL') return CARD_ELO.overall;
-  return CARD_ELO.by_character[eloTab] || { rows: [], skip: CARD_ELO.base, pairs: 0 };
+  if (eloTab === 'OVERALL') return eloData.overall;
+  return eloData.by_character[eloTab] || { rows: [], skip: eloData.base, pairs: 0 };
 }
 
 function prettyCard(id) {
@@ -1026,11 +1057,11 @@ function prettyCard(id) {
 }
 
 function buildEloTabs() {
-  const order = ['OVERALL'].concat(CHARS.filter(c => CARD_ELO.by_character[c]));
+  const order = ['OVERALL'].concat(CHARS.filter(c => eloData.by_character[c]));
   document.getElementById('elo-tabs').innerHTML = order.map(t => {
     const colour = t === 'OVERALL' ? '#6366f1' : CHAR_COLOR[t];
     const label = t === 'OVERALL' ? 'Overall' : (CHAR_LABEL[t] || t);
-    const n = t === 'OVERALL' ? CARD_ELO.overall.rows.length : CARD_ELO.by_character[t].rows.length;
+    const n = t === 'OVERALL' ? eloData.overall.rows.length : eloData.by_character[t].rows.length;
     return `<div class="card-tab${eloTab === t ? ' active' : ''}" data-tab="${t}"
               style="--tc:${colour}">${label} <span style="opacity:.6">${n}</span></div>`;
   }).join('');
@@ -1052,20 +1083,21 @@ function buildEloList() {
   slice.rows.forEach(r => { domain = Math.max(domain, Math.abs(r.elo - skip)); });
 
   const note = document.getElementById('elo-note');
-  note.innerHTML =
-    `The card I took beat the ones I left, and beat skipping; a card I left lost only to the card I took. ` +
+  note.innerHTML = V(
+    `The card I took beat the ones I left, and beat skipping; a card I left lost only to the card I took. `) +
     `<strong style="color:#1e293b">Skipping is rated too</strong>, and sits at ` +
     `<strong style="color:#1e293b">${skip}</strong> — that is the centre line. ` +
     `Shop inventories are excluded (the game logs the whole shelf as a "choice"). ` +
-    `Cards seen only once or twice are pulled toward ${CARD_ELO.base}. ` +
+    `Cards seen only once or twice are pulled toward ${eloData.base}. ` +
+    (viewer ? `Counts every run at this ascension, including abandoned ones — a pick made before quitting is still a pick. ` : '') +
     `Independent of the patch filter above.`;
 
   const axis = `<div class="elo-axis">
       <div></div><div>Card</div><div style="text-align:right">Elo</div>
       <div class="elo-axis-scale">
-        <span>← I passed</span>
+        <span>${V('← I passed')}</span>
         <span class="elo-axis-mid">skip ${skip}</span>
-        <span>I took →</span>
+        <span>${V('I took →')}</span>
       </div>
       <div style="text-align:right">Taken / offered</div>
     </div>`;
@@ -1090,33 +1122,533 @@ function buildEloList() {
     const r = rows.find(x => x.card === el.dataset.card);
     el.onmousemove = e => showTip(
       `<strong>${prettyCard(r.card)}</strong><br>Elo ${r.elo} · ${r.elo - skip >= 0 ? '+' : ''}${r.elo - skip} vs skipping` +
-      `<br>I took it ${r.taken} of the ${r.offered} times it was offered (${r.pick_rate}%)`, e.clientX, e.clientY);
+      `<br>Taken ${r.taken} of the ${r.offered} times it was offered (${r.pick_rate}%)`, e.clientX, e.clientY);
     el.onmouseleave = hideTip;
   });
 }
 
-function buildElo() {
-  if (typeof CARD_ELO === 'undefined') {
-    document.getElementById('elo-section').style.display = 'none';
-    return;
-  }
-  buildEloTabs();
-  buildEloList();
+// Wire the controls once; refreshElo() redraws for whichever dataset is showing.
+function initElo() {
   document.getElementById('elo-search').addEventListener('input', function () {
     eloQuery = this.value; buildEloList();
   });
   document.querySelectorAll('.elo-min').forEach(btn => {
-    btn.onclick = () => {
-      eloMin = +btn.dataset.min;
-      document.querySelectorAll('.elo-min').forEach(b => b.classList.toggle('active', b === btn));
-      buildEloList();
+    btn.onclick = () => { setEloMin(+btn.dataset.min); buildEloList(); };
+  });
+}
+
+function setEloMin(n) {
+  eloMin = n;
+  document.querySelectorAll('.elo-min').forEach(b => b.classList.toggle('active', +b.dataset.min === n));
+}
+
+function refreshElo() {
+  const section = document.getElementById('elo-section');
+  if (!eloData || !eloData.overall.rows.length) {
+    section.style.display = eloData ? '' : 'none';
+    if (eloData) {
+      document.getElementById('elo-note').textContent = 'No card rewards were found in these runs, so there is nothing to rate.';
+      document.getElementById('elo-tabs').innerHTML = '';
+      document.getElementById('elo-list').innerHTML = '';
+    }
+    return;
+  }
+  section.style.display = '';
+  buildEloTabs();
+  buildEloList();
+}
+
+// ══ Analyze somebody else's runs ═══════════════════════════════════════
+// Everything in this block runs in the visitor's own browser. Their .run files
+// are read with the File API and never leave the machine. The derivation below
+// is a straight port of tools/sts2_extract.py (rows for the charts) and
+// tools/sts2_elo.py (the card-Elo fit), so a visitor's numbers are computed the
+// same way as the owner's.
+const VIEW_KEY = 'sts2_viewer_v2';
+let viewer = null;    // null = the page owner's data; else { recs, asc, loadedAt, files }
+
+// Voice: the page is written in the owner's first person. When a visitor is
+// looking at their own runs, "my / I" becomes "your / you".
+function V(text) {
+  return viewer ? text.replace(/\bmy\b/g, 'your').replace(/\bMy\b/g, 'Your').replace(/\bI\b/g, 'you') : text;
+}
+
+const stripId = (v, prefix) => { const t = String(v); return t.startsWith(prefix) ? t.slice(prefix.length) : t; };
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// Python's round() is banker's rounding; the pick-rate column lands on exact
+// halves constantly (1 of 8 = 12.5), so JS's Math.round would drift from the owner's.
+function roundHalfEven(x) {
+  const f = Math.floor(x), d = x - f;
+  if (d > 0.5) return f + 1;
+  if (d < 0.5) return f;
+  return f % 2 === 0 ? f : f + 1;
+}
+
+// One run file -> one chart row (port of derive() in sts2_extract.py)
+function deriveRun(raw) {
+  const player = raw.players[0];
+  const points = (raw.map_point_history || []).flat();
+  const floor_hp = [], floor_max_hp = [], floor_gold = [], floor_types = [];
+  const card_choices = [], encounters = [];
+  points.forEach(mp => {
+    floor_types.push(mp.map_point_type ?? null);
+    const stats = (mp.player_stats && mp.player_stats.length ? mp.player_stats[0] : {});
+    floor_hp.push(stats.current_hp ?? null);
+    floor_max_hp.push(stats.max_hp ?? null);
+    floor_gold.push(stats.current_gold ?? null);
+    (stats.card_choices || []).forEach(choice => {
+      card_choices.push({ card: stripId((choice.card || {}).id || '', 'CARD.'), picked: !!choice.was_picked });
+    });
+    (mp.rooms || []).forEach(room => {
+      if (!['monster', 'elite', 'boss'].includes(room.room_type)) return;
+      encounters.push({
+        name: stripId(room.model_id || '', 'ENCOUNTER.'),
+        type: room.room_type,
+        damage: stats.damage_taken ?? null,
+      });
+    });
+  });
+  return {
+    character:    stripId(player.character || '', 'CHARACTER.'),
+    win:          !!raw.win,
+    ascension:    raw.ascension,
+    floors:       points.length,
+    build_id:     raw.build_id ?? null,
+    killed_by:    stripId(raw.killed_by_encounter || 'NONE.NONE', 'ENCOUNTER.'),
+    acts_reached: (raw.acts || []).length,
+    run_time_sec: raw.run_time ?? null,
+    start_time:   raw.start_time ?? null,
+    deck_size:    (player.deck || []).length,
+    relic_count:  (player.relics || []).length,
+    floor_hp, floor_max_hp, floor_types, floor_gold, card_choices, encounters,
+  };
+}
+
+// Every real card-selection decision in a run (port of load_choices()).
+// Shops are dropped: the game logs a shop's whole inventory as card_choices.
+function extractScreens(raw) {
+  const screens = [];
+  let shopDropped = 0;
+  (raw.map_point_history || []).forEach(act => (act || []).forEach(point => {
+    if ((point.rooms || []).some(r => r.room_type === 'shop')) { shopDropped++; return; }
+    (point.player_stats || []).forEach(ps => {
+      const choices = ps.card_choices || [];
+      if (!choices.length) return;
+      // the same card can appear twice at different upgrade levels; a pick wins
+      const seen = new Map();
+      choices.forEach(ch => {
+        const id = stripId((ch.card || {}).id || '', 'CARD.');
+        if (id) seen.set(id, (seen.get(id) || false) || !!ch.was_picked);
+      });
+      if (!seen.size) return;
+      const picked = [], passed = [];
+      [...seen.keys()].sort().forEach(id => (seen.get(id) ? picked : passed).push(id));
+      screens.push({ picked, passed });
+    });
+  }));
+  return { screens, shopDropped };
+}
+
+// One parsed .run file -> a record, or null if it isn't a run file at all.
+// `run` is only filled for runs that count on the page (finished, standard mode).
+function readRunRecord(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.players) || !raw.players.length) return null;
+  if (typeof raw.ascension !== 'number') return null;
+  const counted = !raw.was_abandoned && raw.game_mode === 'standard';
+  const { screens, shopDropped } = extractScreens(raw);
+  return {
+    ascension: raw.ascension,
+    abandoned: !!raw.was_abandoned,
+    mode: raw.game_mode || 'unknown',
+    character: stripId(raw.players[0].character || '', 'CHARACTER.'),
+    start_time: raw.start_time ?? null,
+    run: counted ? deriveRun(raw) : null,
+    screens, shopDropped,
+  };
+}
+
+// A run needs two floors to draw a line on the HP chart.
+const isCounted = r => !!r.run && r.run.floors >= 2;
+
+// ── Card Elo, solved exactly (port of rate() in sts2_elo.py) ──────────
+const ELO_BASE = 1500, ELO_PRIOR_GAMES = 6, ELO_MAX_ITERS = 10000, ELO_TOL = 1e-11, SKIP_ID = '(skip)';
+
+// Bradley-Terry by minorization-maximization, reported on the Elo scale.
+// Head-to-heads are folded into counts per pair, which is the same sum.
+function eloRate(screens) {
+  const index = new Map(), names = [];
+  const idOf = n => { let i = index.get(n); if (i === undefined) { i = names.length; index.set(n, i); names.push(n); } return i; };
+  const wins = [], nbr = [];                 // nbr[i]: Map(otherIndex -> games)
+  let pairs = 0;
+  const add = (w, l) => {
+    const a = idOf(w), b = idOf(l);
+    pairs++;
+    wins[a] = (wins[a] || 0) + 1;
+    (nbr[a] = nbr[a] || new Map()).set(b, (nbr[a].get(b) || 0) + 1);
+    (nbr[b] = nbr[b] || new Map()).set(a, (nbr[b].get(a) || 0) + 1);
+  };
+  screens.forEach(s => {
+    if (s.picked.length) s.picked.forEach(w => { s.passed.forEach(l => add(w, l)); add(w, SKIP_ID); });
+    else s.passed.forEach(l => add(SKIP_ID, l));
+  });
+
+  const n = names.length;
+  const others = nbr.map(m => Int32Array.from(m.keys()));
+  const counts = nbr.map(m => Float64Array.from(m.values()));
+  const half = ELO_PRIOR_GAMES / 2;
+  let strength = new Float64Array(n).fill(1);
+  let next = new Float64Array(n);
+  let iterations = 0;
+  for (iterations = 1; iterations <= ELO_MAX_ITERS; iterations++) {
+    let moved = 0;
+    for (let i = 0; i < n; i++) {
+      const own = strength[i];
+      let denom = half * 2 / (own + 1);
+      const o = others[i], c = counts[i];
+      for (let k = 0; k < o.length; k++) denom += c[k] / (own + strength[o[k]]);
+      const nw = denom > 0 ? ((wins[i] || 0) + half) / denom : own;
+      next[i] = nw;
+      const ch = Math.abs(Math.log(nw) - Math.log(own));
+      if (ch > moved) moved = ch;
+    }
+    const t = strength; strength = next; next = t;
+    if (moved < ELO_TOL) break;
+  }
+  const rating = new Map(names.map((nm, i) => [nm, ELO_BASE + 400 * Math.log10(strength[i])]));
+  return { rating, pairs, iterations };
+}
+
+function eloTable(screens) {
+  const { rating, pairs } = eloRate(screens);
+  const offered = new Map(), taken = new Map();
+  const bump = (m, k) => m.set(k, (m.get(k) || 0) + 1);
+  screens.forEach(s => {
+    s.picked.forEach(c => { bump(offered, c); bump(taken, c); });
+    s.passed.forEach(c => bump(offered, c));
+  });
+  const rows = [...offered].map(([card, n]) => ({
+    card,
+    elo: roundHalfEven(rating.has(card) ? rating.get(card) : ELO_BASE),
+    offered: n,
+    taken: taken.get(card) || 0,
+    pick_rate: roundHalfEven(100 * (taken.get(card) || 0) / n),
+  }));
+  rows.sort((a, b) => (b.elo - a.elo) || (a.card < b.card ? -1 : a.card > b.card ? 1 : 0));
+  return { rows, skip: roundHalfEven(rating.has(SKIP_ID) ? rating.get(SKIP_ID) : ELO_BASE), pairs };
+}
+
+// recs: the run records to rate (one ascension, abandoned runs included)
+function buildEloData(recs) {
+  const all = recs.flatMap(r => r.screens.map(s => ({ character: r.character, picked: s.picked, passed: s.passed })));
+  const stat = { runs: recs.length, screens: all.length, offers: 0, skipped_screens: 0,
+                 shop_screens_dropped: recs.reduce((a, r) => a + r.shopDropped, 0) };
+  all.forEach(s => { stat.offers += s.picked.length + s.passed.length; if (!s.picked.length) stat.skipped_screens++; });
+  const overall = eloTable(all);
+  const by_character = {};
+  [...new Set(all.map(s => s.character))].sort().forEach(c => {
+    by_character[c] = eloTable(all.filter(s => s.character === c));
+  });
+  return Object.assign(stat, { base: ELO_BASE, overall, by_character });
+}
+
+// ── Reading files ─────────────────────────────────────────────────────
+const nextFrame = () => new Promise(res => setTimeout(res, 0));
+
+async function readOne(file) {
+  try {
+    let text = await file.text();
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    return readRunRecord(JSON.parse(text));
+  } catch (_) { return null; }
+}
+
+async function readRunFiles(files, onProgress) {
+  const byKey = new Map();
+  let unreadable = 0;
+  for (let i = 0; i < files.length; i += 20) {
+    const batch = files.slice(i, i + 20);
+    const recs = await Promise.all(batch.map(readOne));
+    recs.forEach((rec, j) => {
+      if (!rec) { unreadable++; return; }
+      // profiles can overlap; a run is identified by when it started
+      byKey.set(rec.start_time ?? ('f:' + batch[j].name + batch[j].size), rec);
+    });
+    if (onProgress) onProgress(Math.min(i + 20, files.length), files.length);
+    await nextFrame();
+  }
+  return { recs: [...byKey.values()], unreadable };
+}
+
+// Per-ascension tally: how many runs exist and how many of them count.
+function tallyAscensions(recs) {
+  const m = new Map();
+  recs.forEach(r => {
+    const o = m.get(r.ascension) || { total: 0, counted: 0 };
+    o.total++; if (isCounted(r)) o.counted++;
+    m.set(r.ascension, o);
+  });
+  return m;
+}
+
+// A10 if there is any (it's what this page is about); otherwise whichever
+// ascension has the most finished runs, highest first on a tie.
+function defaultAscension(tally) {
+  const have = [...tally].filter(([, o]) => o.counted > 0);
+  if (!have.length) return null;
+  if (tally.get(10) && tally.get(10).counted) return 10;
+  have.sort((a, b) => (b[1].counted - a[1].counted) || (b[0] - a[0]));
+  return have[0][0];
+}
+
+// ── Putting the visitor's data on the page ────────────────────────────
+function viewerChosen() { return viewer.recs.filter(r => r.ascension === viewer.asc); }
+
+function showViewerData() {
+  const chosen = viewerChosen();
+  const mine = chosen.filter(isCounted).map(r => r.run).sort((a, b) => a.start_time - b.start_time);
+  runs.length = 0;
+  mine.forEach(r => runs.push(r));
+  eloData = buildEloData(chosen);
+
+  activePatch = null;
+  const perChar = {};
+  runs.forEach(r => { perChar[r.character] = (perChar[r.character] || 0) + 1; });
+  activeCardChar = chars.slice().sort((a, b) => (perChar[b] || 0) - (perChar[a] || 0))[0];
+  eloTab = 'OVERALL';
+  // a short history would show an empty list at the usual "seen 5×" cut-off
+  setEloMin(eloData.overall.rows.filter(r => r.offered >= 5).length >= 12 ? 5 : 1);
+
+  renderAll();
+  refreshElo();
+  applyVoice();
+}
+
+function showOwnerData() {
+  viewer = null;
+  try { localStorage.removeItem(VIEW_KEY); } catch (_) {}
+  runs.length = 0;
+  OWN_RUNS.forEach(r => runs.push(r));
+  eloData = OWN_ELO;
+  activePatch = null;
+  activeCardChar = 'IRONCLAD';
+  eloTab = 'OVERALL';
+  setEloMin(5);
+  renderAll();
+  refreshElo();
+  applyVoice();
+}
+
+const OWN_TITLE = document.title;
+function applyVoice() {
+  document.querySelectorAll('[data-voice]').forEach(el => {
+    if (el.dataset.orig === undefined) el.dataset.orig = el.innerHTML;
+    el.innerHTML = V(el.dataset.orig);
+  });
+  const h1 = document.getElementById('page-title'), sub = document.getElementById('page-sub');
+  if (h1.dataset.orig === undefined) { h1.dataset.orig = h1.textContent; sub.dataset.orig = sub.textContent; }
+  const banner = document.getElementById('viewer-banner');
+  if (!viewer) {
+    h1.textContent = h1.dataset.orig;
+    sub.textContent = sub.dataset.orig;
+    document.title = OWN_TITLE;
+    banner.hidden = true;
+    updateLastLoaded(null);
+    return;
+  }
+  const a = viewer.asc;
+  h1.textContent = `Slay the Spire 2 — Your Ascension ${a} Runs`;
+  sub.textContent = `Built from your own save files. Ascension ${a} only, finished standard runs only (abandoned and daily/custom runs don't count). Click a character card to filter by character.`;
+  document.title = `Slay the Spire 2 — Your A${a} Runs`;
+  const d = new Date(viewer.loadedAt);
+  document.getElementById('viewer-banner-text').innerHTML =
+    `<strong>You're looking at your own runs</strong> — ${runs.length} finished Ascension ${a} run${runs.length === 1 ? '' : 's'}, ` +
+    `read from your files on ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}. ` +
+    `Nothing was uploaded; this view is remembered only in this browser.`;
+  banner.hidden = false;
+  updateLastLoaded(viewer.loadedAt, runs.length);
+}
+
+function saveViewer() {
+  try {
+    localStorage.setItem(VIEW_KEY, JSON.stringify({ v: 1, loadedAt: viewer.loadedAt, asc: viewer.asc, files: viewer.files, recs: viewer.recs }));
+  } catch (_) { /* private mode or quota: it just won't be remembered */ }
+}
+
+function restoreViewer() {
+  try {
+    ['sts2_runs', 'sts2_loaded_at'].forEach(k => localStorage.removeItem(k));  // the old Load Runs cache
+    const saved = JSON.parse(localStorage.getItem(VIEW_KEY));
+    if (!saved || saved.v !== 1 || !Array.isArray(saved.recs) || !saved.recs.length) return;
+    const tally = tallyAscensions(saved.recs);
+    const asc = tally.get(saved.asc) && tally.get(saved.asc).counted ? saved.asc : defaultAscension(tally);
+    if (asc === null) return;
+    viewer = { recs: saved.recs, asc, loadedAt: saved.loadedAt, files: saved.files || saved.recs.length };
+    showViewerData();
+  } catch (_) { viewer = null; }
+}
+
+// ── The dialog ────────────────────────────────────────────────────────
+const dlg = document.getElementById('own-dlg');
+const dlgStatus = document.getElementById('dlg-status');
+const dlgResult = document.getElementById('dlg-result');
+
+function say(kind, html) { dlgStatus.innerHTML = html ? `<div class="dlg-msg ${kind}">${html}</div>` : ''; }
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+
+function renderDlgResult() {
+  if (!viewer) { dlgResult.innerHTML = ''; return; }
+  const tally = tallyAscensions(viewer.recs);
+  const chosen = viewerChosen();
+  const kept = chosen.filter(isCounted).length;
+  const left = {
+    abandoned: chosen.filter(r => r.abandoned).length,
+    mode: chosen.filter(r => !r.abandoned && r.mode !== 'standard').length,
+  };
+  const chips = [...tally].sort((a, b) => a[0] - b[0]).map(([a, o]) =>
+    `<button type="button" class="asc-chip${a === viewer.asc ? ' active' : ''}" data-asc="${a}"${o.counted ? '' : ' disabled'}>
+       Ascension ${a}<small>${o.counted ? plural(o.counted, 'run') : 'none finished'}</small></button>`).join('');
+  const notes = [];
+  if (left.abandoned) notes.push(plural(left.abandoned, 'abandoned run'));
+  if (left.mode) notes.push(plural(left.mode, 'daily/custom run'));
+  if (viewer.unreadable) notes.push(plural(viewer.unreadable, 'file') + ' that could not be read');
+  say('ok', `<strong>Done!</strong> Read ${plural(viewer.files, 'run file')} and found <strong>${plural(kept, 'finished Ascension ' + viewer.asc + ' run')}</strong>.` +
+    (notes.length ? `<br>Left out of the win-rate charts: ${notes.join(', ')}.` : '') +
+    (tally.size > 1 ? `<div style="margin-top:8px">Want a different difficulty? Pick one:</div><div class="asc-row">${chips}</div>` : ''));
+  dlgResult.innerHTML = `<div style="margin-top:14px;text-align:right"><button type="button" class="dlg-btn big" id="dlg-done" style="width:auto">Show me my stats</button></div>`;
+  dlgStatus.querySelectorAll('.asc-chip').forEach(btn => {
+    btn.onclick = async () => {
+      viewer.asc = +btn.dataset.asc;
+      say('busy', 'Crunching the numbers…'); await nextFrame();
+      showViewerData(); saveViewer(); renderDlgResult();
     };
+  });
+  document.getElementById('dlg-done').onclick = () => { dlg.close(); window.scrollTo(0, 0); };
+}
+
+// all: every file the visitor handed over; pickedName: the folder they chose, for error messages
+async function handlePicked(all, pickedName) {
+  if (!all.length) { say('err', `Nothing was selected. Click <strong>Choose the SlayTheSpire2 folder</strong> and pick the folder you opened in step 1.`); return; }
+  const files = all.filter(f => /\.run$/i.test(f.name));
+  if (!files.length) {
+    const where = pickedName ? ` The folder you chose (<strong>${esc(pickedName)}</strong>) has ${plural(all.length, 'file')} in it, but none are run files.` : '';
+    say('err', `<strong>No run files in there.</strong>${where}<br>Pick the folder named <strong>SlayTheSpire2</strong> — the one that opens when you paste the path from step 1. ` +
+      `(Run files end in <b>.run</b> and live a few folders down, in <b>saves ▸ history</b>.)`);
+    return;
+  }
+  dlgResult.innerHTML = '';
+  say('busy', `Reading ${plural(files.length, 'run file')}…`);
+  await nextFrame();
+  const { recs, unreadable } = await readRunFiles(files, (done, total) =>
+    say('busy', `Reading run files… ${done} of ${total}`));
+  if (!recs.length) {
+    say('err', `<strong>Couldn't read those files.</strong> They end in .run but don't look like Slay the Spire 2 run history. ` +
+      `Check that this is the game's own SlayTheSpire2 folder, and that the game is up to date.`);
+    return;
+  }
+  const asc = defaultAscension(tallyAscensions(recs));
+  if (asc === null) {
+    say('err', `<strong>Found ${plural(recs.length, 'run')}, but none of them count.</strong> They were all abandoned, or were daily/custom games. ` +
+      `Finish a standard run and try again.`);
+    return;
+  }
+  say('busy', 'Crunching card ratings…');
+  await nextFrame();
+  viewer = { recs, asc, loadedAt: new Date().toISOString(), files: files.length, unreadable };
+  showViewerData();
+  saveViewer();
+  renderDlgResult();
+}
+
+// dropped folders arrive as directory entries and must be walked by hand
+async function filesFromDrop(dt) {
+  const entries = [...(dt.items || [])].map(i => (i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)).filter(Boolean);
+  if (!entries.length) return { files: [...dt.files], name: '' };
+  const out = [];
+  const walk = async entry => {
+    if (entry.isFile) {
+      out.push(await new Promise((res, rej) => entry.file(res, rej)));
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      let batch;
+      do {
+        batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+        for (const e of batch) await walk(e);
+      } while (batch.length);
+    }
+  };
+  for (const e of entries) await walk(e);
+  return { files: out, name: entries[0].isDirectory ? entries[0].name : '' };
+}
+
+function openDialog() {
+  say('', '');
+  renderDlgResult();      // if a visitor's runs are already showing, this recaps them
+  dlg.showModal();
+}
+
+function initViewerUi() {
+  const folderInput = document.getElementById('folder-input');
+  const filesInput = document.getElementById('files-input');
+  const dropzone = document.getElementById('dropzone');
+
+  document.getElementById('load-btn').onclick = openDialog;
+  document.getElementById('banner-change').onclick = openDialog;
+  document.getElementById('banner-reset').onclick = showOwnerData;
+  document.getElementById('dlg-close').onclick = () => dlg.close();
+  dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+
+  // phones and some browsers can't pick folders (and the game isn't on a phone anyway)
+  if (!('webkitdirectory' in folderInput)) {
+    document.getElementById('pick-folder').style.display = 'none';
+    dropzone.style.display = 'none';
+  }
+  document.getElementById('pick-folder').onclick = () => folderInput.click();
+  document.getElementById('pick-files').onclick = () => filesInput.click();
+
+  const fromInput = input => async () => {
+    const all = Array.from(input.files);
+    const first = all[0] && all[0].webkitRelativePath;
+    const name = first ? first.split('/')[0] : '';
+    input.value = '';                       // so picking the same folder again still fires
+    await handlePicked(all, name);
+  };
+  folderInput.onchange = fromInput(folderInput);
+  filesInput.onchange = fromInput(filesInput);
+
+  document.getElementById('copy-path').onclick = async function () {
+    const code = document.getElementById('path-code');
+    try { await navigator.clipboard.writeText(code.textContent); }
+    catch (_) {
+      const r = document.createRange(); r.selectNodeContents(code);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      try { document.execCommand('copy'); } catch (__) {}
+    }
+    this.textContent = 'Copied ✓';
+    setTimeout(() => { this.textContent = 'Copy'; }, 1800);
+  };
+
+  // dropping a file anywhere else in the dialog would make the browser navigate away
+  dlg.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
+  dlg.addEventListener('dragleave', () => dropzone.classList.remove('over'));
+  dlg.addEventListener('drop', async e => {
+    e.preventDefault();
+    dropzone.classList.remove('over');
+    say('busy', 'Looking through what you dropped…');
+    try {
+      const { files, name } = await filesFromDrop(e.dataTransfer);
+      await handlePicked(files, name);
+    } catch (_) {
+      say('err', `That drop didn't work. Use the <strong>Choose the SlayTheSpire2 folder</strong> button instead.`);
+    }
   });
 }
 
 // ── Init ──────────────────────────────────────────────────────────────
-renderAll();
-buildElo();
+initElo();
+initViewerUi();
+restoreViewer();          // brings back a visitor's last session, if any
+if (!viewer) { renderAll(); refreshElo(); }
 
 window.addEventListener('resize', () => {
   drawHpChart();
