@@ -769,6 +769,7 @@ function showTip(html, x, y) {
   tip.style.left = (x + 14) + 'px';
   tip.style.top  = (y - 10) + 'px';
 }
+const showTotals = () => !!viewer;       // totals are only shown for a visitor's own runs
 function hideTip() { tip.style.opacity = 0; cardTip.style.opacity = 0; }
 
 // ── Character cards ────────────────────────────────────────────────────
@@ -803,8 +804,8 @@ function buildCharCards() {
         <div class="seg" style="width:${wL}%;background:#ef4444"></div>
       </div>
       <div class="char-stats">
-        <div class="stat-row"><span class="label">Runs</span><span class="val">${total}</span></div>
-        <div class="stat-row"><span class="label">W / L</span><span class="val">${wins} / ${losses}</span></div>
+        ${showTotals() ? `<div class="stat-row"><span class="label">Runs</span><span class="val">${total}</span></div>
+        <div class="stat-row"><span class="label">W / L</span><span class="val">${wins} / ${losses}</span></div>` : ''}
         <div class="stat-row"><span class="label">Avg floors</span><span class="val">${avgFloors}</span></div>
         ${topKiller ? `<div class="stat-row"><span class="label">Top killer</span><span class="val" style="font-size:10px;max-width:110px;text-align:right;word-break:break-word">${fmtEncounter(topKiller)}</span></div>` : ''}
       </div>
@@ -977,7 +978,7 @@ function buildKillsList() {
         <div class="kill-bar-fill" style="width:${(n/maxCount*100).toFixed(1)}%;background:${charColor}88"></div>
         <div class="kill-bar-label">${fmtEncounter(k)}</div>
       </div>
-      <div class="kill-count">${n}</div>
+      <div class="kill-count">${showTotals() ? n : ''}</div>
     </div>
   `).join('');
 
@@ -1046,7 +1047,7 @@ function drawFloorsChart() {
   for (let v = 0; v <= maxTotal; v += Math.max(1, Math.floor(maxTotal/4))) {
     const y = yScale(v);
     gridHtml += `<line x1="${PAD.left}" y1="${y.toFixed(1)}" x2="${W - PAD.right}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>`;
-    gridHtml += `<text x="${(PAD.left - 4).toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#374151">${v}</text>`;
+    if (showTotals()) gridHtml += `<text x="${(PAD.left - 4).toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="#374151">${v}</text>`;
   }
 
   svg.setAttribute('width', W);
@@ -1056,7 +1057,11 @@ function drawFloorsChart() {
 
   svg.querySelectorAll('rect').forEach(el => {
     el.addEventListener('mousemove', e => {
-      showTip(`${el.dataset.label}<br><span style="color:#4ade80">${el.dataset.w} wins</span> · <span style="color:#f87171">${el.dataset.l} losses</span>`, e.clientX, e.clientY);
+      const w = +el.dataset.w, l = +el.dataset.l, share = n => Math.round(n / (w + l) * 100) + '%';
+      showTip(showTotals()
+        ? `${el.dataset.label}<br><span style="color:#4ade80">${w} wins</span> · <span style="color:#f87171">${l} losses</span>`
+        : `${el.dataset.label}<br>${w ? `<span style="color:#4ade80">${share(w)} won</span>` : ''}${w && l ? ' · ' : ''}${l ? `<span style="color:#f87171">${share(l)} lost</span>` : ''}`,
+        e.clientX, e.clientY);
     });
     el.addEventListener('mouseleave', hideTip);
   });
@@ -1276,11 +1281,11 @@ function buildPatchFilters() {
   const fmtDate = ts => new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const sorted = Object.entries(patches).sort((a, b) => a[1].min - b[1].min);
   row.innerHTML = [
-    `<button class="patch-btn${activePatch === null ? ' active' : ''}" data-patch="">All<span class="patch-date">${runs.length} runs</span></button>`,
+    `<button class="patch-btn${activePatch === null ? ' active' : ''}" data-patch="">All${showTotals() ? `<span class="patch-date">${runs.length} runs</span>` : ''}</button>`,
     ...sorted.map(([v, d]) => {
       const lo = fmtDate(d.min), hi = fmtDate(d.max);
       const range = lo === hi ? lo : `${lo}–${hi}`;
-      return `<button class="patch-btn${activePatch === v ? ' active' : ''}" data-patch="${v}">${v}<span class="patch-date">${range} · ${d.count} runs</span></button>`;
+      return `<button class="patch-btn${activePatch === v ? ' active' : ''}" data-patch="${v}">${v}<span class="patch-date">${range}${showTotals() ? ` · ${d.count} runs` : ''}</span></button>`;
     })
   ].join('');
   row.querySelectorAll('.patch-btn').forEach(btn => {
@@ -1790,14 +1795,14 @@ function applyFilterUI() {
   document.querySelectorAll('.fb-tick').forEach(t => {
     const i = +t.dataset.level;
     t.classList.toggle('in', i >= lo && i <= hi);
-    t.querySelector('.tc').textContent = counts[i];
+    t.querySelector('.tc').textContent = showTotals() ? counts[i] : '';
   });
 
   const total = source().recs.filter(isCounted).length;
   const n = source().recs.filter(r => isCounted(r) && matchesFilter(r.ascension, f)).length;
   const kind = f.abandoned ? 'run' : 'finished run';
   $id('fb-summary').innerHTML = n
-    ? `Showing <strong>${d.short}</strong> · ${plural(n, kind)}${isAllFilter(f) ? '' : ` of ${total}`}${f.abandoned ? ' (abandoned included)' : ''}`
+    ? `Showing <strong>${d.short}</strong>${showTotals() ? ` · ${plural(n, kind)}${isAllFilter(f) ? '' : ` of ${total}`}` : ''}${f.abandoned ? ' (abandoned included)' : ''}`
     : `<strong>${d.short}</strong> · no ${kind}s at this level — slide to another`;
   $id('fb-hint').hidden = filterTouched;
 }
