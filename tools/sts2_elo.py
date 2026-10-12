@@ -33,9 +33,23 @@ Cards seen only once or twice are pulled toward 1500 by a handful of virtual
 drawn games, so a card that went 1-for-1 cannot outrank one that went 40-for-60,
 and an all-or-nothing record stays finite.
 
+What is stored
+--------------
+The page has an ascension slider, so a single finished ranking is no longer
+enough: the browser re-rates the cards for whatever slice is selected. This
+script therefore writes the *raw material* - one record per run on disk, every
+ascension, abandoned and non-standard runs included, each with its card-reward
+screens - to ``sts2_elo_runs.json`` / ``sts2_elo.js`` (``const ELO_RUNS``). The
+fit itself lives in JavaScript on the page and is a port of ``rate()`` below;
+``--report`` here is the reference it was checked against.
+
+Like the run dataset, this merges by ``start_time`` instead of rebuilding,
+because the game prunes old history files.
+
 Usage:
-    python tools/sts2_elo.py            # write sts2_elo.js
-    python tools/sts2_elo.py --report   # print the tables instead
+    python tools/sts2_elo.py            # merge new runs into sts2_elo_runs.json / sts2_elo.js
+    python tools/sts2_elo.py --report   # print the tables (all runs) instead
+    python tools/sts2_elo.py --report --min-asc 0 --max-asc 6
 """
 
 import argparse
@@ -48,10 +62,10 @@ import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_JS = os.path.join(ROOT, "sts2_elo.js")
+OUT_JSON = os.path.join(ROOT, "sts2_elo_runs.json")
 HISTORY = os.path.expandvars(
     r"%APPDATA%\SlayTheSpire2\steam\76561198018706944\profile1\saves\history")
 
-ASCENSION = 10
 SHOP_ROOMS = {"shop"}
 SKIP = "(skip)"
 
@@ -66,48 +80,93 @@ def _strip(value, prefix):
     return text[len(prefix):] if text.startswith(prefix) else text
 
 
-def load_choices():
-    """Return (screens, stats); one screen per real card-selection decision."""
+def run_record(raw):
+    """One run file -> the record the page rates from."""
     screens = []
-    stats = collections.Counter()
+    shop_dropped = 0
+    for act in raw.get("map_point_history", []):
+        for point in act:
+            rooms = set(r.get("room_type") for r in point.get("rooms", []))
+            if rooms & SHOP_ROOMS:
+                shop_dropped += 1
+                continue
+            for player_stats in point.get("player_stats", []):
+                choices = player_stats.get("card_choices") or []
+                if not choices:
+                    continue
+                # the same card can appear twice on one screen at different
+                # upgrade levels; collapse to the base id, a pick wins
+                seen = {}
+                for choice in choices:
+                    cid = _strip((choice.get("card") or {}).get("id", ""), "CARD.")
+                    if not cid:
+                        continue
+                    seen[cid] = seen.get(cid, False) or bool(choice.get("was_picked"))
+                if not seen:
+                    continue
+                screens.append({
+                    "picked": sorted(c for c, was in seen.items() if was),
+                    "passed": sorted(c for c, was in seen.items() if not was),
+                })
+    return {
+        "start_time": raw.get("start_time"),
+        "ascension": raw.get("ascension"),
+        "abandoned": bool(raw.get("was_abandoned")),
+        "mode": raw.get("game_mode") or "unknown",
+        "character": _strip(raw["players"][0].get("character", ""), "CHARACTER."),
+        "shop_dropped": shop_dropped,
+        "screens": screens,
+    }
+
+
+def read_history():
+    out = {}
     for path in glob.glob(os.path.join(HISTORY, "*.run")):
         try:
             raw = json.load(io.open(path, encoding="utf-8-sig"))
-        except (ValueError, IOError):
-            stats["unreadable"] += 1
+            rec = run_record(raw)
+        except (ValueError, IOError, KeyError, IndexError):
             continue
-        if raw.get("ascension") != ASCENSION:
+        if rec["start_time"] is not None:
+            out[rec["start_time"]] = rec
+    return out
+
+
+def local_skips():
+    """Start times listed in the optional, untracked tools/.local_exclude.json."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".local_exclude.json")
+    try:
+        return set(json.load(io.open(path, encoding="utf-8-sig"))["start_times"])
+    except (IOError, ValueError, KeyError):
+        return set()
+
+
+def load_existing():
+    if not os.path.exists(OUT_JSON):
+        return {}
+    return dict((r["start_time"], r)
+                for r in json.load(io.open(OUT_JSON, encoding="utf-8-sig")))
+
+
+def to_screens(records, min_asc=None, max_asc=None):
+    """Flatten run records into the screens the fit consumes, plus summary stats."""
+    screens = []
+    stats = collections.Counter()
+    for rec in records:
+        asc = rec["ascension"]
+        if min_asc is not None and (asc is None or asc < min_asc):
+            continue
+        if max_asc is not None and (asc is None or asc > max_asc):
             continue
         stats["runs"] += 1
-        character = _strip(raw["players"][0].get("character", ""), "CHARACTER.")
-        for act in raw.get("map_point_history", []):
-            for point in act:
-                rooms = set(r.get("room_type") for r in point.get("rooms", []))
-                if rooms & SHOP_ROOMS:
-                    stats["shop_screens_dropped"] += 1
-                    continue
-                for player_stats in point.get("player_stats", []):
-                    choices = player_stats.get("card_choices") or []
-                    if not choices:
-                        continue
-                    # the same card can appear twice on one screen at different
-                    # upgrade levels; collapse to the base id, a pick wins
-                    seen = {}
-                    for choice in choices:
-                        cid = _strip((choice.get("card") or {}).get("id", ""), "CARD.")
-                        if not cid:
-                            continue
-                        seen[cid] = seen.get(cid, False) or bool(choice.get("was_picked"))
-                    if not seen:
-                        continue
-                    picked = sorted(c for c, was in seen.items() if was)
-                    passed = sorted(c for c, was in seen.items() if not was)
-                    screens.append({"character": character,
-                                    "picked": picked, "passed": passed})
-                    stats["screens"] += 1
-                    stats["offers"] += len(seen)
-                    if not picked:
-                        stats["skipped_screens"] += 1
+        stats["shop_screens_dropped"] += rec["shop_dropped"]
+        for sc in rec["screens"]:
+            screens.append({"character": rec["character"],
+                            "picked": sc["picked"], "passed": sc["passed"]})
+            stats["screens"] += 1
+            stats["offers"] += len(sc["picked"]) + len(sc["passed"])
+            if not sc["picked"]:
+                stats["skipped_screens"] += 1
     return screens, stats
 
 
@@ -229,53 +288,58 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", action="store_true", help="print instead of writing")
     parser.add_argument("--top", type=int, default=25)
+    parser.add_argument("--min-asc", type=int, help="report only: lowest ascension to include")
+    parser.add_argument("--max-asc", type=int, help="report only: highest ascension to include")
     args = parser.parse_args()
 
-    screens, stats = load_choices()
-    print("A10 runs %d | screens %d | offers %d | skipped %d | shop screens dropped %d"
+    existing = load_existing()
+    merged = dict(existing)
+    disk = read_history()
+    skips = local_skips()
+    added = [t for t in disk if t not in merged and t not in skips]
+    for t in added:
+        merged[t] = disk[t]
+    records = [merged[t] for t in sorted(merged)]
+    print("run records: %d (%d new from disk, %d already stored)"
+          % (len(records), len(added), len(existing)))
+
+    if not args.report:
+        if not added and os.path.exists(OUT_JS):
+            print("nothing new to add")
+            return 0
+        with io.open(OUT_JSON, "w", encoding="utf-8", newline="\n") as handle:
+            json.dump(records, handle, separators=(",", ":"))
+        with io.open(OUT_JS, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write("const ELO_RUNS = ")
+            json.dump(records, handle, separators=(",", ":"))
+            handle.write(";\n")
+        print("wrote sts2_elo_runs.json and sts2_elo.js")
+        return 0
+
+    screens, stats = to_screens(records, args.min_asc, args.max_asc)
+    print("runs %d | screens %d | offers %d | skipped %d | shop screens dropped %d"
           % (stats["runs"], stats["screens"], stats["offers"],
              stats["skipped_screens"], stats["shop_screens_dropped"]))
 
     overall, skip_elo, pair_count, epochs = table(screens)
     print("overall: %d cards from %d head-to-heads in %d iterations, SKIP sits at %d"
           % (len(overall), pair_count, epochs, skip_elo))
-
-    by_character = {}
     for character in sorted(set(s["character"] for s in screens)):
         subset = [s for s in screens if s["character"] == character]
         rows, skip_c, pairs_c, _ = table(subset)
-        by_character[character] = {"rows": rows, "skip": skip_c, "pairs": pairs_c}
         print("  %-12s %4d cards, %5d head-to-heads, SKIP %d"
               % (character, len(rows), pairs_c, skip_c))
 
-    if args.report:
-        print("\n=== overall top %d ===" % args.top)
-        for row in overall[:args.top]:
-            print("  %5d  %-30s %3d/%-3d  %3d%%"
-                  % (row["elo"], pretty(row["card"]), row["taken"],
-                     row["offered"], row["pick_rate"]))
-        print("\n=== overall bottom 12 ===")
-        for row in overall[-12:]:
-            print("  %5d  %-30s %3d/%-3d  %3d%%"
-                  % (row["elo"], pretty(row["card"]), row["taken"],
-                     row["offered"], row["pick_rate"]))
-        return 0
-
-    payload = {
-        "runs": stats["runs"],
-        "screens": stats["screens"],
-        "offers": stats["offers"],
-        "skipped_screens": stats["skipped_screens"],
-        "shop_screens_dropped": stats["shop_screens_dropped"],
-        "base": int(BASE),
-        "overall": {"rows": overall, "skip": skip_elo, "pairs": pair_count},
-        "by_character": by_character,
-    }
-    with io.open(OUT_JS, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write("const CARD_ELO = ")
-        json.dump(payload, handle, indent=2)
-        handle.write(";\n")
-    print("wrote %s" % os.path.relpath(OUT_JS, ROOT))
+    print("\n=== overall top %d ===" % args.top)
+    for row in overall[:args.top]:
+        print("  %5d  %-30s %3d/%-3d  %3d%%"
+              % (row["elo"], pretty(row["card"]), row["taken"],
+                 row["offered"], row["pick_rate"]))
+    print("\n=== overall bottom 12 ===")
+    for row in overall[-12:]:
+        print("  %5d  %-30s %3d/%-3d  %3d%%"
+              % (row["elo"], pretty(row["card"]), row["taken"],
+                 row["offered"], row["pick_rate"]))
     return 0
 
 

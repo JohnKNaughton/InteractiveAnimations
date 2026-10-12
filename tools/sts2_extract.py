@@ -8,10 +8,17 @@ and prunes old ones, so this script *merges* into the existing dataset rather
 than rebuilding it: seven early runs are already gone from disk and would be
 lost by a regenerate.
 
-The filter matches what the dataset was originally built with, verified by
-reproducing all of its on-disk records exactly:
+The dataset used to be Ascension 10 only; the page now has an ascension slider,
+so every ascension is kept. Abandoned runs are kept too, flagged
+``"abandoned": true`` (the key only exists on those rows, so older rows are
+untouched); the page leaves them out unless its "Include runs abandoned" toggle
+is on. The filter is just:
 
-    ascension == 10, was_abandoned is false, game_mode == "standard"
+    game_mode == "standard"
+
+(This is the same filter the original A10 dataset was verified against; the
+ascension condition was simply dropped. `ascension` is stored on every row so
+the page can slice by it.)
 
 Usage:
     python tools/sts2_extract.py            # merge new runs into the dataset
@@ -33,7 +40,6 @@ JS_OUT = os.path.join(ROOT, "sts2_data.js")
 HISTORY = os.path.expandvars(
     r"%APPDATA%\SlayTheSpire2\steam\76561198018706944\profile1\saves\history")
 
-ASCENSION = 10
 GAME_MODE = "standard"
 
 
@@ -43,10 +49,17 @@ def _strip(value, prefix):
     return text[len(prefix):] if text.startswith(prefix) else text
 
 
+def local_skips():
+    """Start times listed in the optional, untracked tools/.local_exclude.json."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".local_exclude.json")
+    try:
+        return set(json.load(io.open(path, encoding="utf-8-sig"))["start_times"])
+    except (IOError, ValueError, KeyError):
+        return set()
+
+
 def qualifies(raw):
-    return (raw.get("ascension") == ASCENSION
-            and not raw.get("was_abandoned", False)
-            and raw.get("game_mode") == GAME_MODE)
+    return raw.get("game_mode") == GAME_MODE
 
 
 def derive(raw):
@@ -76,7 +89,7 @@ def derive(raw):
                 "damage": stats.get("damage_taken"),
             })
 
-    return {
+    row = {
         "character": _strip(player.get("character", ""), "CHARACTER."),
         "win": bool(raw.get("win")),
         "ascension": raw.get("ascension"),
@@ -95,6 +108,9 @@ def derive(raw):
         "card_choices": card_choices,
         "encounters": encounters,
     }
+    if raw.get("was_abandoned"):
+        row["abandoned"] = True
+    return row
 
 
 def read_history(since=None):
@@ -143,8 +159,9 @@ def main():
         print("verified %d rows, %d mismatched" % (checked, mismatched))
         return 0 if mismatched == 0 else 1
 
+    skips = local_skips()
     added = [derive(raw) for start, raw in sorted(history.items())
-             if qualifies(raw) and start not in by_time
+             if qualifies(raw) and start not in by_time and start not in skips
              and (args.build is None or raw.get("build_id") == args.build)]
     if not added:
         print("nothing new to add")
@@ -155,7 +172,9 @@ def main():
         json.dump(merged, fh, indent=4)
     with io.open(JS_OUT, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("const RUN_DATA = ")
-        json.dump(merged, fh, indent=4)
+        # compact: with every ascension this is ~300 rows, and indent=4 would put
+        # every floor number on its own line (3+ MB for the browser to parse)
+        json.dump(merged, fh, separators=(",", ":"))
         fh.write(";\n")
 
     fmt = lambda t: datetime.datetime.fromtimestamp(
